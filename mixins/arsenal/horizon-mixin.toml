@@ -1,0 +1,120 @@
+[mod]
+id = "arsenal"
+version = "1.0.0"
+priority = 100
+
+# The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
+# (crates/horizon-client/src/game/native_hooks.rs), which keep their names and signatures.
+[compatibility]
+horizon_revision = "294448014fba585f8d5d09dd8886f482493b6417"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "arsenal_native"
+source = "runtime.rs"
+
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+[[injection]]
+id = "settings"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings"
+helper = "settings.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "buttons", ty = "&mut Vec<String>", value = "&mut *buttons" },
+]
+
+[[injection]]
+id = "click"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings_click"
+helper = "click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "button", ty = "usize", value = "button" },
+]
+
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_hud"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "corners", ty = "&mut horizon_client::extras_hud::Corners", value = "&mut *corners" },
+]
+
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+[[injection]]
+id = "wheel"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_wheel"
+helper = "wheel.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "steps", ty = "f32", value = "steps" },
+  { name = "claimed", ty = "&mut bool", value = "&mut *claimed" },
+]
+
+[[injection]]
+id = "zoom"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_zoom"
+helper = "zoom.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "zoom", ty = "&mut Option<crate::game::native_hooks::NativeZoom>", value = "&mut *zoom" },
+]
+
+[[injection]]
+id = "hand"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_render_hand_pose"
+helper = "hand.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "scale", ty = "&mut f32", value = "&mut *scale" },
+]
+
+[[injection]]
+id = "camera"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_camera_distance"
+helper = "camera.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "distance", ty = "&mut f32", value = "&mut *distance" },
+]
+
+[[injection]]
+id = "fog"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_render_fog"
+helper = "fog.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "fog_type", ty = "horizon_client::fog::FogType", value = "fog_type" },
+  { name = "fog", ty = "&mut horizon_client::fog::FogData", value = "&mut *fog" },
+]

@@ -1,0 +1,132 @@
+name: build
+# Builds Horizon's newest dated Nightly with Arsenal in it for Windows, Linux and macOS (Apple silicon) and publishes
+# a release the Arsenal Launcher downloads, so players don't compile anything. Runs every three hours (a new Nightly
+# is built once), on every push to main and by hand.
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build again even when the release exists
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: build
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      commit: ${{ steps.plan.outputs.commit }}
+      official_tag: ${{ steps.plan.outputs.official_tag }}
+      nightly: ${{ steps.plan.outputs.nightly }}
+      arsenal: ${{ steps.plan.outputs.arsenal }}
+      tag: ${{ steps.plan.outputs.tag }}
+      skip: ${{ steps.plan.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force && 'true' || 'false' }}
+        run: python scripts/plan.py
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.skip != 'true'
+    name: build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            asset: arsenal-horizon-windows-x64.zip
+            # The C runtime linked in, as Horizon's release does: no Visual C++ redistributable needed.
+            rustflags: -C target-feature=+crt-static
+          - name: linux
+            os: ubuntu-22.04
+            asset: arsenal-horizon-linux-x86_64.zip
+          - name: macos
+            os: macos-14
+            asset: arsenal-horizon-macos-arm64.zip
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.1"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "work/stage -> ../target"
+          shared-key: ${{ matrix.name }}
+          cache-on-failure: true
+      - name: ALSA and udev headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+      - name: Build Horizon with Arsenal
+        run: >
+          python scripts/build.py --commit "${{ needs.plan.outputs.commit }}"
+          --version "${{ needs.plan.outputs.official_tag }}" --nightly "${{ needs.plan.outputs.nightly }}"
+          --asset "${{ matrix.asset }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 3
+
+  release:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums, the build's record and Horizon's licences
+        env:
+          COMMIT: ${{ needs.plan.outputs.commit }}
+        run: |
+          set -euo pipefail
+          cd dist
+          curl -fsSL -o HORIZON-LICENSE.txt "https://raw.githubusercontent.com/horizon-rust/horizon/$COMMIT/LICENSE"
+          curl -fsSL -o HORIZON-THIRD_PARTY_NOTICES.md "https://raw.githubusercontent.com/horizon-rust/horizon/$COMMIT/THIRD_PARTY_NOTICES.md"
+          cat > build.json <<EOF
+          {"build": "${{ needs.plan.outputs.build }}", "commit": "$COMMIT", "official_tag": "${{ needs.plan.outputs.official_tag }}", "arsenal": "${{ needs.plan.outputs.arsenal }}"}
+          EOF
+          sha256sum arsenal-horizon-* build.json > SHA256SUMS
+          cat SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --latest \
+            --title "Arsenal ${{ needs.plan.outputs.arsenal }} on Horizon ${{ needs.plan.outputs.build }}" \
+            --notes "Horizon ${{ needs.plan.outputs.official_tag }} (horizon-rust/horizon@${{ needs.plan.outputs.commit }}) with Arsenal ${{ needs.plan.outputs.arsenal }} built in. The Arsenal Launcher downloads this automatically. Horizon is an unofficial, open-source reimplementation and is not an official Minecraft product; it is not approved by or associated with Mojang or Microsoft. Horizon is MIT licensed (HORIZON-LICENSE.txt)."
