@@ -14,18 +14,18 @@ fn arsenal_hud(
         let game = &*game;
         m::settings(|key| game.native_setting(m::ID, key))
     };
-    let corner = [Corner::TopLeft, Corner::TopRight, Corner::BottomLeft, Corner::BottomRight][settings.corner];
-    if !settings.hud || !game.native_corner_shown(corner) {
+    let corner = [Corner::TopLeft, Corner::TopRight, Corner::BottomLeft, Corner::BottomRight][settings.corner()];
+    if !game.native_corner_shown(corner) {
         return;
     }
     let readings = m::Readings {
         fps: game.native_frame_rate().0,
-        cps: if settings.cps { game.native_clicks() } else { (0, 0) },
+        cps: if settings.on(m::INFO) && settings.on(m::CPS) { game.native_clicks() } else { (0, 0) },
         player: game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw)),
     };
     let lines = m::lines(&settings, &readings);
     let game = &*game;
-    let Some((shapes, w, h)) = m::panel(&lines, m::ACCENTS[settings.accent].1, &|text| game.native_text_width(text)) else {
+    let Some((shapes, w, h)) = m::panel(&lines, settings.accent(), &|text| game.native_text_width(text)) else {
         return;
     };
     let (x, y) = corners.place(corner, w, h);
