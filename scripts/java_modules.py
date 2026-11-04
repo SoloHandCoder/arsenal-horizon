@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "mixins" / "arsenal" / "runtime.rs"
-CATEGORIES = ["HUD", "COMBAT", "ENEMIES", "CRYSTAL", "MACE", "WORLD", "CAMERA", "SOCIAL", "UTILITY"]
+CATEGORIES = ["HUD", "COMBAT", "ENEMIES", "CRYSTAL", "MACE", "WORLD", "CAMERA", "VISUALS", "SOCIAL", "UTILITY"]
 
 
 def main():
