@@ -9,8 +9,8 @@ use std::cell::RefCell;
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.1.0";
-pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: Info HUD, coordinates, compass, HUD theme, zoom, hand view model and camera tweaks, with every other Arsenal module listed.";
+pub const VERSION: &str = "1.2.0";
+pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: Info HUD, coordinates, compass, speed, session clock, HUD theme, zoom, hand view model and camera tweaks, with every other Arsenal module listed.";
 
 /// The keys' names and defaults: the menu (Right Shift, as in the Java mod) and zoom (C).
 pub const MENU_KEY: &str = "menu";
@@ -202,8 +202,10 @@ pub const ITEM: usize = 12;
 pub const CAMERA: usize = 13;
 pub const DISTANCE: usize = 14;
 pub const FOG: usize = 15;
+pub const SPEED: usize = 16;
+pub const SESSION: usize = 17;
 
-pub const FIELDS: [Field; 16] = [
+pub const FIELDS: [Field; 18] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
     Field { key: "fps", label: "FPS", options: ONOFF, default: 1 },
     Field { key: "cps", label: "Clicks per second", options: ONOFF, default: 1 },
@@ -220,6 +222,8 @@ pub const FIELDS: [Field; 16] = [
     Field { key: "camera", label: "Camera Tweaks", options: ONOFF, default: 0 },
     Field { key: "distance", label: "Third-person distance", options: DISTANCES, default: 0 },
     Field { key: "fog", label: "Fog", options: FOGS, default: 0 },
+    Field { key: "speed", label: "Speed Display", options: ONOFF, default: 0 },
+    Field { key: "session", label: "Session Clock", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -231,6 +235,8 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("zoom", ZOOM_ON, &[ZOOM, SMOOTH]),
     ("view_model", VIEW, &[ITEM]),
     ("camera_tweaks", CAMERA, &[DISTANCE, FOG]),
+    ("speed_display", SPEED, &[CORNER]),
+    ("session_clock", SESSION, &[CORNER]),
 ];
 
 /// What Horizon runs of the Java module `id`, if it runs it.
@@ -246,12 +252,12 @@ const ZOOM_STEP: f32 = 1.25;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
     /// Each field's choice, as `FIELDS`.
-    pub v: [usize; 16],
+    pub v: [usize; 18],
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        let mut v = [0; 16];
+        let mut v = [0; 18];
         for (i, f) in FIELDS.iter().enumerate() {
             v[i] = f.default;
         }
@@ -356,6 +362,11 @@ struct State {
     /// The zoom while the key is held; None when it is up.
     held: Option<f32>,
     menu: Menu,
+    /// Speed Display and Session Clock: the last position sampled and when, the speed measured, and when the player
+    /// came into this world.
+    sample: Option<(std::time::Instant, [f64; 3])>,
+    speed: f64,
+    joined: Option<std::time::Instant>,
     /// The menu's close button was clicked: closed on the next tick (the click hook can't close screens).
     close: bool,
 }
@@ -424,6 +435,38 @@ pub fn view() -> Option<(f32, bool, f32)> {
     })
 }
 
+/// Follows the player for Speed Display and Session Clock: their position (None out of a world) at `now`. Returns the
+/// horizontal speed in blocks per second (measured over a quarter second) and the seconds since they joined.
+pub fn track(player: Option<[f64; 3]>, now: std::time::Instant) -> (f64, u64) {
+    STATE.with_borrow_mut(|s| {
+        let Some(pos) = player else {
+            s.sample = None;
+            s.speed = 0.0;
+            s.joined = None;
+            return (0.0, 0);
+        };
+        let joined = *s.joined.get_or_insert(now);
+        match s.sample {
+            Some((at, last)) => {
+                let dt = now.duration_since(at).as_secs_f64();
+                if dt >= 0.25 {
+                    let (dx, dz) = (pos[0] - last[0], pos[2] - last[2]);
+                    s.speed = (dx * dx + dz * dz).sqrt() / dt;
+                    s.sample = Some((now, pos));
+                }
+            }
+            None => s.sample = Some((now, pos)),
+        }
+        (s.speed, now.duration_since(joined).as_secs())
+    })
+}
+
+/// "4:05", or "1:02:09" past an hour.
+pub fn clock(secs: u64) -> String {
+    let (h, m, s) = (secs / 3600, secs / 60 % 60, secs % 60);
+    if h > 0 { format!("{h}:{m:02}:{s:02}") } else { format!("{m}:{s:02}") }
+}
+
 /// What the panel shows this frame: the readings its lines need.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Readings {
@@ -432,6 +475,9 @@ pub struct Readings {
     pub cps: (u32, u32),
     /// The player's position and yaw, in a world.
     pub player: Option<([f64; 3], f32)>,
+    /// Blocks per second, and seconds since joining this world.
+    pub speed: f64,
+    pub session: u64,
 }
 
 /// The compass point for `yaw` (0 faces south, 90 west), with the axis it walks along.
@@ -460,6 +506,12 @@ pub fn lines(s: &Settings, r: &Readings) -> Vec<(&'static str, String)> {
         }
         if s.on(FACING) {
             out.push(("Facing", facing(yaw).to_owned()));
+        }
+        if s.on(SPEED) {
+            out.push(("Speed", format!("{:.2} b/s", r.speed)));
+        }
+        if s.on(SESSION) {
+            out.push(("Session", clock(r.session)));
         }
     }
     out
@@ -779,7 +831,7 @@ mod tests {
 
     #[test]
     fn the_panel_lines_up_labels_and_values() {
-        let r = Readings { fps: 144, cps: (7, 2), player: Some(([10.7, 64.0, -3.2], 180.0)) };
+        let r = Readings { fps: 144, cps: (7, 2), player: Some(([10.7, 64.0, -3.2], 180.0)), ..Readings::default() };
         let s = Settings::default();
         let l = lines(&s, &r);
         assert_eq!(l[2], ("XYZ", "10 64 -4".to_owned()));
@@ -861,6 +913,27 @@ mod tests {
         apply(Action::Close, &mut m, &mut s);
         assert!(take_close());
         assert!(!take_close());
+    }
+
+    #[test]
+    fn speed_and_session_follow_the_player() {
+        let t0 = std::time::Instant::now();
+        let ms = |n: u64| t0 + std::time::Duration::from_millis(n);
+        assert_eq!(track(None, t0), (0.0, 0));
+        assert_eq!(track(Some([0.0, 64.0, 0.0]), ms(0)), (0.0, 0));
+        // Not a quarter second yet: no new measurement.
+        assert_eq!(track(Some([1.0, 64.0, 0.0]), ms(100)).0, 0.0);
+        let (speed, _) = track(Some([3.0, 70.0, 4.0]), ms(500));
+        assert!((speed - 10.0).abs() < 1e-9, "{speed}");
+        assert_eq!(track(Some([3.0, 70.0, 4.0]), ms(65_000)).1, 65);
+        assert_eq!(track(None, ms(66_000)), (0.0, 0));
+        assert_eq!((clock(245), clock(3729)), ("4:05".to_owned(), "1:02:09".to_owned()));
+        let mut s = Settings::default();
+        s.click(SPEED);
+        s.click(SESSION);
+        let r = Readings { player: Some(([0.0; 3], 0.0)), speed: 5.612, session: 61, ..Readings::default() };
+        let l = lines(&s, &r);
+        assert!(l.contains(&("Speed", "5.61 b/s".to_owned())) && l.contains(&("Session", "1:01".to_owned())));
     }
 
     #[test]

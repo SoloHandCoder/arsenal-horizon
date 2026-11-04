@@ -22,7 +22,10 @@ fn arsenal_hud(
         fps: game.native_frame_rate().0,
         cps: if settings.on(m::INFO) && settings.on(m::CPS) { game.native_clicks() } else { (0, 0) },
         player: game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw)),
+        ..m::Readings::default()
     };
+    let (speed, session) = m::track(readings.player.map(|(pos, _)| pos), std::time::Instant::now());
+    let readings = m::Readings { speed, session, ..readings };
     let lines = m::lines(&settings, &readings);
     let game = &*game;
     let Some((shapes, w, h)) = m::panel(&lines, settings.accent(), &|text| game.native_text_width(text)) else {
