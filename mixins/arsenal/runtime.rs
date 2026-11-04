@@ -1,16 +1,22 @@
-// Arsenal on Horizon: the Arsenal PvP mod as a native mod. Right Shift opens Arsenal's menu with every module the
-// Java mod has, in its categories; the ones Horizon can run here switch on and off and have their settings, the others
-// show greyed out ("Java only"). Settings are one file per key in the mod's data folder (`native_setting`), and the
-// same settings show in Options > Mods > Arsenal. This file is both the mod's Cargo library (its tests) and the module
-// the bundle adds to the game, as `game::arsenal_native`.
+// Arsenal on Horizon: the Arsenal PvP mod as a native mod. Right Shift opens Arsenal's menu as in the Java mod: a
+// home page with Modules (every module the Java mod has, in its categories; the ones Horizon can run switch on and off
+// with their settings, the others are greyed out with the reason), Browse (the website's crosshairs and HUD themes,
+// applied with a click) and Cosmetics. Settings are one file per key in the mod's data folder (`native_setting`), and
+// the same settings show in Options > Mods > Arsenal. This file is both the mod's Cargo library (its tests) and the
+// module the bundle adds to the game, as `game::arsenal_native`.
 
 use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.2.0";
-pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: Info HUD, coordinates, compass, speed, session clock, HUD theme, zoom, hand view model and camera tweaks, with every other Arsenal module listed.";
+pub const VERSION: &str = "1.3.0";
+pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
+/// The website Browse reads.
+pub const WEBSITE: &str = "https://arsenal.monoforge.net";
 
 /// The keys' names and defaults: the menu (Right Shift, as in the Java mod) and zoom (C).
 pub const MENU_KEY: &str = "menu";
@@ -178,13 +184,18 @@ pub struct Field {
 
 const ONOFF: &[(&str, &str)] = &[("false", "OFF"), ("true", "ON")];
 pub const CORNERS: &[(&str, &str)] = &[("top_left", "Top left"), ("top_right", "Top right"), ("bottom_left", "Bottom left"), ("bottom_right", "Bottom right")];
-pub const ACCENTS: &[(&str, &str)] = &[("gold", "Gold"), ("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("purple", "Purple"), ("white", "White")];
-/// The accents' colours, as `ACCENTS`.
+/// The accents; the last is the HUD theme applied from Browse.
+pub const ACCENTS: &[(&str, &str)] = &[("gold", "Gold"), ("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("purple", "Purple"), ("white", "White"), ("browse", "Theme from Browse")];
+/// The accents' colours, as `ACCENTS` (but the last).
 pub const ACCENT_RGB: [u32; 6] = [0xF5B83D, 0xFF5A5A, 0x5AA9FF, 0x5CE08A, 0xB884FF, 0xFFFFFF];
 pub const ZOOMS: &[(&str, &str)] = &[("2", "2x"), ("3", "3x"), ("4", "4x"), ("6", "6x"), ("8", "8x")];
 pub const ITEM_SIZES: &[(&str, &str)] = &[("100", "100%"), ("90", "90%"), ("80", "80%"), ("70", "70%"), ("60", "60%"), ("50", "50%")];
 pub const DISTANCES: &[(&str, &str)] = &[("4", "4 blocks (vanilla)"), ("2", "2 blocks"), ("3", "3 blocks"), ("6", "6 blocks"), ("8", "8 blocks")];
-pub const FOGS: &[(&str, &str)] = &[("normal", "Normal"), ("less", "Less"), ("none", "None")];
+pub const FOGS: &[(&str, &str)] = &[("less", "Less"), ("none", "None")];
+pub const TAG_WHO: &[(&str, &str)] = &[("players", "Players"), ("all", "Players and mobs")];
+pub const OUTLINE_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("red", "Red"), ("gold", "Gold"), ("blue", "Blue"), ("green", "Green")];
+const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A];
+pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
 
 pub const INFO: usize = 0;
 pub const FPS: usize = 1;
@@ -204,8 +215,21 @@ pub const DISTANCE: usize = 14;
 pub const FOG: usize = 15;
 pub const SPEED: usize = 16;
 pub const SESSION: usize = 17;
+pub const CROSSHAIR: usize = 18;
+pub const HIDE_BOSS: usize = 19;
+pub const HIDE_TITLES: usize = 20;
+pub const HIDE_SCORE: usize = 21;
+pub const GRAPH: usize = 22;
+pub const SNEAK: usize = 23;
+pub const NO_FOG: usize = 24;
+pub const HIDE_TAGS: usize = 25;
+pub const TAGS_WHO: usize = 26;
+pub const OUTLINE: usize = 27;
+pub const OUTLINE_COLOR: usize = 28;
+pub const OUTLINE_WIDTH: usize = 29;
+const N: usize = 30;
 
-pub const FIELDS: [Field; 18] = [
+pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
     Field { key: "fps", label: "FPS", options: ONOFF, default: 1 },
     Field { key: "cps", label: "Clicks per second", options: ONOFF, default: 1 },
@@ -221,9 +245,21 @@ pub const FIELDS: [Field; 18] = [
     Field { key: "item", label: "Held item size", options: ITEM_SIZES, default: 0 },
     Field { key: "camera", label: "Camera Tweaks", options: ONOFF, default: 0 },
     Field { key: "distance", label: "Third-person distance", options: DISTANCES, default: 0 },
-    Field { key: "fog", label: "Fog", options: FOGS, default: 0 },
+    Field { key: "fog", label: "Fog", options: FOGS, default: 1 },
     Field { key: "speed", label: "Speed Display", options: ONOFF, default: 0 },
     Field { key: "session", label: "Session Clock", options: ONOFF, default: 0 },
+    Field { key: "crosshair_on", label: "Crosshair Editor", options: ONOFF, default: 0 },
+    Field { key: "hide_boss", label: "Hide the boss bar", options: ONOFF, default: 0 },
+    Field { key: "hide_titles", label: "Hide titles and the action bar", options: ONOFF, default: 0 },
+    Field { key: "hide_score", label: "Hide the scoreboard", options: ONOFF, default: 0 },
+    Field { key: "fps_graph", label: "FPS Graph", options: ONOFF, default: 0 },
+    Field { key: "toggle_sneak", label: "Toggle Sneak", options: ONOFF, default: 0 },
+    Field { key: "no_fog", label: "No Fog", options: ONOFF, default: 0 },
+    Field { key: "hide_tags", label: "Hide Nametags", options: ONOFF, default: 0 },
+    Field { key: "tags_who", label: "Hide for", options: TAG_WHO, default: 0 },
+    Field { key: "outline", label: "Block Outline", options: ONOFF, default: 0 },
+    Field { key: "outline_color", label: "Outline colour", options: OUTLINE_COLORS, default: 0 },
+    Field { key: "outline_width", label: "Outline thickness", options: OUTLINE_WIDTHS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -231,13 +267,58 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("info_hud", INFO, &[FPS, CPS, CORNER]),
     ("coordinates", COORDS, &[CORNER]),
     ("compass", FACING, &[CORNER]),
-    ("hud_theme", THEME, &[ACCENT]),
-    ("zoom", ZOOM_ON, &[ZOOM, SMOOTH]),
-    ("view_model", VIEW, &[ITEM]),
-    ("camera_tweaks", CAMERA, &[DISTANCE, FOG]),
     ("speed_display", SPEED, &[CORNER]),
     ("session_clock", SESSION, &[CORNER]),
+    ("fps_graph", GRAPH, &[CORNER]),
+    ("hud_theme", THEME, &[ACCENT]),
+    ("custom_crosshair", CROSSHAIR, &[]),
+    ("boss_bar_tweaks", HIDE_BOSS, &[]),
+    ("title_tweaks", HIDE_TITLES, &[]),
+    ("scoreboard_tweaks", HIDE_SCORE, &[]),
+    ("zoom", ZOOM_ON, &[ZOOM, SMOOTH]),
+    ("view_model", VIEW, &[ITEM]),
+    ("camera_tweaks", CAMERA, &[DISTANCE]),
+    ("no_fog", NO_FOG, &[FOG]),
+    ("hide_nametags", HIDE_TAGS, &[TAGS_WHO]),
+    ("block_outline", OUTLINE, &[OUTLINE_COLOR, OUTLINE_WIDTH]),
+    ("toggle_sprint", SNEAK, &[]),
 ];
+
+/// What a module does on Horizon when that differs from the Java mod.
+pub fn horizon_note(id: &str) -> Option<&'static str> {
+    Some(match id {
+        "custom_crosshair" => "Pick a crosshair in Browse > Crosshairs; it replaces the vanilla one.",
+        "hud_theme" => "Pick a theme in Browse > Themes, or one of the accents here.",
+        "boss_bar_tweaks" => "On Horizon: hides the boss bar.",
+        "title_tweaks" => "On Horizon: hides titles, subtitles and the action bar.",
+        "scoreboard_tweaks" => "On Horizon: hides the scoreboard sidebar.",
+        "toggle_sprint" => "On Horizon: press sneak once to keep sneaking, again to stop. Horizon doesn't let mods hold sprint yet.",
+        "no_fog" => "On Horizon: less or no distance fog in the open air; water and lava keep theirs.",
+        "camera_tweaks" => "On Horizon: the third-person camera's distance.",
+        "view_model" => "On Horizon: the size of the item in your hand.",
+        "hide_nametags" => "On Horizon: hides name tags above players (or mobs too).",
+        _ => return None,
+    })
+}
+
+/// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
+pub fn why_not(id: &str) -> &'static str {
+    const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes"];
+    const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "ready_check", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
+    const SELF: &[&str] = &["armor_hud", "potion_timers", "cooldown_hud", "inventory_totem", "item_counter", "durability_warning", "offhand_totem_warning", "potion_warning", "retotem_timer", "food_preview", "shulker_preview", "better_tooltips", "bow_charge", "attack_bar", "crit_indicator", "low_health_warning", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
+    const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard"];
+    if ACCOUNT.contains(&id) {
+        "Needs your Arsenal account or another app, which Horizon doesn't pass to mods yet."
+    } else if PLAYERS.contains(&id) {
+        "Horizon doesn't tell mods about other players' health, hits, items or effects yet."
+    } else if SELF.contains(&id) {
+        "Horizon doesn't tell mods about your inventory, health, effects or the server yet."
+    } else if CHAT.contains(&id) {
+        "Horizon doesn't let mods read or change chat, server messages or connections yet."
+    } else {
+        "Horizon can't let mods draw or change this in the world yet."
+    }
+}
 
 /// What Horizon runs of the Java module `id`, if it runs it.
 pub fn on_horizon(id: &str) -> Option<(usize, &'static [usize])> {
@@ -249,19 +330,49 @@ const ZOOM_MAX: f32 = 10.0;
 /// Each wheel step multiplies the zoom by this.
 const ZOOM_STEP: f32 = 1.25;
 
+/// A drawn crosshair from Browse: its grid (`#` drawn, `.` not), colour (0xRRGGBB) and pixel size.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Crosshair {
+    pub rows: Vec<String>,
+    pub rgb: u32,
+    pub size: u32,
+}
+
+/// A HUD theme from Browse: panel background (0xAARRGGBB), text and accent (0xRRGGBB).
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Theme {
+    pub background: u32,
+    pub text: u32,
+    pub accent: u32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Settings {
     /// Each field's choice, as `FIELDS`.
-    pub v: [usize; 18],
+    pub v: [usize; N],
+    /// What Browse applied.
+    pub theme: Option<Theme>,
+    pub crosshair: Option<Crosshair>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        let mut v = [0; 18];
+        let mut v = [0; N];
         for (i, f) in FIELDS.iter().enumerate() {
             v[i] = f.default;
         }
-        Self { v }
+        Self { v, theme: None, crosshair: None }
+    }
+}
+
+/// "#AARRGGBB" or "#RRGGBB" (opaque) as 0xAARRGGBB.
+pub fn parse_color(text: &str) -> Option<u32> {
+    let hex = text.trim().trim_start_matches('#');
+    let v = u32::from_str_radix(hex, 16).ok()?;
+    match hex.len() {
+        6 => Some(0xFF00_0000 | v),
+        8 => Some(v),
+        _ => None,
     }
 }
 
@@ -277,6 +388,17 @@ impl Settings {
                 }
             }
         }
+        s.theme = get("browse_theme").and_then(|t| {
+            let c: Vec<u32> = t.split(',').filter_map(parse_color).collect();
+            (c.len() == 3).then(|| Theme { background: c[0], text: c[1] & 0xFF_FFFF, accent: c[2] & 0xFF_FFFF })
+        });
+        s.crosshair = get("browse_crosshair").and_then(|t| {
+            let mut parts = t.trim().split(';');
+            let rows: Vec<String> = parts.next()?.split('/').map(str::to_owned).collect();
+            let rgb = parse_color(parts.next()?)? & 0xFF_FFFF;
+            let size = parts.next()?.parse().ok()?;
+            crosshair_ok(&rows).then_some(Crosshair { rows, rgb, size })
+        });
         s
     }
 
@@ -303,16 +425,32 @@ impl Settings {
 
     /// What to store, key by key.
     pub fn stored(&self) -> Vec<(&'static str, String)> {
-        FIELDS.iter().enumerate().map(|(i, f)| (f.key, f.options[self.v[i]].0.to_owned())).collect()
+        let mut out: Vec<(&'static str, String)> = FIELDS.iter().enumerate().map(|(i, f)| (f.key, f.options[self.v[i]].0.to_owned())).collect();
+        out.push(("browse_theme", self.theme.map_or(String::new(), |t| format!("#{:08X},#{:06X},#{:06X}", t.background, t.text, t.accent))));
+        out.push(("browse_crosshair", self.crosshair.as_ref().map_or(String::new(), |c| format!("{};#{:06X};{}", c.rows.join("/"), c.rgb, c.size))));
+        out
     }
 
     fn number(&self, field: usize) -> f32 {
         FIELDS[field].options[self.v[field]].0.parse().unwrap_or(1.0)
     }
 
+    fn browse_theme(&self) -> Option<Theme> {
+        if self.on(THEME) && self.v[ACCENT] == ACCENTS.len() - 1 { self.theme } else { None }
+    }
+
     /// The panel's and the menu's accent (0xRRGGBB): HUD Theme's, else gold.
     pub fn accent(&self) -> u32 {
-        if self.on(THEME) { ACCENT_RGB[self.v[ACCENT]] } else { ACCENT_RGB[0] }
+        match self.browse_theme() {
+            Some(t) => t.accent,
+            None if self.on(THEME) => ACCENT_RGB.get(self.v[ACCENT]).copied().unwrap_or(ACCENT_RGB[0]),
+            None => ACCENT_RGB[0],
+        }
+    }
+
+    /// The panel's background (0xAARRGGBB) and value text (0xRRGGBB).
+    pub fn panel_colors(&self) -> (u32, u32) {
+        self.browse_theme().map_or((BACKGROUND, WHITE), |t| (t.background, t.text))
     }
 
     pub fn corner(&self) -> usize {
@@ -330,12 +468,12 @@ impl Settings {
         if self.on(CAMERA) { distance * self.number(DISTANCE) / 4.0 } else { distance }
     }
 
-    /// The environmental fog's start and end for vanilla's, pushed away by Camera Tweaks' fog. Only ever further,
-    /// and end stays past start, as Horizon requires.
+    /// The environmental fog's start and end for vanilla's, pushed away by No Fog. Only ever further, and end stays
+    /// past start, as Horizon requires.
     pub fn fog_range(&self, start: f32, end: f32) -> (f32, f32) {
-        match (self.on(CAMERA), self.v[FOG]) {
-            (true, 1) => (start * 2.0, (end * 2.0).max(start * 2.0 + 1.0)),
-            (true, 2) => (1.0e6, 1.0e6 + 1.0),
+        match (self.on(NO_FOG), self.v[FOG]) {
+            (true, 0) => (start * 2.0, (end * 2.0).max(start * 2.0 + 1.0)),
+            (true, _) => (1.0e6, 1.0e6 + 1.0),
             _ => (start, end),
         }
     }
@@ -343,16 +481,86 @@ impl Settings {
     pub fn zoom_level(&self) -> f32 {
         self.number(ZOOM)
     }
+
+    /// Whether the HUD layer `layer` (`minecraft:boss_overlay`…) is hidden.
+    pub fn hides_layer(&self, layer: &str) -> bool {
+        let name = layer.rsplit(':').next().unwrap_or(layer);
+        match name {
+            "boss_overlay" => self.on(HIDE_BOSS),
+            "title" | "subtitle_overlay" | "overlay_message" => self.on(HIDE_TITLES),
+            "scoreboard_sidebar" => self.on(HIDE_SCORE),
+            "crosshair" => self.on(CROSSHAIR) && self.crosshair.is_some(),
+            _ => false,
+        }
+    }
+
+    /// Whether the name tag of an entity of type `kind` is hidden (Hide Nametags).
+    pub fn hides_tag(&self, kind: &str) -> bool {
+        self.on(HIDE_TAGS) && (self.v[TAGS_WHO] == 1 || kind == "minecraft:player")
+    }
+
+    /// The block outline's colour (0xAARRGGBB) and width, when Block Outline is on.
+    pub fn outline(&self) -> Option<(u32, f32)> {
+        if !self.on(OUTLINE) {
+            return None;
+        }
+        let rgb = if self.v[OUTLINE_COLOR] == 0 { self.accent() } else { OUTLINE_RGB[self.v[OUTLINE_COLOR] - 1] };
+        Some((0xFF00_0000 | rgb, self.number(OUTLINE_WIDTH)))
+    }
+}
+
+/// A grid Browse can draw: 1 to 128 rows of `#` and `.`, at most 128 long, with something drawn.
+fn crosshair_ok(rows: &[String]) -> bool {
+    !rows.is_empty() && rows.len() <= 128 && rows.iter().all(|r| r.len() <= 128 && r.chars().all(|c| c == '#' || c == '.')) && rows.iter().any(|r| r.contains('#'))
+}
+
+/// A crosshair's drawn runs, centred on `center`, each cell `cell` GUI pixels: one rectangle per run of `#` in a row.
+pub fn crosshair_shapes(c: &Crosshair, center: [f32; 2], cell: f32) -> Vec<Shape> {
+    let h = c.rows.len() as f32;
+    let w = c.rows.iter().map(|r| r.len()).max().unwrap_or(0) as f32;
+    let (x0, y0) = (center[0] - w * cell / 2.0, center[1] - h * cell / 2.0);
+    let mut out = Vec::new();
+    for (y, row) in c.rows.iter().enumerate() {
+        let bytes = row.as_bytes();
+        let mut x = 0;
+        while x < bytes.len() {
+            if bytes[x] == b'#' {
+                let start = x;
+                while x < bytes.len() && bytes[x] == b'#' {
+                    x += 1;
+                }
+                out.push(Shape::Fill([x0 + start as f32 * cell, y0 + y as f32 * cell, (x - start) as f32 * cell, cell], 0xFF00_0000 | c.rgb));
+            } else {
+                x += 1;
+            }
+        }
+    }
+    out
+}
+
+/// What the Right Shift menu shows.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Page {
+    #[default]
+    Home,
+    Modules,
+    Browse,
+    Cosmetics,
 }
 
 /// The Right Shift menu's own state.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Menu {
+    pub page: Page,
     pub category: usize,
     /// The first module row shown (the wheel moves it).
     pub scroll: usize,
     /// The module whose settings are open (index in `JAVA_MODULES`).
     pub detail: Option<usize>,
+    /// Browse: the tab (index in `BROWSE_TABS`), the first row of cards shown, and what was just applied.
+    pub tab: usize,
+    pub browse_scroll: usize,
+    pub notice: Option<String>,
 }
 
 #[derive(Default)]
@@ -364,9 +572,17 @@ struct State {
     menu: Menu,
     /// Speed Display and Session Clock: the last position sampled and when, the speed measured, and when the player
     /// came into this world.
-    sample: Option<(std::time::Instant, [f64; 3])>,
+    sample: Option<(Instant, [f64; 3])>,
     speed: f64,
-    joined: Option<std::time::Instant>,
+    joined: Option<Instant>,
+    /// FPS Graph: one reading every quarter second, the newest last.
+    fps: VecDeque<u32>,
+    fps_at: Option<Instant>,
+    /// Toggle Sneak: the sneak key as last read, and whether sneaking is kept on.
+    sneak_down: bool,
+    sneaking: bool,
+    /// The block the outline is drawn on this frame.
+    outlined: Option<[i32; 3]>,
     /// The menu's close button was clicked: closed on the next tick (the click hook can't close screens).
     close: bool,
 }
@@ -377,12 +593,12 @@ thread_local! {
 
 /// The settings, read once through `get`.
 pub fn settings(get: impl Fn(&str) -> Option<String>) -> Settings {
-    STATE.with_borrow_mut(|s| *s.settings.get_or_insert_with(|| Settings::read(get)))
+    STATE.with_borrow_mut(|s| s.settings.get_or_insert_with(|| Settings::read(get)).clone())
 }
 
 /// Replaces the settings (a settings page changed them).
-pub fn set_settings(settings: Settings) {
-    STATE.with_borrow_mut(|s| s.settings = Some(settings));
+pub fn set_settings(settings: &Settings) {
+    STATE.with_borrow_mut(|s| s.settings = Some(settings.clone()));
 }
 
 pub fn menu() -> Menu {
@@ -430,15 +646,53 @@ pub fn wheel(steps: f32) -> bool {
 pub fn view() -> Option<(f32, bool, f32)> {
     STATE.with_borrow(|s| {
         let factor = s.held?;
-        let smooth = s.settings.unwrap_or_default().on(SMOOTH);
+        let smooth = s.settings.as_ref().is_none_or(|st| st.on(SMOOTH));
         Some((factor, smooth, 1.0 / factor))
     })
 }
 
-/// Follows the player for Speed Display and Session Clock: their position (None out of a world) at `now`. Returns the
-/// horizontal speed in blocks per second (measured over a quarter second) and the seconds since they joined.
-pub fn track(player: Option<[f64; 3]>, now: std::time::Instant) -> (f64, u64) {
+/// Toggle Sneak: the sneak key as the game read it this tick (`down`); true when the player sneaks.
+pub fn sneak(on: bool, down: bool) -> bool {
     STATE.with_borrow_mut(|s| {
+        if !on {
+            s.sneaking = false;
+            s.sneak_down = down;
+            return down;
+        }
+        if down && !s.sneak_down {
+            s.sneaking = !s.sneaking;
+        }
+        s.sneak_down = down;
+        s.sneaking
+    })
+}
+
+/// Whether Toggle Sneak keeps the player sneaking.
+pub fn sneaking() -> bool {
+    STATE.with_borrow(|s| s.sneaking)
+}
+
+/// Block Outline: the block the game is about to outline this frame, or none.
+pub fn set_outlined(pos: Option<[i32; 3]>) {
+    STATE.with_borrow_mut(|s| s.outlined = pos);
+}
+
+pub fn outlined() -> Option<[i32; 3]> {
+    STATE.with_borrow(|s| s.outlined)
+}
+
+/// Follows the player for Speed Display, Session Clock and FPS Graph: their position (None out of a world) and the
+/// frame rate at `now`. Returns the horizontal speed in blocks per second (measured over a quarter second) and the
+/// seconds since they joined.
+pub fn track(player: Option<[f64; 3]>, fps: u32, now: Instant) -> (f64, u64) {
+    STATE.with_borrow_mut(|s| {
+        if s.fps_at.is_none_or(|at| now.duration_since(at) >= Duration::from_millis(250)) {
+            s.fps_at = Some(now);
+            if s.fps.len() >= GRAPH_SAMPLES {
+                s.fps.pop_front();
+            }
+            s.fps.push_back(fps);
+        }
         let Some(pos) = player else {
             s.sample = None;
             s.speed = 0.0;
@@ -461,6 +715,11 @@ pub fn track(player: Option<[f64; 3]>, now: std::time::Instant) -> (f64, u64) {
     })
 }
 
+/// FPS Graph's readings, oldest first.
+pub fn fps_history() -> Vec<u32> {
+    STATE.with_borrow(|s| s.fps.iter().copied().collect())
+}
+
 /// "4:05", or "1:02:09" past an hour.
 pub fn clock(secs: u64) -> String {
     let (h, m, s) = (secs / 3600, secs / 60 % 60, secs % 60);
@@ -478,6 +737,8 @@ pub struct Readings {
     /// Blocks per second, and seconds since joining this world.
     pub speed: f64,
     pub session: u64,
+    /// Toggle Sneak keeps the player sneaking.
+    pub sneaking: bool,
 }
 
 /// The compass point for `yaw` (0 faces south, 90 west), with the axis it walks along.
@@ -513,6 +774,9 @@ pub fn lines(s: &Settings, r: &Readings) -> Vec<(&'static str, String)> {
         if s.on(SESSION) {
             out.push(("Session", clock(r.session)));
         }
+        if s.on(SNEAK) && r.sneaking {
+            out.push(("Sneak", "Toggled".to_owned()));
+        }
     }
     out
 }
@@ -531,30 +795,169 @@ const PAD: f32 = 4.0;
 const STRIPE: f32 = 2.0;
 const LINE: f32 = 10.0;
 const GAP: f32 = 5.0;
+const GRAPH_SAMPLES: usize = 60;
 
-/// The panel for `lines` in `accent` (0xRRGGBB), measured with `width`: its shapes (from its top left) and its size.
-/// None when there is nothing to show.
-pub fn panel(lines: &[(&str, String)], accent: u32, width: &dyn Fn(&str) -> f32) -> Option<(Vec<Shape>, f32, f32)> {
+/// The panel for `lines` in `s`'s colours, measured with `width`: its shapes (from its top left) and its size. None
+/// when there is nothing to show.
+pub fn panel(lines: &[(&str, String)], s: &Settings, width: &dyn Fn(&str) -> f32) -> Option<(Vec<Shape>, f32, f32)> {
     if lines.is_empty() {
         return None;
     }
+    let accent = s.accent();
+    let (background, text) = s.panel_colors();
     let labels = lines.iter().map(|(l, _)| width(l)).fold(0.0, f32::max);
     let values = lines.iter().map(|(_, v)| width(v)).fold(0.0, f32::max);
     let w = STRIPE + PAD + labels + GAP + values + PAD;
     let h = PAD * 2.0 + lines.len() as f32 * LINE - 2.0;
-    let mut out = vec![Shape::Fill([0.0, 0.0, w, h], BACKGROUND), Shape::Fill([0.0, 0.0, STRIPE, h], 0xFF00_0000 | accent)];
+    let mut out = vec![Shape::Fill([0.0, 0.0, w, h], background), Shape::Fill([0.0, 0.0, STRIPE, h], 0xFF00_0000 | accent)];
     for (i, (label, value)) in lines.iter().enumerate() {
         let y = PAD + i as f32 * LINE;
         out.push(Shape::Text((*label).to_owned(), [STRIPE + PAD, y], accent, true));
-        out.push(Shape::Text(value.clone(), [STRIPE + PAD + labels + GAP, y], WHITE, true));
+        out.push(Shape::Text(value.clone(), [STRIPE + PAD + labels + GAP, y], text, true));
     }
     Some((out, w, h))
 }
+
+/// FPS Graph's box: a bar per reading, scaled to the highest, with the newest number. None without readings.
+pub fn graph(readings: &[u32], s: &Settings) -> Option<(Vec<Shape>, f32, f32)> {
+    let newest = *readings.last()?;
+    let (w, h, bars) = (GRAPH_SAMPLES as f32 + 8.0, 34.0, 20.0);
+    let top = readings.iter().copied().max().unwrap_or(1).max(1) as f32;
+    let accent = s.accent();
+    let (background, text) = s.panel_colors();
+    let mut out = vec![Shape::Fill([0.0, 0.0, w, h], background), Shape::Text(format!("{newest} FPS"), [4.0, 3.0], text, true)];
+    let x0 = w - 4.0 - readings.len() as f32;
+    for (i, &v) in readings.iter().enumerate() {
+        let bh = (v as f32 / top * bars).max(1.0);
+        out.push(Shape::Fill([x0 + i as f32, h - 3.0 - bh, 1.0, bh], 0xFF00_0000 | accent));
+    }
+    Some((out, w, h))
+}
+
+// ---- Browse: the website's gallery ----
+
+/// Browse's tabs: (label, the website's kind). Presets are whole Java setups, so they're listed but not applied here.
+pub const BROWSE_TABS: [(&str, &str); 3] = [("Crosshairs", "crosshair"), ("Themes", "theme"), ("Presets", "preset")];
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Look {
+    Crosshair(Crosshair),
+    Theme(Theme),
+    Preset,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GalleryItem {
+    pub title: String,
+    pub author: String,
+    pub look: Look,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Fetch {
+    Loading,
+    Ready(Vec<GalleryItem>),
+    Failed,
+}
+
+static GALLERY: Mutex<[Option<Fetch>; 3]> = Mutex::new([None, None, None]);
+
+/// The website's list (`/v1/gallery`) as Browse shows it: crosshairs with their grid, themes with their colours.
+pub fn parse_gallery(text: &str) -> Vec<GalleryItem> {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(text) else {
+        return Vec::new();
+    };
+    let s = |x: &serde_json::Value| x.as_str().unwrap_or("").to_owned();
+    let mut out = Vec::new();
+    for item in v["items"].as_array().into_iter().flatten() {
+        let p = &item["preview"];
+        let look = match item["kind"].as_str() {
+            Some("crosshair") => {
+                let rows: Vec<String> = p["rows"].as_array().into_iter().flatten().filter_map(|r| r.as_str().map(str::to_owned)).collect();
+                let Some(rgb) = p["color"].as_str().and_then(parse_color) else { continue };
+                if !crosshair_ok(&rows) {
+                    continue;
+                }
+                Look::Crosshair(Crosshair { rows, rgb: rgb & 0xFF_FFFF, size: p["size"].as_u64().unwrap_or(2).clamp(1, 8) as u32 })
+            }
+            Some("theme") => {
+                let c = |k: &str| p["look"][k].as_str().or(p[k].as_str()).and_then(parse_color);
+                let (Some(background), Some(text), Some(accent)) = (c("background"), c("text"), c("accent")) else { continue };
+                Look::Theme(Theme { background, text: text & 0xFF_FFFF, accent: accent & 0xFF_FFFF })
+            }
+            Some("preset") => Look::Preset,
+            _ => continue,
+        };
+        out.push(GalleryItem { title: s(&item["title"]), author: s(&item["author"]), look });
+    }
+    out
+}
+
+/// Browse's tab `tab`: what is loaded, starting the download when it isn't (once, in the background).
+pub fn gallery(tab: usize) -> Fetch {
+    let mut g = GALLERY.lock().unwrap_or_else(|e| e.into_inner());
+    match &g[tab] {
+        Some(f) => f.clone(),
+        None => {
+            g[tab] = Some(Fetch::Loading);
+            download(tab);
+            Fetch::Loading
+        }
+    }
+}
+
+/// Downloads tab `tab`'s list off the game's thread.
+#[cfg(not(test))]
+fn download(tab: usize) {
+    let url = format!("{WEBSITE}/v1/gallery?kind={}&sort=popular&limit=100", BROWSE_TABS[tab].1);
+    std::thread::spawn(move || {
+        let result = ureq::get(&url)
+            .timeout(Duration::from_secs(15))
+            .set("User-Agent", "Arsenal-Horizon")
+            .call()
+            .ok()
+            .and_then(|r| r.into_string().ok());
+        let fetched = match result {
+            Some(text) => Fetch::Ready(parse_gallery(&text)),
+            None => Fetch::Failed,
+        };
+        GALLERY.lock().unwrap_or_else(|e| e.into_inner())[tab] = Some(fetched);
+    });
+}
+
+#[cfg(test)]
+fn download(_tab: usize) {}
+
+/// Forgets tab `tab`'s list, so the next look downloads it again (after a failure).
+pub fn retry(tab: usize) {
+    GALLERY.lock().unwrap_or_else(|e| e.into_inner())[tab] = None;
+}
+
+/// Applies `item` from Browse: a crosshair turns on Crosshair Editor with it, a theme turns on HUD Theme with it.
+pub fn apply_item(item: &GalleryItem, s: &mut Settings) -> bool {
+    match &item.look {
+        Look::Crosshair(c) => {
+            s.crosshair = Some(c.clone());
+            s.v[CROSSHAIR] = 1;
+            true
+        }
+        Look::Theme(t) => {
+            s.theme = Some(*t);
+            s.v[THEME] = 1;
+            s.v[ACCENT] = ACCENTS.len() - 1;
+            true
+        }
+        Look::Preset => false,
+    }
+}
+
+// ---- The menu ----
 
 /// What a click on the menu does.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Action {
     Close,
+    Go(Page),
     Category(usize),
     /// Switch the Horizon module (index in `JAVA_MODULES`) on or off.
     Toggle(usize),
@@ -563,6 +966,10 @@ pub enum Action {
     Back,
     /// A click on setting `i` (index in `FIELDS`).
     Setting(usize),
+    Tab(usize),
+    /// Apply card `i` of the current Browse tab.
+    Apply(usize),
+    Retry,
 }
 
 const MENU_BG: u32 = 0xF014_141A;
@@ -574,6 +981,8 @@ const GREY: u32 = 0x5E5E6A;
 const ROW: f32 = 26.0;
 const SIDE: f32 = 104.0;
 const HEADER: f32 = 24.0;
+const CARD_W: f32 = 92.0;
+const CARD_H: f32 = 70.0;
 
 fn inside(r: [f32; 4], p: [f32; 2]) -> bool {
     p[0] >= r[0] && p[1] >= r[1] && p[0] < r[0] + r[2] && p[1] < r[1] + r[3]
@@ -608,13 +1017,32 @@ fn menu_size(screen: [f32; 4]) -> (f32, f32) {
     ((screen[2] - 16.0).min(500.0).max(240.0), (screen[3] - 16.0).min(320.0).max(140.0))
 }
 
+/// Browse's card grid in a menu of size `w`×`h`: (columns, rows shown).
+fn grid(w: f32, h: f32) -> (usize, usize) {
+    let cols = (((w - 16.0) / (CARD_W + 4.0)).floor().max(1.0)) as usize;
+    let rows = (((h - HEADER - 26.0) / (CARD_H + 4.0)).floor().max(1.0)) as usize;
+    (cols, rows)
+}
+
+/// How many Horizon modules are on.
+pub fn modules_on(s: &Settings) -> usize {
+    ON_HORIZON.iter().filter(|m| s.v[m.1] == 1).count()
+}
+
+fn button(out: &mut Vec<Shape>, hits: &mut Vec<([f32; 4], Action)>, r: [f32; 4], label: &str, action: Action, mouse: [f32; 2], width: &dyn Fn(&str) -> f32) {
+    out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
+    out.push(Shape::Text(label.to_owned(), [r[0] + (r[2] - width(label)) / 2.0, r[1] + (r[3] - 8.0) / 2.0], WHITE, false));
+    hits.push((r, action));
+}
+
 /// The menu in `screen` (`[x, y, w, h]`, GUI pixels) with the pointer at `mouse`: what to draw, and where a click does
-/// what (the last one under the pointer wins).
+/// what (the last one under the pointer wins). `browse` is the current Browse tab's list.
 pub fn menu_layout(
     screen: [f32; 4],
     mouse: [f32; 2],
     m: &Menu,
     s: &Settings,
+    browse: &Fetch,
     width: &dyn Fn(&str) -> f32,
 ) -> (Vec<Shape>, Vec<([f32; 4], Action)>) {
     let accent = s.accent();
@@ -624,98 +1052,215 @@ pub fn menu_layout(
     let mut out = vec![
         Shape::Fill([0.0, 0.0, screen[2] + screen[0], screen[3] + screen[1]], 0x7000_0000),
         Shape::Fill([x0, y0, w, h], MENU_BG),
-        Shape::Fill([x0, y0, SIDE, h], SIDEBAR_BG),
         Shape::Fill([x0, y0, w, 2.0], 0xFF00_0000 | accent),
     ];
     let mut hits = Vec::new();
-    out.push(Shape::Text("ARSENAL".into(), [x0 + 10.0, y0 + 9.0], accent, true));
-    out.push(Shape::Text("on Horizon".into(), [x0 + 10.0, y0 + h - 14.0], GREY, false));
-    let close = [x0 + w - 18.0, y0 + 5.0, 14.0, 14.0];
-    out.push(Shape::Fill(close, if inside(close, mouse) { ROW_HOVER } else { ROW_BG }));
-    out.push(Shape::Text("x".into(), [close[0] + 4.0, close[1] + 3.0], WHITE, false));
-    hits.push((close, Action::Close));
-
-    // The categories.
-    for (i, name) in CATEGORIES.iter().enumerate() {
-        let r = [x0, y0 + HEADER + 4.0 + i as f32 * 16.0, SIDE, 16.0];
-        let selected = match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
-            Some(j) => j.category == i,
-            None => m.category == i,
-        };
-        if selected {
-            out.push(Shape::Fill(r, ROW_HOVER));
-            out.push(Shape::Fill([r[0], r[1], 2.0, r[3]], 0xFF00_0000 | accent));
-        } else if inside(r, mouse) {
-            out.push(Shape::Fill(r, ROW_BG));
-        }
-        out.push(Shape::Text(fit(name, SIDE - 16.0, width), [r[0] + 9.0, r[1] + 4.0], if selected { WHITE } else { MUTED }, false));
-        hits.push((r, Action::Category(i)));
+    let title = [x0 + 6.0, y0 + 5.0, width("ARSENAL") + 8.0, 14.0];
+    if m.page != Page::Home && inside(title, mouse) {
+        out.push(Shape::Fill(title, ROW_BG));
     }
-
-    let cx = x0 + SIDE + 8.0;
-    let cw = w - SIDE - 16.0;
+    out.push(Shape::Text("ARSENAL".into(), [x0 + 10.0, y0 + 9.0], accent, true));
+    if m.page != Page::Home {
+        hits.push((title, Action::Go(Page::Home)));
+        let page = match m.page {
+            Page::Modules => "Modules",
+            Page::Browse => "Browse",
+            Page::Cosmetics => "Cosmetics",
+            Page::Home => "",
+        };
+        out.push(Shape::Text(format!("> {page}"), [title[0] + title[2] + 4.0, y0 + 9.0], MUTED, false));
+    }
+    let close = [x0 + w - 18.0, y0 + 5.0, 14.0, 14.0];
+    button(&mut out, &mut hits, close, "x", Action::Close, mouse, width);
     let top = y0 + HEADER;
-    match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
-        Some(module) => {
-            let back = [cx, top, width("< Back") + 10.0, 14.0];
-            out.push(Shape::Fill(back, if inside(back, mouse) { ROW_HOVER } else { ROW_BG }));
-            out.push(Shape::Text("< Back".into(), [back[0] + 5.0, back[1] + 3.0], WHITE, false));
-            hits.push((back, Action::Back));
-            out.push(Shape::Text(module.name.into(), [back[0] + back[2] + 8.0, top + 3.0], accent, true));
-            out.push(Shape::Text(fit(module.description, cw, width), [cx, top + 20.0], MUTED, false));
-            let mut y = top + 36.0;
-            if let Some((toggle, fields)) = on_horizon(module.id) {
-                for &f in std::iter::once(&toggle).chain(fields.iter()) {
-                    if y + 18.0 > y0 + h - 4.0 {
-                        break;
-                    }
-                    let r = [cx, y, cw, 16.0];
-                    out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-                    let label = if f == toggle { format!("Enabled: {}", FIELDS[f].options[s.v[f]].1) } else { s.label(f) };
-                    out.push(Shape::Text(fit(&label, cw - 12.0, width), [r[0] + 6.0, r[1] + 4.0], WHITE, false));
-                    hits.push((r, Action::Setting(f)));
-                    y += 19.0;
+
+    match m.page {
+        Page::Home => {
+            out.push(Shape::Text("on Horizon".into(), [x0 + 14.0 + width("ARSENAL"), y0 + 9.0], GREY, false));
+            let tiles: [(&str, String, Option<Page>); 3] = [
+                ("Modules", format!("{} on · {} of {} run on Horizon", modules_on(s), ON_HORIZON.len(), JAVA_MODULES.len()), Some(Page::Modules)),
+                ("Browse", "Crosshairs and themes from the website".into(), Some(Page::Browse)),
+                ("Cosmetics", "Not on Horizon yet".into(), Some(Page::Cosmetics)),
+            ];
+            let tw = ((w - 32.0) / 3.0).floor();
+            let ty = top + (h - HEADER - 80.0) / 2.0;
+            for (i, (name, line, page)) in tiles.iter().enumerate() {
+                let r = [x0 + 12.0 + i as f32 * (tw + 4.0), ty, tw, 54.0];
+                let greyed = i == 2;
+                out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
+                out.push(Shape::Fill([r[0], r[1], r[2], 2.0], if greyed { 0xFF5E_5E6A } else { 0xFF00_0000 | accent }));
+                out.push(Shape::Text((*name).into(), [r[0] + 8.0, r[1] + 12.0], if greyed { MUTED } else { WHITE }, true));
+                out.push(Shape::Text(fit(line, r[2] - 16.0, width), [r[0] + 8.0, r[1] + 30.0], if greyed { GREY } else { MUTED }, false));
+                if let Some(p) = page {
+                    hits.push((r, Action::Go(*p)));
                 }
-            } else {
-                out.push(Shape::Text("Only in the Java version of Arsenal for now.".into(), [cx, y], GREY, false));
+            }
+            let done = [x0 + (w - 80.0) / 2.0, y0 + h - 26.0, 80.0, 16.0];
+            button(&mut out, &mut hits, done, "Done", Action::Close, mouse, width);
+        }
+        Page::Cosmetics => {
+            let lines = [
+                "Your Arsenal cosmetics still show to players on the Java version.",
+                "Horizon can't draw capes, hats or other cosmetics on players yet,",
+                "and doesn't pass your account to mods, so the Wardrobe isn't here yet.",
+                "Change what you wear on the launcher's Cosmetics page.",
+            ];
+            for (i, l) in lines.iter().enumerate() {
+                out.push(Shape::Text(fit(l, w - 28.0, width), [x0 + 14.0, top + 10.0 + i as f32 * 14.0], if i == 0 { WHITE } else { MUTED }, false));
+            }
+            let back = [x0 + 14.0, top + 74.0, 70.0, 16.0];
+            button(&mut out, &mut hits, back, "< Home", Action::Go(Page::Home), mouse, width);
+        }
+        Page::Browse => {
+            let mut tx = x0 + 10.0;
+            for (i, (label, _)) in BROWSE_TABS.iter().enumerate() {
+                let r = [tx, top, width(label) + 14.0, 15.0];
+                let selected = m.tab == i;
+                out.push(Shape::Fill(r, if selected { ROW_HOVER } else if inside(r, mouse) { ROW_BG } else { 0 }));
+                if selected {
+                    out.push(Shape::Fill([r[0], r[1] + r[3] - 1.0, r[2], 1.0], 0xFF00_0000 | accent));
+                }
+                out.push(Shape::Text((*label).into(), [r[0] + 7.0, r[1] + 4.0], if selected { WHITE } else { MUTED }, false));
+                hits.push((r, Action::Tab(i)));
+                tx += r[2] + 4.0;
+            }
+            if let Some(n) = &m.notice {
+                out.push(Shape::Text(fit(n, x0 + w - tx - 12.0, width), [tx + 6.0, top + 4.0], accent, false));
+            }
+            let gy = top + 22.0;
+            match browse {
+                Fetch::Loading => out.push(Shape::Text("Loading from the Arsenal website...".into(), [x0 + 12.0, gy + 6.0], MUTED, false)),
+                Fetch::Failed => {
+                    out.push(Shape::Text("Couldn't reach the Arsenal website.".into(), [x0 + 12.0, gy + 6.0], MUTED, false));
+                    button(&mut out, &mut hits, [x0 + 12.0, gy + 22.0, 70.0, 16.0], "Try again", Action::Retry, mouse, width);
+                }
+                Fetch::Ready(items) if items.is_empty() => out.push(Shape::Text("Nothing here yet.".into(), [x0 + 12.0, gy + 6.0], MUTED, false)),
+                Fetch::Ready(items) => {
+                    let (cols, rows) = grid(w, h);
+                    let first_row = m.browse_scroll.min(items.len().div_ceil(cols).saturating_sub(rows));
+                    for (n, item) in items.iter().enumerate().skip(first_row * cols).take(cols * rows) {
+                        let k = n - first_row * cols;
+                        let r = [x0 + 10.0 + (k % cols) as f32 * (CARD_W + 4.0), gy + (k / cols) as f32 * (CARD_H + 4.0), CARD_W, CARD_H];
+                        let usable = !matches!(item.look, Look::Preset);
+                        out.push(Shape::Fill(r, if usable && inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
+                        let preview = [r[0] + 4.0, r[1] + 4.0, r[2] - 8.0, 36.0];
+                        out.push(Shape::Fill(preview, 0xFF0A_0A0E));
+                        match &item.look {
+                            Look::Crosshair(c) => {
+                                let span = c.rows.len().max(c.rows.iter().map(|x| x.len()).max().unwrap_or(1)) as f32;
+                                let cell = (32.0 / span).min(3.0);
+                                out.extend(crosshair_shapes(c, [preview[0] + preview[2] / 2.0, preview[1] + preview[3] / 2.0], cell));
+                            }
+                            Look::Theme(t) => {
+                                let p = [preview[0] + 8.0, preview[1] + 8.0, preview[2] - 16.0, 20.0];
+                                out.push(Shape::Fill(p, t.background));
+                                out.push(Shape::Fill([p[0], p[1], 2.0, p[3]], 0xFF00_0000 | t.accent));
+                                out.push(Shape::Text("FPS".into(), [p[0] + 6.0, p[1] + 6.0], t.accent, true));
+                                out.push(Shape::Text("144".into(), [p[0] + 8.0 + width("FPS"), p[1] + 6.0], t.text, true));
+                            }
+                            Look::Preset => out.push(Shape::Text("Java only".into(), [preview[0] + 6.0, preview[1] + 14.0], GREY, false)),
+                        }
+                        out.push(Shape::Text(fit(&item.title, r[2] - 8.0, width), [r[0] + 4.0, r[1] + 44.0], if usable { WHITE } else { GREY }, false));
+                        out.push(Shape::Text(fit(&item.author, r[2] - 8.0, width), [r[0] + 4.0, r[1] + 56.0], GREY, false));
+                        if usable {
+                            hits.push((r, Action::Apply(n)));
+                        }
+                    }
+                }
             }
         }
-        None => {
-            let list = category_modules(m.category);
-            let shown = rows_shown(screen);
-            let first = m.scroll.min(list.len().saturating_sub(shown));
-            for (row, &i) in list.iter().skip(first).take(shown).enumerate() {
-                let module = &JAVA_MODULES[i];
-                let r = [cx, top + row as f32 * ROW, cw, ROW - 3.0];
-                let here = on_horizon(module.id);
-                let hover = inside(r, mouse);
-                out.push(Shape::Fill(r, if hover && here.is_some() { ROW_HOVER } else { ROW_BG }));
-                let right = 44.0;
-                let (name_rgb, desc_rgb) = if here.is_some() { (WHITE, MUTED) } else { (GREY, GREY) };
-                out.push(Shape::Text(fit(module.name, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 3.0], name_rgb, false));
-                out.push(Shape::Text(fit(module.description, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 13.0], desc_rgb, false));
-                match here {
-                    Some((toggle, _)) => {
-                        hits.push((r, Action::Open(i)));
-                        let pill = [r[0] + r[2] - 30.0, r[1] + 6.0, 22.0, 11.0];
-                        let on = s.v[toggle] == 1;
-                        out.push(Shape::Fill(pill, if on { 0xFF00_0000 | accent } else { 0x50FF_FFFF }));
-                        let knob = if on { pill[0] + pill[2] - 10.0 } else { pill[0] + 1.0 };
-                        out.push(Shape::Fill([knob, pill[1] + 1.0, 9.0, 9.0], 0xFFFF_FFFF));
-                        hits.push(([pill[0] - 4.0, r[1], pill[2] + 8.0, r[3]], Action::Toggle(i)));
-                    }
-                    None => {
-                        let tag = "Java only";
-                        out.push(Shape::Text(tag.into(), [r[0] + r[2] - width(tag) - 6.0, r[1] + 8.0], GREY, false));
+        Page::Modules => {
+            out.push(Shape::Fill([x0, top, SIDE, h - HEADER], SIDEBAR_BG));
+            for (i, name) in CATEGORIES.iter().enumerate() {
+                let r = [x0, top + 4.0 + i as f32 * 16.0, SIDE, 16.0];
+                let selected = match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
+                    Some(j) => j.category == i,
+                    None => m.category == i,
+                };
+                if selected {
+                    out.push(Shape::Fill(r, ROW_HOVER));
+                    out.push(Shape::Fill([r[0], r[1], 2.0, r[3]], 0xFF00_0000 | accent));
+                } else if inside(r, mouse) {
+                    out.push(Shape::Fill(r, ROW_BG));
+                }
+                out.push(Shape::Text(fit(name, SIDE - 16.0, width), [r[0] + 9.0, r[1] + 4.0], if selected { WHITE } else { MUTED }, false));
+                hits.push((r, Action::Category(i)));
+            }
+            let cx = x0 + SIDE + 8.0;
+            let cw = w - SIDE - 16.0;
+            match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
+                Some(module) => {
+                    let back = [cx, top, width("< Back") + 10.0, 14.0];
+                    button(&mut out, &mut hits, back, "< Back", Action::Back, mouse, width);
+                    out.push(Shape::Text(module.name.into(), [back[0] + back[2] + 8.0, top + 3.0], accent, true));
+                    out.push(Shape::Text(fit(module.description, cw, width), [cx, top + 20.0], MUTED, false));
+                    let mut y = top + 34.0;
+                    match on_horizon(module.id) {
+                        Some((toggle, fields)) => {
+                            if let Some(note) = horizon_note(module.id) {
+                                out.push(Shape::Text(fit(note, cw, width), [cx, y], GREY, false));
+                                y += 14.0;
+                            }
+                            for &f in std::iter::once(&toggle).chain(fields.iter()) {
+                                if y + 18.0 > y0 + h - 4.0 {
+                                    break;
+                                }
+                                let r = [cx, y, cw, 16.0];
+                                out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
+                                let label = if f == toggle { format!("Enabled: {}", FIELDS[f].options[s.v[f]].1) } else { s.label(f) };
+                                out.push(Shape::Text(fit(&label, cw - 12.0, width), [r[0] + 6.0, r[1] + 4.0], WHITE, false));
+                                hits.push((r, Action::Setting(f)));
+                                y += 19.0;
+                            }
+                            if module.id == "custom_crosshair" || module.id == "hud_theme" {
+                                let r = [cx, y + 4.0, width("Open Browse") + 14.0, 16.0];
+                                button(&mut out, &mut hits, r, "Open Browse", Action::Go(Page::Browse), mouse, width);
+                            }
+                        }
+                        None => {
+                            out.push(Shape::Text("Only in the Java version of Arsenal for now:".into(), [cx, y], GREY, false));
+                            out.push(Shape::Text(fit(why_not(module.id), cw, width), [cx, y + 12.0], GREY, false));
+                        }
                     }
                 }
-            }
-            if list.len() > shown {
-                let track = [cx + cw + 3.0, top, 2.0, shown as f32 * ROW - 3.0];
-                out.push(Shape::Fill(track, ROW_BG));
-                let part = shown as f32 / list.len() as f32;
-                let at = first as f32 / list.len() as f32;
-                out.push(Shape::Fill([track[0], track[1] + track[3] * at, 2.0, (track[3] * part).max(6.0)], 0xFF00_0000 | accent));
+                None => {
+                    let list = category_modules(m.category);
+                    let shown = rows_shown(screen);
+                    let first = m.scroll.min(list.len().saturating_sub(shown));
+                    for (row, &i) in list.iter().skip(first).take(shown).enumerate() {
+                        let module = &JAVA_MODULES[i];
+                        let r = [cx, top + 4.0 + row as f32 * ROW, cw, ROW - 3.0];
+                        let here = on_horizon(module.id);
+                        out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
+                        let right = 44.0;
+                        let (name_rgb, desc_rgb) = if here.is_some() { (WHITE, MUTED) } else { (GREY, GREY) };
+                        out.push(Shape::Text(fit(module.name, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 3.0], name_rgb, false));
+                        out.push(Shape::Text(fit(module.description, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 13.0], desc_rgb, false));
+                        // Every row opens: the greyed-out ones say why they don't run here.
+                        hits.push((r, Action::Open(i)));
+                        match here {
+                            Some((toggle, _)) => {
+                                let pill = [r[0] + r[2] - 30.0, r[1] + 6.0, 22.0, 11.0];
+                                let on = s.v[toggle] == 1;
+                                out.push(Shape::Fill(pill, if on { 0xFF00_0000 | accent } else { 0x50FF_FFFF }));
+                                let knob = if on { pill[0] + pill[2] - 10.0 } else { pill[0] + 1.0 };
+                                out.push(Shape::Fill([knob, pill[1] + 1.0, 9.0, 9.0], 0xFFFF_FFFF));
+                                hits.push(([pill[0] - 4.0, r[1], pill[2] + 8.0, r[3]], Action::Toggle(i)));
+                            }
+                            None => {
+                                let tag = "Java only";
+                                out.push(Shape::Text(tag.into(), [r[0] + r[2] - width(tag) - 6.0, r[1] + 8.0], GREY, false));
+                            }
+                        }
+                    }
+                    if list.len() > shown {
+                        let track = [cx + cw + 3.0, top + 4.0, 2.0, shown as f32 * ROW - 3.0];
+                        out.push(Shape::Fill(track, ROW_BG));
+                        let part = shown as f32 / list.len() as f32;
+                        let at = first as f32 / list.len() as f32;
+                        out.push(Shape::Fill([track[0], track[1] + track[3] * at, 2.0, (track[3] * part).max(6.0)], 0xFF00_0000 | accent));
+                    }
+                }
             }
         }
     }
@@ -723,20 +1268,25 @@ pub fn menu_layout(
 }
 
 /// What a click at `mouse` does, from the same layout as the drawing.
-pub fn menu_click(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: &dyn Fn(&str) -> f32) -> Option<Action> {
-    let (_, hits) = menu_layout(screen, mouse, m, s, width);
+pub fn menu_click(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, browse: &Fetch, width: &dyn Fn(&str) -> f32) -> Option<Action> {
+    let (_, hits) = menu_layout(screen, mouse, m, s, browse, width);
     hits.iter().rev().find(|(r, _)| inside(*r, mouse)).map(|(_, a)| *a)
 }
 
-/// Applies `action` to the menu and the settings; true when the settings changed (to be stored).
-pub fn apply(action: Action, m: &mut Menu, s: &mut Settings) -> bool {
+/// Applies `action` to the menu and the settings; true when the settings changed (to be stored). `browse` is the
+/// current Browse tab's list.
+pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> bool {
     match action {
         Action::Close => {
             request_close();
             false
         }
+        Action::Go(page) => {
+            *m = Menu { page, tab: m.tab, ..Menu::default() };
+            false
+        }
         Action::Category(c) => {
-            *m = Menu { category: c, scroll: 0, detail: None };
+            *m = Menu { page: Page::Modules, category: c, tab: m.tab, ..Menu::default() };
             false
         }
         Action::Back => {
@@ -758,18 +1308,47 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings) -> bool {
             s.click(f);
             true
         }
+        Action::Tab(t) => {
+            m.tab = t;
+            m.browse_scroll = 0;
+            m.notice = None;
+            false
+        }
+        Action::Retry => {
+            retry(m.tab);
+            false
+        }
+        Action::Apply(i) => match browse {
+            Fetch::Ready(items) => match items.get(i) {
+                Some(item) if apply_item(item, s) => {
+                    m.notice = Some(format!("Applied {}", item.title));
+                    true
+                }
+                _ => false,
+            },
+            _ => false,
+        },
     }
 }
 
 /// The wheel over the menu: `steps` up (positive) or down moves the list.
-pub fn menu_scroll(m: &mut Menu, steps: f64, screen: [f32; 4]) {
-    if m.detail.is_some() {
-        return;
+pub fn menu_scroll(m: &mut Menu, steps: f64, screen: [f32; 4], browse: &Fetch) {
+    let step = -(steps.signum() as i64);
+    match m.page {
+        Page::Modules if m.detail.is_none() => {
+            let max = category_modules(m.category).len().saturating_sub(rows_shown(screen));
+            m.scroll = (m.scroll.min(max) as i64 + step).clamp(0, max as i64) as usize;
+        }
+        Page::Browse => {
+            if let Fetch::Ready(items) = browse {
+                let (w, h) = menu_size(screen);
+                let (cols, rows) = grid(w, h);
+                let max = items.len().div_ceil(cols).saturating_sub(rows);
+                m.browse_scroll = (m.browse_scroll.min(max) as i64 + step).clamp(0, max as i64) as usize;
+            }
+        }
+        _ => {}
     }
-    let len = category_modules(m.category).len();
-    let max = len.saturating_sub(rows_shown(screen));
-    let next = m.scroll.min(max) as i64 - steps.signum() as i64;
-    m.scroll = next.clamp(0, max as i64) as usize;
 }
 
 #[cfg(test)]
@@ -784,19 +1363,23 @@ mod tests {
         t.len() as f32 * 6.0
     }
 
+    fn cross() -> Crosshair {
+        Crosshair { rows: vec!["..#..".into(), "..#..".into(), "#####".into(), "..#..".into(), "..#..".into()], rgb: 0xD277B0, size: 2 }
+    }
+
     #[test]
     fn settings_round_trip_and_fall_back_to_defaults() {
         assert_eq!(Settings::read(stored(&[])), Settings::default());
         let mut s = Settings::read(stored(&[("corner", "bottom_right"), ("zoom", "6\n"), ("fog", "nope"), ("item", "55")]));
-        assert_eq!((s.corner(), s.zoom_level(), s.v[FOG], s.v[ITEM]), (3, 6.0, 0, 0));
+        assert_eq!((s.corner(), s.zoom_level(), s.v[FOG], s.v[ITEM]), (3, 6.0, 1, 0));
         s.click(CORNER);
-        s.click(FOG);
         s.click(INFO);
+        s.theme = Some(Theme { background: 0xB0000000, text: 0xFFFFFF, accent: 0xFF0000 });
+        s.crosshair = Some(cross());
         let back = s.stored();
         let pairs: Vec<(&str, &str)> = back.iter().map(|(k, v)| (*k, v.as_str())).collect();
         assert_eq!(Settings::read(stored(&pairs)), s);
         assert_eq!(s.label(INFO), "Info HUD: OFF");
-        assert_eq!(s.label(CORNER), "HUD corner: Top left");
         assert_eq!(s.labels().len(), FIELDS.len());
     }
 
@@ -805,19 +1388,64 @@ mod tests {
         let mut s = Settings::default();
         s.v[ITEM] = 2;
         s.v[DISTANCE] = 1;
-        s.v[FOG] = 2;
         assert_eq!((s.item_scale(), s.camera_distance(4.0), s.fog_range(10.0, 20.0)), (1.0, 4.0, (10.0, 20.0)));
         s.click(VIEW);
         s.click(CAMERA);
+        s.click(NO_FOG);
         assert!((s.item_scale() - 0.8).abs() < 1e-6);
         assert_eq!(s.camera_distance(4.0), 2.0);
         let (a, b) = s.fog_range(10.0, 20.0);
         assert!(b > a && a > 1000.0);
-        s.v[THEME] = 0;
-        s.v[ACCENT] = 2;
-        assert_eq!(s.accent(), ACCENT_RGB[0]);
-        s.v[THEME] = 1;
-        assert_eq!(s.accent(), ACCENT_RGB[2]);
+        s.v[FOG] = 0;
+        assert_eq!(s.fog_range(10.0, 20.0), (20.0, 40.0));
+        assert!(!s.hides_layer("minecraft:boss_overlay") && !s.hides_layer("minecraft:crosshair"));
+        s.click(HIDE_BOSS);
+        s.click(HIDE_TITLES);
+        s.click(CROSSHAIR);
+        assert!(s.hides_layer("minecraft:boss_overlay") && s.hides_layer("subtitle_overlay"));
+        // No crosshair applied yet: the vanilla one stays.
+        assert!(!s.hides_layer("minecraft:crosshair"));
+        s.crosshair = Some(cross());
+        assert!(s.hides_layer("minecraft:crosshair"));
+        assert!(!s.hides_tag("minecraft:player"));
+        s.click(HIDE_TAGS);
+        assert!(s.hides_tag("minecraft:player") && !s.hides_tag("minecraft:zombie"));
+        assert_eq!(s.outline(), None);
+        s.click(OUTLINE);
+        assert_eq!(s.outline(), Some((0xFF00_0000 | s.accent(), 2.0)));
+    }
+
+    #[test]
+    fn themes_from_browse_colour_the_panel() {
+        let mut s = Settings::default();
+        let t = Theme { background: 0xB0102030, text: 0xEEEEEE, accent: 0x00FF88 };
+        assert!(apply_item(&GalleryItem { title: "T".into(), author: "A".into(), look: Look::Theme(t) }, &mut s));
+        assert_eq!((s.accent(), s.panel_colors()), (0x00FF88, (0xB0102030, 0xEEEEEE)));
+        s.click(ACCENT);
+        assert_eq!((s.accent(), s.panel_colors()), (ACCENT_RGB[0], (BACKGROUND, WHITE)));
+        assert!(!apply_item(&GalleryItem { title: "P".into(), author: "A".into(), look: Look::Preset }, &mut s));
+    }
+
+    #[test]
+    fn reads_the_websites_gallery() {
+        let text = r##"{"items":[
+            {"kind":"crosshair","title":"Tiny X pink","author":"Solo","preview":{"rows":["#.#",".#.","#.#"],"color":"#D277B0","size":2}},
+            {"kind":"crosshair","title":"Broken","author":"x","preview":{"rows":["abc"],"color":"#FFFFFF"}},
+            {"kind":"theme","title":"Dark","author":"Solo","preview":{"look":{"background":"#B0000000","text":"#FFFFFFFF","accent":"#FFFF0000"}}},
+            {"kind":"preset","title":"Setup","author":"Solo","preview":{"changed":3}}]}"##;
+        let items = parse_gallery(text);
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].look, Look::Crosshair(Crosshair { rows: vec!["#.#".into(), ".#.".into(), "#.#".into()], rgb: 0xD277B0, size: 2 }));
+        assert_eq!(items[1].look, Look::Theme(Theme { background: 0xB0000000, text: 0xFFFFFF, accent: 0xFF0000 }));
+        assert_eq!(items[2].look, Look::Preset);
+        assert!(parse_gallery("not json").is_empty());
+    }
+
+    #[test]
+    fn crosshairs_draw_one_rectangle_per_run() {
+        let shapes = crosshair_shapes(&cross(), [100.0, 50.0], 1.0);
+        assert_eq!(shapes.len(), 5);
+        assert!(shapes.contains(&Shape::Fill([97.5, 49.5, 5.0, 1.0], 0xFFD277B0)));
     }
 
     #[test]
@@ -836,19 +1464,23 @@ mod tests {
         let l = lines(&s, &r);
         assert_eq!(l[2], ("XYZ", "10 64 -4".to_owned()));
         assert_eq!(l[3], ("Facing", "North -Z".to_owned()));
-        let (shapes, w, h) = panel(&l, 0xF5B83D, &width).unwrap();
+        let (shapes, w, h) = panel(&l, &s, &width).unwrap();
         assert_eq!(w, 2.0 + 4.0 + 36.0 + 5.0 + 48.0 + 4.0);
         assert_eq!(h, 8.0 + 40.0 - 2.0);
         assert_eq!(shapes[1], Shape::Fill([0.0, 0.0, 2.0, h], 0xFFF5B83D));
         assert_eq!(lines(&s, &Readings::default()).len(), 2);
-        let mut none = s;
+        let mut none = s.clone();
         none.v[INFO] = 0;
-        assert!(panel(&lines(&none, &Readings::default()), 0, &width).is_none());
+        assert!(panel(&lines(&none, &Readings::default()), &none, &width).is_none());
+        assert!(graph(&[], &s).is_none());
+        let (g, gw, _) = graph(&[60, 120, 30], &s).unwrap();
+        assert_eq!(gw, GRAPH_SAMPLES as f32 + 8.0);
+        assert!(g.contains(&Shape::Text("30 FPS".into(), [4.0, 3.0], WHITE, true)));
     }
 
     #[test]
     fn the_wheel_zooms_only_while_the_key_is_held() {
-        set_settings(Settings::default());
+        set_settings(&Settings::default());
         assert!(!wheel(1.0));
         zoom_key(false, true, |_| None);
         assert_eq!(view(), None);
@@ -865,6 +1497,17 @@ mod tests {
     }
 
     #[test]
+    fn toggle_sneak_flips_on_each_press() {
+        assert!(!sneak(true, false));
+        assert!(sneak(true, true));
+        assert!(sneak(true, false));
+        assert!(!sneak(true, true));
+        assert!(!sneak(true, false));
+        assert!(sneak(false, true));
+        assert!(!sneaking());
+    }
+
+    #[test]
     fn every_horizon_module_is_a_java_module() {
         for (id, toggle, fields) in ON_HORIZON {
             assert!(JAVA_MODULES.iter().any(|m| m.id == *id), "{id} isn't in the Java mod's list");
@@ -873,79 +1516,86 @@ mod tests {
         }
         assert!(JAVA_MODULES.len() > 100);
         assert!(JAVA_MODULES.iter().all(|m| m.category < CATEGORIES.len()));
+        let keys: std::collections::HashSet<&str> = FIELDS.iter().map(|f| f.key).collect();
+        assert_eq!(keys.len(), FIELDS.len());
     }
 
     #[test]
     fn the_menu_clicks_what_it_draws() {
         let screen = [0.0, 0.0, 640.0, 360.0];
+        let none = Fetch::Loading;
         let mut s = Settings::default();
-        let mut m = Menu { category: 0, scroll: 0, detail: None };
+        let mut m = Menu::default();
+        // Home: the Modules tile opens the modules.
+        let (shapes, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
+        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Text(t, _, _, _) if t == "ARSENAL")));
+        let tile = hits.iter().find(|(_, a)| *a == Action::Go(Page::Modules)).unwrap().0;
+        let a = menu_click(screen, [tile[0] + 5.0, tile[1] + 5.0], &m, &s, &none, &width).unwrap();
+        apply(a, &mut m, &mut s, &none);
+        assert_eq!(m.page, Page::Modules);
         // HUD lists Horizon's modules first: the first row's switch toggles it.
         let list = category_modules(0);
         let first = list[0];
-        assert!(on_horizon(JAVA_MODULES[first].id).is_some());
-        let (shapes, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &width);
-        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Text(t, _, _, _) if t == "ARSENAL")));
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
         let toggle = hits.iter().find(|(_, a)| *a == Action::Toggle(first)).unwrap().0;
-        let at = [toggle[0] + 2.0, toggle[1] + 2.0];
         let (field, _) = on_horizon(JAVA_MODULES[first].id).unwrap();
         let before = s.v[field];
-        let action = menu_click(screen, at, &m, &s, &width).unwrap();
-        assert_eq!(action, Action::Toggle(first));
-        assert!(apply(action, &mut m, &mut s));
+        let action = menu_click(screen, [toggle[0] + 2.0, toggle[1] + 2.0], &m, &s, &none, &width).unwrap();
+        assert!(apply(action, &mut m, &mut s, &none));
         assert_ne!(s.v[field], before);
-        // A greyed-out module opens nothing and switches nothing.
+        // A greyed-out module switches nothing but says why.
         let java_only = *list.iter().find(|&&i| on_horizon(JAVA_MODULES[i].id).is_none()).unwrap();
-        assert!(!hits.iter().any(|(_, a)| *a == Action::Toggle(java_only) || *a == Action::Open(java_only)));
-        // Categories, the settings view and back.
-        let cat = hits.iter().find(|(_, a)| *a == Action::Category(6)).unwrap().0;
-        let a = menu_click(screen, [cat[0] + 3.0, cat[1] + 3.0], &m, &s, &width).unwrap();
-        apply(a, &mut m, &mut s);
-        assert_eq!(m.category, 6);
+        assert!(!hits.iter().any(|(_, a)| *a == Action::Toggle(java_only)));
+        apply(Action::Open(java_only), &mut m, &mut s, &none);
+        let (shapes, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
+        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Text(t, _, _, _) if t.starts_with("Only in the Java version"))));
+        apply(Action::Back, &mut m, &mut s, &none);
+        // Settings view.
         let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();
-        apply(Action::Open(zoom), &mut m, &mut s);
-        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &width);
+        apply(Action::Open(zoom), &mut m, &mut s, &none);
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
         assert!(hits.iter().any(|(_, a)| *a == Action::Setting(ZOOM)));
-        assert!(apply(Action::Setting(ZOOM), &mut m, &mut s));
+        assert!(apply(Action::Setting(ZOOM), &mut m, &mut s, &none));
         assert_eq!(s.zoom_level(), 6.0);
-        apply(Action::Back, &mut m, &mut s);
-        assert_eq!(m.detail, None);
-        apply(Action::Close, &mut m, &mut s);
+        // Browse: a card applies its crosshair.
+        let ready = Fetch::Ready(vec![GalleryItem { title: "Plus".into(), author: "A".into(), look: Look::Crosshair(cross()) }]);
+        apply(Action::Go(Page::Browse), &mut m, &mut s, &ready);
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &ready, &width);
+        let card = hits.iter().find(|(_, a)| *a == Action::Apply(0)).unwrap().0;
+        let a = menu_click(screen, [card[0] + 5.0, card[1] + 5.0], &m, &s, &ready, &width).unwrap();
+        assert!(apply(a, &mut m, &mut s, &ready));
+        assert_eq!((s.crosshair.clone(), s.on(CROSSHAIR)), (Some(cross()), true));
+        assert_eq!(m.notice.as_deref(), Some("Applied Plus"));
+        apply(Action::Close, &mut m, &mut s, &ready);
         assert!(take_close());
         assert!(!take_close());
     }
 
     #[test]
     fn speed_and_session_follow_the_player() {
-        let t0 = std::time::Instant::now();
-        let ms = |n: u64| t0 + std::time::Duration::from_millis(n);
-        assert_eq!(track(None, t0), (0.0, 0));
-        assert_eq!(track(Some([0.0, 64.0, 0.0]), ms(0)), (0.0, 0));
-        // Not a quarter second yet: no new measurement.
-        assert_eq!(track(Some([1.0, 64.0, 0.0]), ms(100)).0, 0.0);
-        let (speed, _) = track(Some([3.0, 70.0, 4.0]), ms(500));
+        let t0 = Instant::now();
+        let ms = |n: u64| t0 + Duration::from_millis(n);
+        assert_eq!(track(None, 60, t0), (0.0, 0));
+        assert_eq!(track(Some([0.0, 64.0, 0.0]), 60, ms(0)), (0.0, 0));
+        assert_eq!(track(Some([1.0, 64.0, 0.0]), 60, ms(100)).0, 0.0);
+        let (speed, _) = track(Some([3.0, 70.0, 4.0]), 60, ms(500));
         assert!((speed - 10.0).abs() < 1e-9, "{speed}");
-        assert_eq!(track(Some([3.0, 70.0, 4.0]), ms(65_000)).1, 65);
-        assert_eq!(track(None, ms(66_000)), (0.0, 0));
+        assert_eq!(track(Some([3.0, 70.0, 4.0]), 60, ms(65_000)).1, 65);
+        assert_eq!(track(None, 60, ms(66_000)), (0.0, 0));
+        assert!(!fps_history().is_empty());
         assert_eq!((clock(245), clock(3729)), ("4:05".to_owned(), "1:02:09".to_owned()));
-        let mut s = Settings::default();
-        s.click(SPEED);
-        s.click(SESSION);
-        let r = Readings { player: Some(([0.0; 3], 0.0)), speed: 5.612, session: 61, ..Readings::default() };
-        let l = lines(&s, &r);
-        assert!(l.contains(&("Speed", "5.61 b/s".to_owned())) && l.contains(&("Session", "1:01".to_owned())));
     }
 
     #[test]
     fn the_wheel_scrolls_within_the_list() {
         let screen = [0.0, 0.0, 400.0, 200.0];
-        let mut m = Menu { category: 0, scroll: 0, detail: None };
+        let mut m = Menu { page: Page::Modules, ..Menu::default() };
         let len = category_modules(0).len();
         let max = len.saturating_sub(rows_shown(screen));
-        menu_scroll(&mut m, 1.0, screen);
+        menu_scroll(&mut m, 1.0, screen, &Fetch::Loading);
         assert_eq!(m.scroll, 0);
         for _ in 0..200 {
-            menu_scroll(&mut m, -1.0, screen);
+            menu_scroll(&mut m, -1.0, screen, &Fetch::Loading);
         }
         assert_eq!(m.scroll, max);
         assert_eq!(fit("A long description", 60.0, &width), "A long...");

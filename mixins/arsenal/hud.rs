@@ -1,4 +1,4 @@
-// Arsenal's panel in its corner; the debug screen takes the top corners.
+// Arsenal's panel (and FPS Graph's box) in their corner; the debug screen takes the top corners.
 fn arsenal_hud(
     game: &mut crate::game::Game<'_>,
     batch: &mut horizon_client::hud::HudBatch,
@@ -14,28 +14,39 @@ fn arsenal_hud(
         let game = &*game;
         m::settings(|key| game.native_setting(m::ID, key))
     };
+    let fps = game.native_frame_rate().0;
+    let player = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
+    let (speed, session) = m::track(player.map(|(pos, _)| pos), fps, std::time::Instant::now());
     let corner = [Corner::TopLeft, Corner::TopRight, Corner::BottomLeft, Corner::BottomRight][settings.corner()];
     if !game.native_corner_shown(corner) {
         return;
     }
     let readings = m::Readings {
-        fps: game.native_frame_rate().0,
+        fps,
         cps: if settings.on(m::INFO) && settings.on(m::CPS) { game.native_clicks() } else { (0, 0) },
-        player: game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw)),
-        ..m::Readings::default()
+        player,
+        speed,
+        session,
+        sneaking: m::sneaking(),
     };
-    let (speed, session) = m::track(readings.player.map(|(pos, _)| pos), std::time::Instant::now());
-    let readings = m::Readings { speed, session, ..readings };
     let lines = m::lines(&settings, &readings);
     let game = &*game;
-    let Some((shapes, w, h)) = m::panel(&lines, settings.accent(), &|text| game.native_text_width(text)) else {
-        return;
-    };
-    let (x, y) = corners.place(corner, w, h);
-    for shape in shapes {
-        match shape {
-            m::Shape::Fill([dx, dy, w, h], argb) => game.native_fill(batch, [x + dx, y + dy, w, h], argb),
-            m::Shape::Text(text, [dx, dy], rgb, shadow) => game.native_text(batch, &text, [x + dx, y + dy], rgb, shadow),
+    let mut boxes = Vec::new();
+    if let Some(panel) = m::panel(&lines, &settings, &|text| game.native_text_width(text)) {
+        boxes.push(panel);
+    }
+    if settings.on(m::GRAPH) {
+        if let Some(graph) = m::graph(&m::fps_history(), &settings) {
+            boxes.push(graph);
+        }
+    }
+    for (shapes, w, h) in boxes {
+        let (x, y) = corners.place(corner, w, h);
+        for shape in shapes {
+            match shape {
+                m::Shape::Fill([dx, dy, w, h], argb) => game.native_fill(batch, [x + dx, y + dy, w, h], argb),
+                m::Shape::Text(text, [dx, dy], rgb, shadow) => game.native_text(batch, &text, [x + dx, y + dy], rgb, shadow),
+            }
         }
     }
 }

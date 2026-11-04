@@ -15,11 +15,12 @@ fn arsenal_screen_click(
     }
     let mut settings = m::settings(|key| game.native_setting(m::ID, key));
     let mut menu = m::menu();
-    let Some(action) = m::menu_click(screen.rect, screen.mouse, &menu, &settings, &|text| game.native_text_width(text)) else {
+    let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
+    let Some(action) = m::menu_click(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text)) else {
         return;
     };
-    if m::apply(action, &mut menu, &mut settings) {
-        m::set_settings(settings);
+    if m::apply(action, &mut menu, &mut settings, &browse) {
+        m::set_settings(&settings);
         for (key, value) in settings.stored() {
             game.native_set_setting(m::ID, key, &value);
         }

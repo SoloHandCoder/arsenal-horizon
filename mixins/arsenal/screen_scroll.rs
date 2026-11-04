@@ -1,4 +1,4 @@
-// The wheel over Arsenal's menu scrolls its module list.
+// The wheel over Arsenal's menu scrolls its module list or Browse's cards.
 fn arsenal_screen_scroll(
     game: &crate::game::Game<'_>,
     screen: &crate::game::native_hooks::NativeScreenView<'_>,
@@ -12,7 +12,8 @@ fn arsenal_screen_scroll(
     *canceled = true;
     if scroll[1] != 0.0 {
         let mut menu = m::menu();
-        m::menu_scroll(&mut menu, scroll[1], screen.rect);
+        let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
+        m::menu_scroll(&mut menu, scroll[1], screen.rect, &browse);
         m::set_menu(menu);
     }
 }
