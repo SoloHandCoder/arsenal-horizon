@@ -59,7 +59,7 @@ jobs:
             os: ubuntu-22.04
             asset: arsenal-horizon-linux-x86_64.zip
           - name: macos
-            os: macos-14
+            os: macos-15
             asset: arsenal-horizon-macos-arm64.zip
     runs-on: ${{ matrix.os }}
     timeout-minutes: 150
