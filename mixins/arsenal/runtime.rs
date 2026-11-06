@@ -333,7 +333,9 @@ pub fn on_horizon(id: &str) -> Option<(usize, &'static [usize])> {
 }
 
 const ZOOM_MIN: f32 = 1.25;
-const ZOOM_MAX: f32 = 10.0;
+/// No real limit: the wheel keeps zooming in. This only keeps the view from breaking (a field of view of a
+/// hundredth of a degree is still drawn fine).
+const ZOOM_MAX: f32 = 10_000.0;
 /// Each wheel step multiplies the zoom by this.
 const ZOOM_STEP: f32 = 1.25;
 
@@ -1495,10 +1497,20 @@ mod tests {
         assert_eq!(view(), Some((4.0, true, 0.25)));
         assert!(wheel(1.0));
         assert_eq!(view().unwrap().0, 5.0);
+        // Past the old 10x: it keeps zooming in with every step.
         for _ in 0..20 {
             wheel(1.0);
         }
+        let deep = view().unwrap().0;
+        assert!(deep > 100.0 && deep < ZOOM_MAX, "{deep}");
+        assert!((view().unwrap().2 - 1.0 / deep).abs() < 1e-9);
+        for _ in 0..200 {
+            wheel(1.0);
+        }
         assert_eq!(view().unwrap().0, ZOOM_MAX);
+        // And back out.
+        wheel(-500.0);
+        assert_eq!(view().unwrap().0, ZOOM_MIN);
         zoom_key(true, false, |_| None);
         assert_eq!(view(), None);
     }

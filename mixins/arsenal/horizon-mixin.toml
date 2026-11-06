@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.3.0"
+version = "1.4.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
