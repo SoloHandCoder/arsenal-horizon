@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.5.0";
+pub const VERSION: &str = "1.6.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -215,6 +215,7 @@ const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A]
 pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
 pub const HEALTH_SHOWS: &[(&str, &str)] = &[("both", "Number and bar"), ("number", "Number only"), ("bar", "Bar only")];
 pub const HEALTH_UNITS: &[(&str, &str)] = &[("hearts", "Hearts (10 is full)"), ("points", "Health points (20 is full)")];
+pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
 
 pub const INFO: usize = 0;
 pub const FPS: usize = 1;
@@ -249,7 +250,14 @@ pub const OUTLINE_WIDTH: usize = 29;
 pub const HEALTH: usize = 30;
 pub const HEALTH_SHOW: usize = 31;
 pub const HEALTH_UNIT: usize = 32;
-const N: usize = 33;
+pub const LOW_HEALTH: usize = 33;
+pub const LOW_HEALTH_AT: usize = 34;
+pub const HEARTBEAT: usize = 35;
+pub const TOOLTIPS: usize = 36;
+pub const SHULKER: usize = 37;
+pub const SATURATION: usize = 38;
+pub const THEME_TOOLTIPS: usize = 39;
+const N: usize = 40;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -285,6 +293,13 @@ pub const FIELDS: [Field; N] = [
     Field { key: "health_hud", label: "Health HUD", options: ONOFF, default: 0 },
     Field { key: "health_show", label: "Show", options: HEALTH_SHOWS, default: 0 },
     Field { key: "health_units", label: "Units", options: HEALTH_UNITS, default: 0 },
+    Field { key: "low_health", label: "Low Health Warning", options: ONOFF, default: 0 },
+    Field { key: "low_health_at", label: "Warn at", options: LOW_AT, default: 0 },
+    Field { key: "heartbeat", label: "Heartbeat sound", options: ONOFF, default: 1 },
+    Field { key: "better_tooltips", label: "Better Tooltips", options: ONOFF, default: 0 },
+    Field { key: "shulker_preview", label: "Shulker Preview", options: ONOFF, default: 0 },
+    Field { key: "saturation", label: "Food Preview", options: ONOFF, default: 0 },
+    Field { key: "theme_tooltips", label: "Tooltips in the theme's colours", options: ONOFF, default: 1 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -295,7 +310,7 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("speed_display", SPEED, &[CORNER]),
     ("session_clock", SESSION, &[CORNER]),
     ("fps_graph", GRAPH, &[CORNER]),
-    ("hud_theme", THEME, &[ACCENT]),
+    ("hud_theme", THEME, &[ACCENT, THEME_TOOLTIPS]),
     ("custom_crosshair", CROSSHAIR, &[]),
     ("boss_bar_tweaks", HIDE_BOSS, &[]),
     ("title_tweaks", HIDE_TITLES, &[]),
@@ -308,6 +323,10 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("block_outline", OUTLINE, &[OUTLINE_COLOR, OUTLINE_WIDTH]),
     ("toggle_sprint", SNEAK, &[]),
     ("health_hud", HEALTH, &[HEALTH_SHOW, HEALTH_UNIT]),
+    ("low_health_warning", LOW_HEALTH, &[LOW_HEALTH_AT, HEARTBEAT]),
+    ("better_tooltips", TOOLTIPS, &[]),
+    ("shulker_preview", SHULKER, &[]),
+    ("food_preview", SATURATION, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -324,6 +343,10 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "view_model" => "On Horizon: the size of the item in your hand.",
         "hide_nametags" => "On Horizon: hides name tags above players (or mobs too).",
         "health_hud" => "On Horizon: your health under the crosshair as a number, a bar or both, green to red, absorption in gold.",
+        "low_health_warning" => "On Horizon: red pulsing screen edges and a heartbeat when your health is low.",
+        "better_tooltips" => "On Horizon: durability as numbers (green/yellow/red) and what food restores, in item tooltips.",
+        "shulker_preview" => "On Horizon: hovering a shulker box shows its contents as a grid in the shulker's colour.",
+        "food_preview" => "On Horizon: your saturation as a gold number next to the hunger bar (Horizon doesn't show mods the food in your hand yet).",
         _ => return None,
     })
 }
@@ -332,7 +355,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 pub fn why_not(id: &str) -> &'static str {
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
     const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "ready_check", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
-    const SELF: &[&str] = &["armor_hud", "potion_timers", "cooldown_hud", "inventory_totem", "item_counter", "durability_warning", "offhand_totem_warning", "potion_warning", "retotem_timer", "food_preview", "shulker_preview", "better_tooltips", "bow_charge", "attack_bar", "crit_indicator", "low_health_warning", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
+    const SELF: &[&str] = &["armor_hud", "potion_timers", "cooldown_hud", "inventory_totem", "item_counter", "durability_warning", "offhand_totem_warning", "potion_warning", "retotem_timer",  "bow_charge", "attack_bar", "crit_indicator", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
     const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard", "kill_message", "death_message"];
     if ACCOUNT.contains(&id) {
         "Needs your Arsenal account or another app, which Horizon doesn't pass to mods yet."
@@ -616,6 +639,8 @@ struct State {
     close: bool,
     /// Health HUD: the player's health as the health rows last saw it, with the screen's GUI size and when.
     health: Option<(Health, Instant)>,
+    /// Low Health Warning: when the heartbeat last played.
+    heartbeat: Option<Instant>,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -624,6 +649,8 @@ pub struct Health {
     pub health: f32,
     pub max: f32,
     pub absorption: f32,
+    pub food: i32,
+    pub saturation: f32,
     pub width: f32,
     pub height: f32,
 }
@@ -654,6 +681,151 @@ pub fn health_text(value: f32, max: f32, units_points: bool) -> String {
         if (r - r.round()).abs() < 1e-3 { format!("{}", r.round() as i32) } else { format!("{r:.1}") }
     };
     tidy(v)
+}
+
+/// Low Health Warning: red edges round the screen, pulsing about once a second, when health is at or under the
+/// setting (hearts). `millis` is any running clock.
+pub fn low_health_shapes(settings: &Settings, h: &Health, millis: u64) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let at: f32 = LOW_AT[settings.v[LOW_HEALTH_AT]].0.parse().unwrap_or(4.0);
+    if !settings.on(LOW_HEALTH) || h.health <= 0.0 || h.health > at * 2.0 {
+        return out;
+    }
+    let pulse = 0.5 + 0.5 * ((millis % 1000) as f32 / 1000.0 * std::f32::consts::TAU).sin();
+    // Lower health, stronger red.
+    let strength = (1.0 - h.health / (at * 2.0)).clamp(0.0, 1.0) * 0.5 + 0.5;
+    let (w, ht) = (h.width, h.height);
+    for (i, band) in [24.0_f32, 14.0, 6.0].iter().enumerate() {
+        let alpha = ((0.12 + 0.16 * pulse) * strength * (i as f32 + 1.0) / 2.0 * 255.0).round().clamp(0.0, 255.0) as u32;
+        let c = alpha << 24 | 0xD0_1010;
+        out.push(Shape::Fill([0.0, 0.0, w, *band], c));
+        out.push(Shape::Fill([0.0, ht - band, w, *band], c));
+        out.push(Shape::Fill([0.0, *band, *band, ht - 2.0 * band], c));
+        out.push(Shape::Fill([w - band, *band, *band, ht - 2.0 * band], c));
+    }
+    out
+}
+
+/// Whether the heartbeat should play now: about once a second while the warning shows (faster when lower).
+pub fn heartbeat_due(settings: &Settings, h: &Health) -> bool {
+    let at: f32 = LOW_AT[settings.v[LOW_HEALTH_AT]].0.parse().unwrap_or(4.0);
+    if !settings.on(LOW_HEALTH) || !settings.on(HEARTBEAT) || h.health <= 0.0 || h.health > at * 2.0 {
+        return false;
+    }
+    let gap = Duration::from_millis(600 + (h.health / (at * 2.0) * 600.0) as u64);
+    STATE.with_borrow_mut(|s| {
+        let due = s.heartbeat.is_none_or(|at| at.elapsed() >= gap);
+        if due {
+            s.heartbeat = Some(Instant::now());
+        }
+        due
+    })
+}
+
+/// Food Preview on Horizon: the saturation as a gold number just right of the hunger bar.
+pub fn saturation_shapes(settings: &Settings, h: &Health) -> Vec<Shape> {
+    if !settings.on(SATURATION) {
+        return Vec::new();
+    }
+    let text = if (h.saturation - h.saturation.round()).abs() < 0.05 { format!("{}", h.saturation.round() as i32) } else { format!("{:.1}", h.saturation) };
+    vec![Shape::Text(text, [(h.width / 2.0).floor() + 93.0, h.height - 38.0], 0xFFC83D, true)]
+}
+
+/// Vanilla items' durability (`max_damage`): Horizon doesn't hand mods the item's own yet.
+pub fn max_durability(item: &str) -> Option<u32> {
+    let id = item.strip_prefix("minecraft:").unwrap_or(item);
+    let tier = |material: &str| -> Option<u32> {
+        Some(match material { "wooden" => 59, "stone" => 131, "copper" => 190, "iron" => 250, "golden" => 32, "diamond" => 1561, "netherite" => 2031, _ => return None })
+    };
+    for tool in ["_sword", "_pickaxe", "_axe", "_shovel", "_hoe", "_spear"] {
+        if let Some(material) = id.strip_suffix(tool) {
+            return tier(material);
+        }
+    }
+    let armor = |material: &str, piece: usize| -> Option<u32> {
+        let base = match material { "leather" => 5, "copper" => 11, "chainmail" | "iron" => 15, "golden" => 7, "diamond" => 33, "netherite" => 37, _ => return None };
+        Some(base * [11, 16, 15, 13][piece])
+    };
+    for (i, piece) in ["_helmet", "_chestplate", "_leggings", "_boots"].iter().enumerate() {
+        if let Some(material) = id.strip_suffix(piece) {
+            return armor(material, i);
+        }
+    }
+    Some(match id {
+        "turtle_helmet" => 275, "elytra" => 432, "trident" => 250, "mace" => 500, "shield" => 336, "bow" => 384, "crossbow" => 465,
+        "fishing_rod" => 64, "shears" => 238, "flint_and_steel" => 64, "carrot_on_a_stick" => 25, "warped_fungus_on_a_stick" => 100,
+        "brush" => 64, "wolf_armor" => 64,
+        _ => return None,
+    })
+}
+
+/// Vanilla foods: (hunger, saturation, effects).
+pub fn food(item: &str) -> Option<(u32, f32, &'static str)> {
+    let id = item.strip_prefix("minecraft:").unwrap_or(item);
+    Some(match id {
+        "apple" | "chorus_fruit" => (4, 2.4, ""), "baked_potato" | "bread" | "cooked_cod" | "cooked_rabbit" => (5, 6.0, ""),
+        "beef" | "porkchop" | "rabbit" => (3, 1.8, ""), "beetroot" => (1, 1.2, ""), "beetroot_soup" | "mushroom_stew" | "cooked_chicken" => (6, 7.2, ""),
+        "carrot" => (3, 3.6, ""), "cooked_beef" | "cooked_porkchop" => (8, 12.8, ""), "cooked_mutton" | "cooked_salmon" => (6, 9.6, ""),
+        "cookie" => (2, 0.4, ""), "dried_kelp" | "potato" => (1, 0.6, ""), "golden_carrot" => (6, 14.4, ""), "honey_bottle" => (6, 1.2, ""),
+        "melon_slice" | "chicken" | "mutton" => (2, 1.2, ""), "poisonous_potato" => (2, 1.2, "Poison (60%)"), "pufferfish" => (1, 0.2, "Poison II, Nausea, Hunger III"),
+        "pumpkin_pie" => (8, 4.8, ""), "rabbit_stew" => (10, 12.0, ""), "rotten_flesh" => (4, 0.8, "Hunger (80%)"), "salmon" | "cod" | "sweet_berries" | "glow_berries" => (2, 0.4, ""),
+        "spider_eye" => (2, 3.2, "Poison"), "suspicious_stew" => (6, 7.2, ""), "tropical_fish" => (1, 0.2, ""),
+        "golden_apple" => (4, 9.6, "Regeneration II (5s), Absorption (2:00)"),
+        "enchanted_golden_apple" => (4, 9.6, "Regeneration II (20s), Absorption IV (2:00), Resistance (5:00), Fire Resistance (5:00)"),
+        _ => return None,
+    })
+}
+
+/// Better Tooltips' lines for an item: (text, 0xRRGGBB), added under the game's own.
+pub fn tooltip_lines(settings: &Settings, item: &str, damage: u32) -> Vec<(String, u32)> {
+    let mut out = Vec::new();
+    if !settings.on(TOOLTIPS) {
+        return out;
+    }
+    if let Some(max) = max_durability(item) {
+        let left = max.saturating_sub(damage);
+        out.push((format!("Durability: {left} / {max}"), health_rgb(left as f32 / max as f32)));
+    }
+    if let Some((hunger, saturation, effects)) = food(item) {
+        out.push((format!("Restores {hunger} hunger, {saturation:.1} saturation"), 0xFFC83D));
+        if !effects.is_empty() {
+            out.push((effects.to_owned(), 0x9C6BFF));
+        }
+    }
+    out
+}
+
+/// Shulker Preview: whether a shulker box's tooltip gets the grid, and its size (9 x 3 slots of 18 pixels).
+pub fn shulker_size(settings: &Settings, item: &str, has_contents: bool) -> Option<[f32; 2]> {
+    (settings.on(SHULKER) && has_contents && item.ends_with("shulker_box")).then_some([9.0 * 18.0 + 4.0, 3.0 * 18.0 + 4.0])
+}
+
+/// The shulker box's colour (ARGB, see-through) from its id ("minecraft:red_shulker_box"; plain is purple).
+pub fn shulker_color(item: &str) -> u32 {
+    let id = item.strip_prefix("minecraft:").unwrap_or(item);
+    let rgb = match id.strip_suffix("_shulker_box").unwrap_or("") {
+        "white" => 0xE8ECEC, "orange" => 0xF07613, "magenta" => 0xBD44B3, "light_blue" => 0x3AAFD9, "yellow" => 0xF8C627,
+        "lime" => 0x70B919, "pink" => 0xED8DAC, "gray" => 0x3E4447, "light_gray" => 0x8E8E86, "cyan" => 0x158991,
+        "purple" => 0x792AAC, "blue" => 0x35399D, "brown" => 0x724728, "green" => 0x546D1B, "red" => 0xA12722, "black" => 0x141519,
+        _ => 0x8B5E8B,
+    };
+    0xC000_0000 | rgb
+}
+
+/// Where slot `slot` (0..27) of the grid is drawn, from the component's top left.
+pub fn shulker_slot(origin: [f32; 2], slot: u8) -> [f32; 2] {
+    let (col, row) = ((slot % 9) as f32, (slot / 9) as f32);
+    [origin[0] + 2.0 + col * 18.0, origin[1] + 2.0 + row * 18.0]
+}
+
+/// HUD Theme on tooltips: (background, top border, bottom border) as ARGB, or None to leave vanilla's.
+pub fn tooltip_colors(settings: &Settings) -> Option<(u32, u32, u32)> {
+    if !settings.on(THEME) || !settings.on(THEME_TOOLTIPS) {
+        return None;
+    }
+    let (background, _) = settings.panel_colors();
+    let accent = settings.accent();
+    Some((0xF000_0000 | (background & 0xFF_FFFF), 0xFF00_0000 | accent, 0x8000_0000 | accent))
 }
 
 /// Health HUD's shapes, in screen (GUI) coordinates: the number and/or bar centred under the crosshair.
@@ -1471,8 +1643,43 @@ mod tests {
     }
 
     #[test]
+    fn low_health_saturation_tooltips_and_shulkers() {
+        let mut s = Settings::default();
+        let low = Health { health: 5.0, max: 20.0, absorption: 0.0, food: 10, saturation: 3.25, width: 400.0, height: 300.0 };
+        let fine = Health { health: 12.0, ..low };
+        assert!(low_health_shapes(&s, &low, 0).is_empty(), "off by default");
+        s.v[LOW_HEALTH] = 1;
+        assert_eq!(low_health_shapes(&s, &low, 250).len(), 12, "three bands on four edges");
+        assert!(low_health_shapes(&s, &fine, 250).is_empty(), "6 hearts isn't low at 4");
+        assert!(heartbeat_due(&s, &low) && !heartbeat_due(&s, &low), "once, then waits");
+        s.v[SATURATION] = 1;
+        assert!(matches!(&saturation_shapes(&s, &low)[..], [Shape::Text(t, ..)] if t == "3.2" || t == "3.3"));
+        assert_eq!(max_durability("minecraft:diamond_sword"), Some(1561));
+        assert_eq!(max_durability("minecraft:netherite_chestplate"), Some(592));
+        assert_eq!(max_durability("minecraft:leather_boots"), Some(65));
+        assert_eq!(max_durability("minecraft:stick"), None);
+        assert!(tooltip_lines(&s, "minecraft:diamond_sword", 0).is_empty(), "Better Tooltips off");
+        s.v[TOOLTIPS] = 1;
+        let lines = tooltip_lines(&s, "minecraft:diamond_sword", 1500);
+        assert_eq!(lines[0].0, "Durability: 61 / 1561");
+        assert_eq!(lines[0].1 >> 8 & 0xFF, ((61.0 / 1561.0 * 2.0) * 220.0_f32).round() as u32, "red-ish when low");
+        let apple = tooltip_lines(&s, "minecraft:enchanted_golden_apple", 0);
+        assert!(apple[0].0.starts_with("Restores 4 hunger, 9.6") && apple[1].0.contains("Absorption IV"));
+        assert_eq!(shulker_size(&s, "minecraft:red_shulker_box", true), None, "Shulker Preview off");
+        s.v[SHULKER] = 1;
+        assert_eq!(shulker_size(&s, "minecraft:red_shulker_box", true), Some([166.0, 58.0]));
+        assert_eq!(shulker_size(&s, "minecraft:red_shulker_box", false), None, "empty: no grid");
+        assert_eq!(shulker_color("minecraft:red_shulker_box") & 0xFF_FFFF, 0xA12722);
+        assert_eq!(shulker_slot([10.0, 20.0], 10), [10.0 + 2.0 + 18.0, 20.0 + 2.0 + 18.0]);
+        assert!(tooltip_colors(&s).is_some(), "theme on by default");
+        for id in ["low_health_warning", "better_tooltips", "shulker_preview", "food_preview"] {
+            assert!(on_horizon(id).is_some(), "{id}");
+        }
+    }
+
+    #[test]
     fn health_hud_number_bar_and_colours() {
-        let h = Health { health: 15.0, max: 20.0, absorption: 4.0, width: 400.0, height: 300.0 };
+        let h = Health { health: 15.0, max: 20.0, absorption: 4.0, food: 20, saturation: 5.0, width: 400.0, height: 300.0 };
         let off = Settings::default();
         assert!(health_shapes(&off, &h, &width).is_empty(), "off by default");
         let mut s = Settings::default();

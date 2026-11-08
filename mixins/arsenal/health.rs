@@ -14,6 +14,8 @@ fn arsenal_health(
         health: inputs.health,
         max: inputs.max_health,
         absorption: inputs.absorption,
+        food: inputs.food,
+        saturation: inputs.saturation,
         width: wi as f32,
         height: hi as f32,
     });

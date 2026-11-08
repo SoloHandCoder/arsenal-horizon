@@ -16,8 +16,18 @@ fn arsenal_hud(
     };
     // Health HUD: under the crosshair, wherever the corner panel is (and also when the corner is hidden).
     if let Some(health) = m::health() {
+        // Low Health Warning's heartbeat, at the player (only they hear it).
+        if m::heartbeat_due(&settings, &health) {
+            if let Some(p) = game.native_player() {
+                game.native_play_local_sound("minecraft:entity.warden.heartbeat", [p.x, p.y, p.z], 0.6, 1.0, 0);
+            }
+        }
         let game = &*game;
-        for shape in m::health_shapes(&settings, &health, &|text| game.native_text_width(text)) {
+        let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
+        let mut shapes = m::low_health_shapes(&settings, &health, millis);
+        shapes.extend(m::saturation_shapes(&settings, &health));
+        shapes.extend(m::health_shapes(&settings, &health, &|text| game.native_text_width(text)));
+        for shape in shapes {
             match shape {
                 m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
                 m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),

@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.5.0"
+version = "1.6.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
@@ -227,4 +227,51 @@ bindings = [
   { name = "inputs", ty = "&horizon_client::hud_layout::HealthInputs", value = "inputs" },
   { name = "wi", ty = "i32", value = "wi" },
   { name = "hi", ty = "i32", value = "hi" },
+]
+
+[[injection]]
+id = "tooltip"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "lines", ty = "&mut Vec<(horizon_client::text::Text, u32)>", value = "&mut *lines" },
+]
+
+[[injection]]
+id = "tooltip_size"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip_component"
+helper = "tooltip_size.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "size", ty = "&mut Option<[f32; 2]>", value = "&mut *size" },
+]
+
+[[injection]]
+id = "tooltip_draw"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip_component_draw"
+helper = "tooltip_draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "origin", ty = "[f32; 2]", value = "origin" },
+  { name = "size", ty = "[f32; 2]", value = "size" },
+]
+
+[[injection]]
+id = "tooltip_color"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip_color"
+helper = "tooltip_color.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "background", ty = "&mut u32", value = "&mut *background" },
+  { name = "border_top", ty = "&mut u32", value = "&mut *border_top" },
+  { name = "border_bottom", ty = "&mut u32", value = "&mut *border_bottom" },
 ]
