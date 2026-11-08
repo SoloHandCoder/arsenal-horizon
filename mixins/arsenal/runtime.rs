@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.14.0";
+pub const VERSION: &str = "1.15.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -1034,6 +1034,18 @@ pub struct Settings {
     pub layout: Vec<(String, [f32; 3])>,
     /// The modules starred in the menu (Java ids), in the order starred.
     pub favorites: Vec<String>,
+    /// A key per module (Java id, "key.keyboard.h") that switches it.
+    pub keys: Vec<(String, String)>,
+    /// Saved setups by name (each the stored settings), and which loads by itself on a server.
+    pub profiles: Vec<(String, Vec<(String, String)>)>,
+    pub auto_profiles: Vec<(String, String)>,
+    /// The HUD editor: a theme for one element (element, theme name).
+    pub hud_themes: Vec<(String, String)>,
+    /// The layout for everywhere, and the ones for one server (`layout` is the one in use).
+    pub main_layout: Vec<(String, [f32; 3])>,
+    pub server_layouts: Vec<(String, Vec<(String, [f32; 3])>)>,
+    /// Hide risky: the menu leaves out what some servers may not allow.
+    pub hide_risky: bool,
 }
 
 impl Default for Settings {
@@ -1042,7 +1054,8 @@ impl Default for Settings {
         for (i, f) in FIELDS.iter().enumerate() {
             v[i] = f.default;
         }
-        Self { v, theme: None, crosshair: None, layout: Vec::new(), favorites: Vec::new() }
+        Self { v, theme: None, crosshair: None, layout: Vec::new(), favorites: Vec::new(), keys: Vec::new(), profiles: Vec::new(), auto_profiles: Vec::new(),
+               hud_themes: Vec::new(), main_layout: Vec::new(), server_layouts: Vec::new(), hide_risky: false }
     }
 }
 
@@ -1073,7 +1086,17 @@ impl Settings {
             let c: Vec<u32> = t.split(',').filter_map(parse_color).collect();
             (c.len() == 3).then(|| Theme { background: c[0], text: c[1] & 0xFF_FFFF, accent: c[2] & 0xFF_FFFF })
         });
-        s.layout = get("hud_layout").map(|t| parse_layout(&t)).unwrap_or_default();
+        s.main_layout = get("hud_layout").map(|t| parse_layout(&t)).unwrap_or_default();
+        s.server_layouts = json_pairs(get("server_huds").as_deref()).into_iter().map(|(k, v)| (k, parse_layout(&v))).collect();
+        s.layout = current_server().and_then(|k| s.server_layouts.iter().find(|e| e.0 == k).map(|e| e.1.clone())).unwrap_or_else(|| s.main_layout.clone());
+        s.keys = pairs_of(get("module_keys").as_deref()).into_iter().filter(|(id, k)| JAVA_MODULES.iter().any(|j| j.id == id) && k.starts_with("key.")).collect();
+        s.profiles = get("profiles").and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()).and_then(|v| v.as_object().map(|o| {
+            o.iter().take(20).map(|(name, p)| (name.clone(), p.as_object().map(|m| m.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_owned()))).collect())
+                .unwrap_or_default())).collect()
+        })).unwrap_or_default();
+        s.auto_profiles = json_pairs(get("auto_profiles").as_deref());
+        s.hud_themes = pairs_of(get("hud_themes").as_deref()).into_iter().filter(|(e, t)| HUD_ELEMENTS.iter().any(|x| x.0 == e) && HUD_THEMES.iter().any(|x| x.0 == t)).collect();
+        s.hide_risky = get("hide_risky").is_some_and(|v| v == "true");
         s.favorites = get("favorites").map(|t| t.split(',').map(str::trim).filter(|f| JAVA_MODULES.iter().any(|j| j.id == *f)).map(str::to_owned).collect())
             .unwrap_or_default();
         s.crosshair = get("browse_crosshair").and_then(|t| {
@@ -1112,8 +1135,23 @@ impl Settings {
         let mut out: Vec<(&'static str, String)> = FIELDS.iter().enumerate().map(|(i, f)| (f.key, f.options[self.v[i]].0.to_owned())).collect();
         out.push(("browse_theme", self.theme.map_or(String::new(), |t| format!("#{:08X},#{:06X},#{:06X}", t.background, t.text, t.accent))));
         out.push(("browse_crosshair", self.crosshair.as_ref().map_or(String::new(), |c| format!("{};#{:06X};{}", c.rows.join("/"), c.rgb, c.size))));
-        out.push(("hud_layout", layout_text(&self.layout)));
+        // The layout in use is this server's when it has one, else the one for everywhere.
+        let mut main = self.main_layout.clone();
+        let mut servers = self.server_layouts.clone();
+        match current_server().and_then(|k| servers.iter_mut().find(|e| e.0 == k)) {
+            Some(entry) => entry.1 = self.layout.clone(),
+            None => main = self.layout.clone(),
+        }
+        out.push(("hud_layout", layout_text(&main)));
+        out.push(("server_huds", json_text(&servers.iter().map(|(k, l)| (k.clone(), layout_text(l))).collect::<Vec<_>>())));
         out.push(("favorites", self.favorites.join(",")));
+        out.push(("module_keys", self.keys.iter().map(|(a, b)| format!("{a}={b}")).collect::<Vec<_>>().join(";")));
+        let profiles: serde_json::Map<String, serde_json::Value> = self.profiles.iter()
+            .map(|(n, p)| (n.clone(), serde_json::Value::Object(p.iter().map(|(k, v)| (k.clone(), v.clone().into())).collect()))).collect();
+        out.push(("profiles", serde_json::Value::Object(profiles).to_string()));
+        out.push(("auto_profiles", json_text(&self.auto_profiles)));
+        out.push(("hud_themes", self.hud_themes.iter().map(|(a, b)| format!("{a}={b}")).collect::<Vec<_>>().join(";")));
+        out.push(("hide_risky", self.hide_risky.to_string()));
         out
     }
 
@@ -1240,6 +1278,8 @@ pub enum Page {
     Cosmetics,
     /// The HUD editor: drag, resize and reset Arsenal's HUD elements over the game.
     HudEdit,
+    /// Profiles: save, load, update, delete, Auto per server; share codes.
+    Profiles,
 }
 
 /// A HUD element being dragged: which, where the pointer holds it, and the layout before (for Undo).
@@ -1272,6 +1312,12 @@ pub struct Menu {
     pub picked: Option<&'static str>,
     pub undo: Vec<String>,
     pub guides: Vec<[f32; 4]>,
+    /// The module waiting for its key (index in `JAVA_MODULES`).
+    pub binding: Option<usize>,
+    /// Profiles: the name being typed, whether typing goes there, and the profile (or "reset") waiting for a second click.
+    pub profile_name: String,
+    pub name_focus: bool,
+    pub confirm: Option<String>,
 }
 
 /// The sidebar's Favorites row (after the categories in `category`).
@@ -3952,6 +3998,7 @@ pub fn place(settings: &Settings, out: &mut Vec<Shape>, from: usize, id: &'stati
             };
         }
     }
+    theme_element(settings, &mut out[from..], id);
     HUD_BOXES.with_borrow_mut(|b| b.push((id, moved, home)));
 }
 
@@ -4931,6 +4978,305 @@ fn cloud_post(path: &'static str, signed: String, config: Option<String>, load: 
 }
 #[cfg(test)]
 fn cloud_post(_path: &'static str, _signed: String, _config: Option<String>, _load: bool) {}
+
+
+// ---- 1.15: keys, profiles, share codes, servers, risky and new modules, HUD themes ----
+
+/// "a=b;c=d" as pairs.
+pub fn pairs_of(text: Option<&str>) -> Vec<(String, String)> {
+    text.unwrap_or("").split(';').filter_map(|p| p.split_once('=')).map(|(a, b)| (a.trim().to_owned(), b.trim().to_owned()))
+        .filter(|(a, _)| !a.is_empty()).collect()
+}
+
+/// A JSON object of strings as pairs.
+pub fn json_pairs(text: Option<&str>) -> Vec<(String, String)> {
+    text.and_then(|t| serde_json::from_str::<serde_json::Value>(t).ok()).and_then(|v| v.as_object().map(|o| {
+        o.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_owned()))).collect()
+    })).unwrap_or_default()
+}
+
+pub fn json_text(pairs: &[(String, String)]) -> String {
+    serde_json::Value::Object(pairs.iter().map(|(k, v)| (k.clone(), v.clone().into())).collect()).to_string()
+}
+
+/// A server address as the Java mod keeps its per-server things: "EU.Play.Example.NET:25565" is "example.net".
+pub fn server_of(address: &str) -> String {
+    let mut a = address.trim().to_lowercase();
+    if a.ends_with('.') {
+        a.pop();
+    }
+    if let Some(stripped) = a.strip_suffix(":25565") {
+        a = stripped.to_owned();
+    }
+    if a.contains(':') || a.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return a;
+    }
+    let labels: Vec<&str> = a.split('.').collect();
+    let n = labels.len();
+    if n >= 3 && labels[n - 1].len() == 2 && ["co", "com", "net", "org", "gov", "ac", "edu"].contains(&labels[n - 2]) {
+        return labels[n - 3..].join(".");
+    }
+    labels[n.saturating_sub(2)..].join(".")
+}
+
+thread_local! {
+    /// The server you're on (as `server_of` keeps it), for its own HUD layout.
+    static SERVER: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+pub fn current_server() -> Option<String> {
+    SERVER.with_borrow(|s| s.clone())
+}
+
+/// Each tick: the server you're on. Joining one with its own HUD layout puts it in use; leaving puts the usual one back.
+pub fn set_server(address: Option<&str>) {
+    let now = address.map(server_of);
+    let before = SERVER.with_borrow(|s| s.clone());
+    if before == now {
+        return;
+    }
+    STATE.with_borrow_mut(|st| {
+        if let Some(s) = st.settings.as_mut() {
+            match before.as_ref().and_then(|k| s.server_layouts.iter_mut().find(|e| &e.0 == k)) {
+                Some(entry) => entry.1 = s.layout.clone(),
+                None => s.main_layout = s.layout.clone(),
+            }
+            s.layout = now.as_ref().and_then(|k| s.server_layouts.iter().find(|e| &e.0 == k).map(|e| e.1.clone())).unwrap_or_else(|| s.main_layout.clone());
+        }
+    });
+    SERVER.with_borrow_mut(|s| *s = now);
+}
+
+/// What some servers may not allow (Hide risky leaves them out of the menu; their pages say so).
+pub const RISKY: &[&str] = &["crystal_optimizer", "crystal_preview", "crystal_helper", "crystal_damage_preview", "anchor_helper", "obsidian_guard",
+    "target_hud", "nametag_health", "nametag_ping", "enemy_armor_alert", "pearl_timer", "eating_warning", "target_low_hp", "damage_numbers",
+    "totem_pop_counter", "totem_pop_alerts", "shield_helper", "shield_break_sound", "combat_hitboxes", "auto_hitbox", "dynamic_crosshair",
+    "combo_reach", "crit_indicator", "sprint_indicator", "mace_aim", "attack_bar", "fullbright", "no_fog", "camera_tweaks", "weather_time", "free_look"];
+
+pub fn risky(id: &str) -> bool {
+    RISKY.contains(&id)
+}
+
+/// The modules new on Horizon (the version they came in): the New row lists the last two versions'.
+pub const ADDED: &[(&str, &str)] = &[
+    ("hypixel_skyblock", "1.14"), ("album_colors", "1.14"), ("cloud_backup", "1.14"), ("inventory_cursor_speed", "1.14"),
+    ("hotbar_style", "1.13"), ("smooth_hotbar", "1.13"), ("inventory_style", "1.13"), ("smooth_inventory", "1.13"), ("old_animations", "1.13"),
+    ("swing_animation", "1.13"), ("hand_tint", "1.13"), ("small_crystals", "1.13"), ("big_items", "1.13"), ("armor_color", "1.13"),
+    ("nametag_style", "1.13"), ("free_look", "1.13"), ("block_break_animation", "1.13"), ("place_animation", "1.13"), ("slick_floors", "1.13"),
+    ("tab_ping", "1.13"), ("chat_mentions", "1.13"), ("chat_tweaks", "1.13"), ("chat_copy", "1.13"), ("name_hider", "1.13"), ("sound_tweaks", "1.13"),
+    ("sprint_indicator", "1.13"), ("obsidian_guard", "1.13"), ("crystal_helper", "1.13"), ("screenshot_clipboard", "1.13"), ("quick_menu", "1.13"),
+    ("performance_mode", "1.13"), ("arsenal_messages", "1.13"), ("party_hud", "1.13"), ("wardrobe_kill_effects", "1.13"), ("usage_stats", "1.13"),
+    ("auto_reconnect", "1.13"), ("crash_reports", "1.13"), ("update_notice", "1.13"), ("server_notes", "1.13"), ("server_profiles", "1.13"),
+    ("spotify_lyrics", "1.13"),
+];
+
+/// The sidebar's New row (after Favorites and the categories).
+pub const NEW_TAB: usize = CATEGORIES.len() + 1;
+
+pub fn new_modules() -> Vec<usize> {
+    let minor = |v: &str| v.split('.').nth(1).and_then(|m| m.parse::<i32>().ok()).unwrap_or(0);
+    let now = minor(VERSION);
+    let mut out: Vec<(i32, usize)> = ADDED.iter().filter(|(_, v)| (now - 2 + 1..=now).contains(&minor(v)))
+        .filter_map(|(id, v)| JAVA_MODULES.iter().position(|j| j.id == *id).map(|i| (-minor(v), i))).collect();
+    out.sort_by_key(|(v, i)| (*v, JAVA_MODULES[*i].name.to_ascii_lowercase()));
+    out.into_iter().map(|e| e.1).collect()
+}
+
+/// "key.keyboard.left.shift" as "Left Shift".
+pub fn key_name(key: &str) -> String {
+    let k = key.trim_start_matches("key.keyboard.").trim_start_matches("key.mouse.");
+    k.split('.').map(|w| {
+        let mut c = w.chars();
+        c.next().map_or(String::new(), |f| f.to_uppercase().collect::<String>() + c.as_str())
+    }).collect::<Vec<_>>().join(" ")
+}
+
+/// A key went down in game: the module it switches (index in `FIELDS`) and its name, if one has it.
+pub fn module_key(raw: &Settings, key: &str) -> Option<(usize, &'static str)> {
+    let (id, _) = raw.keys.iter().find(|(_, k)| k == key)?;
+    let j = JAVA_MODULES.iter().find(|j| j.id == id)?;
+    on_horizon(j.id).map(|(f, _)| (f, j.name))
+}
+
+/// The other modules on the same key.
+pub fn key_clash(s: &Settings, id: &str) -> Vec<&'static str> {
+    let Some(key) = s.keys.iter().find(|(i, _)| i == id).map(|e| e.1.clone()) else { return Vec::new() };
+    s.keys.iter().filter(|(i, k)| i != id && *k == key).filter_map(|(i, _)| JAVA_MODULES.iter().find(|j| j.id == i).map(|j| j.name)).collect()
+}
+
+/// The HUD themes an element can take (as the Java mod's): name, panel (0 none), text, accent.
+pub const HUD_THEMES: &[(&str, u32, u32, u32)] = &[
+    ("CLASSIC", 0, 0xFFFFFF, 0xFFAA00), ("MINIMAL", 0, 0xEEEEEE, 0xFFFFFF), ("DARK", 0xA010_1014, 0xFFFFFF, 0xFFAA00),
+    ("GLASS", 0x40FF_FFFF, 0xFFFFFF, 0xCCE6FF), ("ARSENAL", 0xB014_0B22, 0xEEE6FF, 0x9D5CFF), ("MIDNIGHT", 0xC00B_1020, 0xDDE3FF, 0x5A7BFF),
+    ("NEON", 0xB005_0510, 0xE0FFFF, 0x00F0FF), ("CRIMSON", 0xB020_0608, 0xFFE5E5, 0xFF3344), ("OCEAN", 0xA006_2038, 0xE0F4FF, 0x3FC1FF),
+    ("FOREST", 0xA00E_1F12, 0xE6FFE9, 0x55D16E), ("SUNSET", 0xB03A_1240, 0xFFF0E6, 0xFF8A3D), ("LAVA", 0xB030_0800, 0xFFE6CC, 0xFF6A00),
+    ("ICE", 0x8030_607A, 0xF0FCFF, 0xA8E8FF), ("VAPOR", 0xB02A_0A4A, 0xFFE9FB, 0x01CDFE), ("ROYAL", 0xB01A_0F33, 0xF5EBD0, 0xD4AF37),
+    ("GOLD", 0xB020_1A08, 0xFFF6D5, 0xFFD700), ("TERMINAL", 0xC000_0000, 0x33FF66, 0x33FF66), ("LIGHT", 0xD0F4_F5F9, 0x161A25, 0xE09000),
+    ("CANDY", 0xC0FF_E0F0, 0x5A1840, 0xFF4FA3), ("PASTEL", 0xB0F7_EFFF, 0x4A3B66, 0xB48CFF),
+];
+
+/// HUD element `id` in its own theme: the panel's background, the text and the accent swapped for the theme's.
+fn theme_element(settings: &Settings, shapes: &mut [Shape], id: &str) {
+    let Some(theme) = settings.hud_themes.iter().find(|(e, _)| e == id).and_then(|(_, t)| HUD_THEMES.iter().find(|x| x.0 == t)) else { return };
+    let (bg, text) = settings.panel_colors();
+    let accent = settings.accent();
+    let swap = |rgb: u32| if rgb & 0xFF_FFFF == accent { theme.3 } else if rgb & 0xFF_FFFF == text & 0xFF_FFFF || rgb & 0xFF_FFFF == WHITE { theme.2 } else { rgb & 0xFF_FFFF };
+    for sh in shapes.iter_mut() {
+        match sh {
+            Shape::Fill(_, c) if *c == bg || *c == BACKGROUND => *c = theme.1,
+            Shape::Fill(_, c) if *c & 0xFF_FFFF == accent => *c = (*c & 0xFF00_0000) | theme.3,
+            Shape::Text(_, _, rgb, _) => *rgb = swap(*rgb),
+            Shape::Styled(_, _, c, _, _) => *c = (*c & 0xFF00_0000) | swap(*c),
+            _ => {}
+        }
+    }
+}
+
+// ---- Share codes: "A2:" + base64url(raw deflate(JSON)), as the Java mod's ----
+
+fn b64url(data: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut out = String::new();
+    for c in data.chunks(3) {
+        let n = (u32::from(c[0]) << 16) | (u32::from(*c.get(1).unwrap_or(&0)) << 8) | u32::from(*c.get(2).unwrap_or(&0));
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        if c.len() > 1 {
+            out.push(T[(n >> 6) as usize & 63] as char);
+        }
+        if c.len() > 2 {
+            out.push(T[n as usize & 63] as char);
+        }
+    }
+    out
+}
+
+/// Your setup as a share code: what differs from the defaults (the Java mod reads its module switches; another
+/// Horizon all of it). Personal things (friends, profiles, notes, keys to servers) stay out.
+pub fn share_code(raw: &Settings) -> String {
+    let defaults = Settings::default().stored();
+    let personal = ["friend_list", "profiles", "auto_profiles", "server_huds"];
+    let changed: serde_json::Map<String, serde_json::Value> = raw.stored().into_iter()
+        .filter(|(k, v)| !personal.contains(k) && !k.starts_with("note_") && defaults.iter().find(|d| d.0 == *k).is_none_or(|d| d.1 != *v))
+        .map(|(k, v)| (k.to_owned(), v.into())).collect();
+    let mut modules = serde_json::Map::new();
+    for (id, field, _) in ON_HORIZON {
+        let on = raw.v[*field] == 1;
+        let fav = raw.favorites.iter().any(|f| f == id);
+        let key = raw.keys.iter().find(|(i, _)| i == id).map(|e| e.1.clone());
+        if on != (Settings::default().v[*field] == 1) || fav || key.is_some() {
+            let mut m = serde_json::Map::new();
+            m.insert("enabled".into(), on.into());
+            if fav {
+                m.insert("favorite".into(), true.into());
+            }
+            if let Some(k) = key {
+                m.insert("key".into(), k.into());
+            }
+            modules.insert((*id).to_owned(), serde_json::Value::Object(m));
+        }
+    }
+    let json = serde_json::json!({ "configVersion": 1, "onlyChanges": true, "modules": modules, "horizon": { "version": VERSION, "settings": changed } });
+    format!("A2:{}", b64url(&miniz_oxide::deflate::compress_to_vec(json.to_string().as_bytes(), 9)))
+}
+
+/// A share code (or the JSON in it) read back: the settings it sets, None when it isn't one.
+pub fn read_share_code(code: &str) -> Option<Vec<(String, String)>> {
+    let code = code.trim();
+    let json = if let Some(body) = code.strip_prefix("A2:") {
+        let data = b64_decode(&body.replace('-', "+").replace('_', "/"));
+        String::from_utf8(miniz_oxide::inflate::decompress_to_vec_with_limit(&data, 1_000_000).ok()?).ok()?
+    } else if code.starts_with('{') {
+        code.to_owned()
+    } else {
+        return None;
+    };
+    let root: serde_json::Value = serde_json::from_str(&json).ok()?;
+    root.get("modules")?;
+    // Every setting back to its default, then the code's.
+    let mut out: Vec<(String, String)> = Settings::default().stored().into_iter()
+        .filter(|(k, _)| !["friend_list", "profiles", "auto_profiles", "server_huds", "hud_layout"].contains(k)).map(|(k, v)| (k.to_owned(), v)).collect();
+    let mut set = |k: String, v: String| {
+        if let Some(e) = out.iter_mut().find(|e| e.0 == k) {
+            e.1 = v;
+        } else {
+            out.push((k, v));
+        }
+    };
+    if let Some(map) = root["horizon"]["settings"].as_object() {
+        for (k, v) in map {
+            if let Some(v) = v.as_str() {
+                set(k.clone(), v.to_owned());
+            }
+        }
+    } else if let Some(modules) = root["modules"].as_object() {
+        let mut favorites = Vec::new();
+        let mut keys = Vec::new();
+        for (id, m) in modules {
+            if let (Some(on), Some((f, _))) = (m["enabled"].as_bool(), on_horizon(id)) {
+                set(FIELDS[f].key.to_owned(), if on { "true" } else { "false" }.to_owned());
+            }
+            if m["favorite"] == true {
+                favorites.push(id.clone());
+            }
+            if let Some(k) = m["key"].as_str().filter(|k| k.starts_with("key.")) {
+                keys.push(format!("{id}={k}"));
+            }
+        }
+        set("favorites".into(), favorites.join(","));
+        set("module_keys".into(), keys.join(";"));
+    }
+    Some(out)
+}
+
+/// What the clipboard is asked for: text to copy, or to read a code to paste.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Clip {
+    Copy(String),
+    Paste,
+}
+thread_local! {
+    static CLIP: RefCell<Option<Clip>> = const { RefCell::new(None) };
+}
+pub fn take_clip() -> Option<Clip> {
+    CLIP.with_borrow_mut(|c| c.take())
+}
+
+/// The clipboard's text when Paste code asked: the settings to keep, and what to say.
+pub fn pasted(text: &str) -> (Option<Vec<(String, String)>>, String) {
+    match read_share_code(text) {
+        Some(pairs) => (Some(pairs), "Loaded the setup from the share code.".into()),
+        None => (None, "The clipboard has no Arsenal share code (they start with A2:).".into()),
+    }
+}
+
+thread_local! {
+    static AUTO_FOR: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Server Profiles: the profile to load on joining server `key` (once per server), when one is set to Auto there.
+pub fn joined_profile(raw: &Settings, key: &str) -> Option<String> {
+    let first = AUTO_FOR.with_borrow_mut(|a| (a.as_deref() != Some(key)).then(|| *a = Some(key.to_owned())).is_some());
+    if !first || !raw.on(PROFILES) {
+        return None;
+    }
+    raw.auto_profiles.iter().find(|(k, _)| k == key).map(|e| e.1.clone())
+}
+
+/// A profile loaded: its settings on top, your profiles, server choices and friends kept.
+pub fn load_profile(raw: &Settings, name: &str) -> Option<Settings> {
+    let (_, pairs) = raw.profiles.iter().find(|(n, _)| n == name)?;
+    let mut s = Settings::read(|k| pairs.iter().find(|(key, _)| key == k).map(|(_, v)| v.clone()));
+    s.profiles = raw.profiles.clone();
+    s.auto_profiles = raw.auto_profiles.clone();
+    s.server_layouts = raw.server_layouts.clone();
+    Some(s)
+}
+
+/// The setup as a profile keeps it (without the profiles themselves).
+pub fn profile_now(raw: &Settings) -> Vec<(String, String)> {
+    raw.stored().into_iter().filter(|(k, _)| !["profiles", "auto_profiles", "server_huds"].contains(k)).map(|(k, v)| (k.to_owned(), v)).collect()
+}
 
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
 pub const HOTKEY_KEYS: [(&str, &str, &str); 4] = [("hotkey_gg", "Chat Hotkey: gg", "gg"), ("hotkey_glhf", "Chat Hotkey: gl hf", "gl hf"),
@@ -6006,6 +6352,24 @@ pub enum Action {
     /// The HUD editor's buttons.
     UndoHud,
     ResetHud,
+    /// The HUD editor: the picked element's next theme; this server's own layout on or off.
+    HudTheme,
+    ServerLayout,
+    /// Set the module's key (the next key pressed).
+    BindKey(usize),
+    /// The module's settings back to their defaults.
+    ResetModule(usize),
+    HideRisky,
+    /// Profiles (index in `Settings.profiles`).
+    ProfileName,
+    ProfileSave,
+    ProfileLoad(usize),
+    ProfileUpdate(usize),
+    ProfileDelete(usize),
+    ProfileAuto(usize),
+    CopyCode,
+    PasteCode,
+    ResetAll,
 }
 
 const MENU_BG: u32 = 0xF412_1219;
@@ -6312,8 +6676,21 @@ fn hud_editor(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: 
     } else {
         "Drag to move  ·  Scroll to resize  ·  Right-click puts one back  ·  Shift: no snapping".to_owned()
     };
-    let buttons = [("Undo", Action::UndoHud), ("Reset all", Action::ResetHud), ("Done", Action::Go(Page::Home))];
-    let bw: f32 = buttons.iter().map(|b| width(b.0) + 16.0).sum::<f32>() + 4.0 * buttons.len() as f32;
+    let theme_label = m.picked.map(|id| format!("Theme: {}", s.hud_themes.iter().find(|(e, _)| e == id).map_or("Same as all".to_owned(), |e| {
+        let t = e.1.to_lowercase();
+        t[..1].to_uppercase() + &t[1..]
+    })));
+    let layout_label = current_server().map(|k| if s.server_layouts.iter().any(|e| e.0 == k) { "Layout: only this server".to_owned() } else { "Layout: all servers".to_owned() });
+    let mut buttons: Vec<(String, Action)> = Vec::new();
+    if let Some(t) = theme_label {
+        buttons.push((t, Action::HudTheme));
+    }
+    if let Some(l) = layout_label {
+        buttons.push((l, Action::ServerLayout));
+    }
+    buttons.extend([("Undo".to_owned(), Action::UndoHud), ("Reset all".to_owned(), Action::ResetHud), ("Done".to_owned(), Action::Go(Page::Home))]);
+    let last = buttons.len() - 1;
+    let bw: f32 = buttons.iter().map(|b| width(&b.0) + 16.0).sum::<f32>() + 4.0 * buttons.len() as f32;
     let total = width(&hint) + 20.0 + bw;
     let mut bar = [(sw - total) / 2.0, 8.0, total, 22.0];
     if boxes.iter().any(|b| b.1[1] < 34.0 && b.1[0] < bar[0] + bar[2] && b.1[0] + b.1[2] > bar[0]) {
@@ -6327,7 +6704,7 @@ fn hud_editor(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: 
         let r = [bx, bar[1] + 3.0, width(name) + 16.0, 16.0];
         let t = ease(key(21, i), if inside(r, mouse) { 1.0 } else { 0.0 }, 0.0, animate);
         let enabled = match action { Action::UndoHud => !m.undo.is_empty(), Action::ResetHud => !s.layout.is_empty(), _ => true };
-        let base = if i == 2 { argb(accent, 0.55 + 0.3 * t) } else { mix_argb(CARD, CARD_HOVER, t) };
+        let base = if i == last { argb(accent, 0.55 + 0.3 * t) } else { mix_argb(CARD, CARD_HOVER, t) };
         rounded(&mut out, r, 4.0, base);
         label(&mut out, name, [r[0] + 8.0, r[1] + 4.0], if enabled { 0xFFFF_FFFF } else { argb(GREY, 1.0) }, false, 1.0);
         if enabled {
@@ -6391,8 +6768,20 @@ fn layout(
         (Page::Browse, _) => "/  Browse".into(),
         (Page::Cosmetics, _) => "/  Cosmetics".into(),
         (Page::HudEdit, _) => "/  Edit HUD".into(),
+        (Page::Profiles, _) => "/  Profiles".into(),
     };
     label(&mut out, &fit(&crumb, w - title_w - 60.0, width), [x0 + 22.0 + title_w, y0 + 14.0], argb(MUTED, 1.0), false, 1.0);
+    if m.page == Page::Modules {
+        let mut bx = x0 + w - 30.0;
+        for (i, (name, page)) in [("Edit HUD", Page::HudEdit), ("Profiles", Page::Profiles)].iter().enumerate() {
+            let r = [bx - width(name) - 14.0, y0 + 9.0, width(name) + 14.0, 15.0];
+            let t = hover(key(24, i), r);
+            rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
+            label(&mut out, name, [r[0] + 7.0, r[1] + 4.0], 0xFFFF_FFFF, false, 1.0);
+            hits.push((r, Action::Go(*page)));
+            bx = r[0] - 4.0;
+        }
+    }
     let close = [x0 + w - 24.0, y0 + 9.0, 15.0, 15.0];
     let t = hover(key(2, 0), close);
     rounded(&mut out, close, 7.5, mix_argb(CARD, 0xD0E0_4848, t));
@@ -6404,6 +6793,78 @@ fn layout(
 
     match m.page {
         Page::HudEdit => {}
+        Page::Profiles => {
+            let cx = x0 + 18.0;
+            let cw = w - 36.0;
+            label(&mut out, "Profiles", [cx, top + 8.0], 0xFFFF_FFFF, true, 1.25);
+            label(&mut out, "Saved setups you switch between; Auto loads one whenever you join this server.", [cx, top + 24.0], argb(MUTED, 1.0), false, 1.0);
+            // The name box and Save current.
+            let nb = [cx, top + 38.0, cw - 104.0, 17.0];
+            let focus = m.name_focus || !m.profile_name.is_empty();
+            rounded(&mut out, nb, 4.0, if focus { argb(accent, 0.16) } else { 0x14FF_FFFF });
+            if m.profile_name.is_empty() {
+                label(&mut out, "Name a new profile...", [nb[0] + 7.0, nb[1] + 5.0], argb(GREY, 1.0), false, 1.0);
+            } else {
+                label(&mut out, &m.profile_name, [nb[0] + 7.0, nb[1] + 5.0], 0xFFFF_FFFF, false, 1.0);
+            }
+            if m.name_focus {
+                out.push(Shape::Fill([nb[0] + 8.0 + width(&m.profile_name), nb[1] + 4.0, 1.0, 9.0], 0xFFFF_FFFF));
+            }
+            hits.push((nb, Action::ProfileName));
+            let save = [nb[0] + nb[2] + 6.0, nb[1], 98.0, 17.0];
+            let t = hover(key(25, 0), save);
+            rounded(&mut out, save, 4.0, argb(accent, 0.5 + 0.3 * t));
+            label(&mut out, "Save current", [save[0] + (save[2] - width("Save current")) / 2.0, save[1] + 5.0], 0xFFFF_FFFF, false, 1.0);
+            hits.push((save, Action::ProfileSave));
+            content = out.len();
+            let server = current_server();
+            let mut y = top + 62.0;
+            if s.profiles.is_empty() {
+                label(&mut out, "No profiles yet.", [cx + 2.0, y + 4.0], argb(GREY, 1.0), false, 1.0);
+            }
+            for (i, (name, _)) in s.profiles.iter().enumerate() {
+                if y + 20.0 > y0 + h - 30.0 {
+                    break;
+                }
+                let r = [cx, y, cw, 19.0];
+                let t = hover(key(26, i), r);
+                rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
+                let auto = server.as_ref().is_some_and(|k| s.auto_profiles.iter().any(|(sk, n)| sk == k && n == name));
+                label(&mut out, &fit(name, cw - 250.0, width), [r[0] + 8.0, r[1] + 6.0], 0xFFFF_FFFF, false, 1.0);
+                let mut bx = r[0] + r[2] - 4.0;
+                let deleting = m.confirm.as_deref() == Some(name.as_str());
+                let mut buttons = vec![(if deleting { "Sure?" } else { "Delete" }, Action::ProfileDelete(i)), ("Update", Action::ProfileUpdate(i)), ("Load", Action::ProfileLoad(i))];
+                if server.is_some() {
+                    buttons.push(("Auto", Action::ProfileAuto(i)));
+                }
+                for (n, (text, action)) in buttons.iter().enumerate() {
+                    let br = [bx - width(text) - 12.0, r[1] + 3.0, width(text) + 12.0, 13.0];
+                    let bt = hover(key(27, i * 8 + n), br);
+                    let lit = (*text == "Auto" && auto) || deleting && n == 0;
+                    rounded(&mut out, br, 4.0, if lit { argb(if deleting { 0xE04848 } else { accent }, 0.6 + 0.2 * bt) } else { mix_argb(0x18FF_FFFF, 0x30FF_FFFF, bt) });
+                    label(&mut out, text, [br[0] + 6.0, br[1] + 3.0], 0xFFFF_FFFF, false, 1.0);
+                    hits.push((br, *action));
+                    bx = br[0] - 4.0;
+                }
+                y += 22.0;
+            }
+            // Share codes and Reset all along the bottom.
+            let by = y0 + h - 24.0;
+            let mut bx = cx;
+            let resetting = m.confirm.as_deref() == Some("\u{0}reset");
+            for (i, (text, action)) in [("Copy code", Action::CopyCode), ("Paste code", Action::PasteCode), (if resetting { "Sure? Reset all" } else { "Reset all" }, Action::ResetAll)].iter().enumerate() {
+                let r = [bx, by, width(text) + 16.0, 16.0];
+                let t = hover(key(28, i), r);
+                rounded(&mut out, r, 4.0, if i == 2 && resetting { argb(0xE04848, 0.7) } else { mix_argb(CARD, CARD_HOVER, t) });
+                label(&mut out, text, [r[0] + 8.0, r[1] + 4.0], 0xFFFF_FFFF, false, 1.0);
+                hits.push((r, *action));
+                bx += r[2] + 6.0;
+            }
+            if let Some(n) = &m.notice {
+                let text = fit(n, x0 + w - bx - 24.0, width);
+                label(&mut out, &text, [bx + 6.0, by + 4.0], solid, false, 1.0);
+            }
+        }
         Page::Home => {
             label(&mut out, "Welcome back", [x0 + 18.0, top + 10.0], 0xFFFF_FFFF, true, 1.25);
             let on = modules_on(s);
@@ -6648,6 +7109,30 @@ fn layout(
                 }
                 hits.push((r, Action::Category(i)));
             }
+            {
+                let r = cat_r(NEW_TAB);
+                let t = hover(key(12, NEW_TAB), r);
+                if selected != NEW_TAB && t > 0.01 {
+                    rounded(&mut out, r, 4.0, argb(0xFFFFFF, 0.06 * t));
+                }
+                let c = if selected == NEW_TAB { 0xFFFF_FFFF } else { mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, t) };
+                // A small spark.
+                let (sx, sy) = (r[0] + 11.0, r[1] + 8.0);
+                out.push(Shape::Quad([[sx, sy - 4.5], [sx + 1.2, sy], [sx, sy + 4.5], [sx - 1.2, sy]], 0xFF55_FFFF));
+                out.push(Shape::Quad([[sx - 4.5, sy], [sx, sy - 1.2], [sx + 4.5, sy], [sx, sy + 1.2]], 0xFF55_FFFF));
+                label(&mut out, "New", [r[0] + 19.0, r[1] + 4.5], c, false, 1.0);
+                hits.push((r, Action::Category(NEW_TAB)));
+                // Hide risky.
+                let hr = [side[0] + 4.0, side[1] + side[3] - 20.0, side[2] - 8.0, 16.0];
+                let ht = hover(key(29, 0), hr);
+                rounded(&mut out, [hr[0] + 3.0, hr[1] + 3.0, 10.0, 10.0], 2.0, if s.hide_risky { solid } else { mix_argb(0x30FF_FFFF, 0x50FF_FFFF, ht) });
+                if s.hide_risky {
+                    out.push(Shape::Quad([[hr[0] + 5.0, hr[1] + 8.0], [hr[0] + 6.5, hr[1] + 7.0], [hr[0] + 8.0, hr[1] + 9.5], [hr[0] + 7.0, hr[1] + 11.0]], 0xFF10_1014));
+                    out.push(Shape::Quad([[hr[0] + 7.0, hr[1] + 11.0], [hr[0] + 8.0, hr[1] + 9.5], [hr[0] + 11.0, hr[1] + 5.0], [hr[0] + 12.0, hr[1] + 6.0]], 0xFF10_1014));
+                }
+                label(&mut out, "Hide risky", [hr[0] + 18.0, hr[1] + 4.5], mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, ht), false, 1.0);
+                hits.push((hr, Action::HideRisky));
+            }
             content = out.len();
             let cx = x0 + SIDE + 10.0;
             let cw = w - SIDE - 22.0;
@@ -6663,6 +7148,32 @@ fn layout(
                         y += 10.0;
                     }
                     y += 4.0;
+                    if risky(module.id) {
+                        label(&mut out, "Some servers may not allow this. Use at your own risk!", [cx, y], 0xFFFF_C83D, false, 1.0);
+                        y += 12.0;
+                    }
+                    if on_horizon(module.id).is_some() {
+                        let i = JAVA_MODULES.iter().position(|j| j.id == module.id).unwrap_or(0);
+                        let kr = [cx, y, (cw - 70.0).min(220.0), 15.0];
+                        let kt = hover(key(30, 0), kr);
+                        let waiting = m.binding == Some(i);
+                        rounded(&mut out, kr, 4.0, if waiting { argb(accent, 0.3) } else { mix_argb(CARD, CARD_HOVER, kt) });
+                        let bound = s.keys.iter().find(|(id, _)| id == module.id).map(|e| key_name(&e.1));
+                        let text = if waiting { "Key: press a key (Escape: none)".to_owned() } else { format!("Key: {}", bound.unwrap_or_else(|| "None".into())) };
+                        label(&mut out, &fit(&text, kr[2] - 12.0, width), [kr[0] + 7.0, kr[1] + 4.0], 0xFFFF_FFFF, false, 1.0);
+                        hits.push((kr, Action::BindKey(i)));
+                        let rr = [kr[0] + kr[2] + 6.0, y, 58.0, 15.0];
+                        let rt = hover(key(30, 1), rr);
+                        rounded(&mut out, rr, 4.0, mix_argb(CARD, CARD_HOVER, rt));
+                        label(&mut out, "Reset", [rr[0] + (rr[2] - width("Reset")) / 2.0, rr[1] + 4.0], 0xFFFF_FFFF, false, 1.0);
+                        hits.push((rr, Action::ResetModule(i)));
+                        y += 18.0;
+                        let clash = key_clash(s, module.id);
+                        if !clash.is_empty() {
+                            label(&mut out, &fit(&format!("Also on this key: {}", clash.join(", ")), cw, width), [cx, y], 0xFFFF_C83D, false, 1.0);
+                            y += 12.0;
+                        }
+                    }
                     match on_horizon(module.id) {
                         Some((toggle, fields)) => {
                             if let Some(note) = horizon_note(module.id) {
@@ -6723,6 +7234,8 @@ fn layout(
                         format!("Results for \"{}\"", fit(m.search.trim(), cw / 2.0, width))
                     } else if m.category == FAVORITES {
                         "Favorites".to_owned()
+                    } else if m.category == NEW_TAB {
+                        "New on Horizon".to_owned()
                     } else {
                         CATEGORIES.get(m.category).copied().unwrap_or("").to_owned()
                     };
@@ -6759,6 +7272,10 @@ fn layout(
                         let (name_c, desc_c) = if here.is_some() { (0xFFFF_FFFF, argb(MUTED, 1.0)) } else { (argb(GREY, 1.0), argb(GREY, 0.8)) };
                         label(&mut out, &fit(module.name, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 3.5], name_c, false, 1.0);
                         label(&mut out, &fit(module.description, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 13.5], desc_c, false, 1.0);
+                        if risky(module.id) {
+                            let nx = r[0] + 9.0 + width(&fit(module.name, cw - right - 14.0, width)) + 4.0;
+                            out.push(Shape::Quad([[nx + 3.5, r[1] + 3.5], [nx + 7.0, r[1] + 10.0], [nx, r[1] + 10.0], [nx + 3.5, r[1] + 3.5]], 0xFFFF_C83D));
+                        }
                         hits.push((r, Action::Open(i)));
                         hits.push((sr, Action::Favorite(i)));
                         match here {
@@ -6859,14 +7376,27 @@ pub fn shown_modules(m: &Menu, s: &Settings) -> Vec<usize> {
         search_modules(m.search.trim())
     } else if m.category == FAVORITES {
         s.favorites.iter().filter_map(|f| JAVA_MODULES.iter().position(|j| j.id == f)).collect()
+    } else if m.category == NEW_TAB {
+        new_modules()
     } else {
         category_modules(m.category)
     }
+    .into_iter().filter(|&i| !s.hide_risky || !risky(JAVA_MODULES[i].id)).collect()
 }
 
 /// A character typed on the menu: into the search box (any letter on the Modules page starts a search).
 pub fn menu_typed(m: &mut Menu, c: char) -> bool {
-    if m.page != Page::Modules || m.detail.is_some() || c.is_control() {
+    if m.binding.is_some() || c.is_control() {
+        return false;
+    }
+    if m.page == Page::Profiles {
+        if m.profile_name.chars().count() < 32 {
+            m.profile_name.push(c);
+        }
+        m.name_focus = true;
+        return true;
+    }
+    if m.page != Page::Modules || m.detail.is_some() {
         return false;
     }
     if m.search.chars().count() < 40 {
@@ -6880,7 +7410,25 @@ pub fn menu_typed(m: &mut Menu, c: char) -> bool {
 /// A key on the menu: Backspace and Escape in the search, Escape and Ctrl+Z in the HUD editor. True when it was the
 /// menu's (Escape then doesn't close it). `s` changes on Undo (to be stored).
 pub fn menu_key(m: &mut Menu, s: &mut Settings, key: &str, ctrl: bool) -> (bool, bool) {
+    // Setting a module's key: the next key is it (Escape takes it off).
+    if let Some(i) = m.binding.take() {
+        let id = JAVA_MODULES[i].id;
+        s.keys.retain(|(k, _)| k != id);
+        if key != "key.keyboard.escape" {
+            s.keys.push((id.to_owned(), key.to_owned()));
+        }
+        return (true, true);
+    }
     match (m.page, key) {
+        (Page::Profiles, "key.keyboard.backspace") if !m.profile_name.is_empty() => {
+            m.profile_name.pop();
+            (true, false)
+        }
+        (Page::Profiles, "key.keyboard.enter") if !m.profile_name.trim().is_empty() => (true, apply(Action::ProfileSave, m, s, &Fetch::Loading)),
+        (Page::Profiles, "key.keyboard.escape") => {
+            *m = Menu { page: Page::Home, tab: m.tab, ..Menu::default() };
+            (true, false)
+        }
         (Page::HudEdit, "key.keyboard.escape") => {
             *m = Menu { page: Page::Home, tab: m.tab, ..Menu::default() };
             (true, false)
@@ -7085,6 +7633,136 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             false
         }
         Action::UndoHud => hud_undo(m, s),
+        Action::HudTheme => {
+            let Some(id) = m.picked else { return false };
+            let now = s.hud_themes.iter().position(|(e, _)| e == id);
+            let next = match now.and_then(|i| HUD_THEMES.iter().position(|t| t.0 == s.hud_themes[i].1)) {
+                Some(t) if t + 1 < HUD_THEMES.len() => Some(HUD_THEMES[t + 1].0),
+                Some(_) => None,
+                None => Some(HUD_THEMES[0].0),
+            };
+            s.hud_themes.retain(|(e, _)| e != id);
+            if let Some(t) = next {
+                s.hud_themes.push((id.to_owned(), t.to_owned()));
+            }
+            true
+        }
+        Action::ServerLayout => {
+            let Some(k) = current_server() else { return false };
+            if let Some(at) = s.server_layouts.iter().position(|e| e.0 == k) {
+                s.server_layouts.remove(at);
+                s.layout = s.main_layout.clone();
+            } else {
+                s.main_layout = s.layout.clone();
+                s.server_layouts.push((k, s.layout.clone()));
+            }
+            true
+        }
+        Action::BindKey(i) => {
+            m.binding = Some(i);
+            false
+        }
+        Action::ResetModule(i) => match on_horizon(JAVA_MODULES[i].id) {
+            Some((f, fields)) => {
+                let d = Settings::default();
+                for x in std::iter::once(&f).chain(fields.iter()) {
+                    s.v[*x] = d.v[*x];
+                }
+                s.keys.retain(|(id, _)| id != JAVA_MODULES[i].id);
+                true
+            }
+            None => false,
+        },
+        Action::HideRisky => {
+            s.hide_risky = !s.hide_risky;
+            m.scroll = 0;
+            true
+        }
+        Action::ProfileName => {
+            m.name_focus = true;
+            false
+        }
+        Action::ProfileSave => {
+            let name = m.profile_name.trim().chars().take(32).collect::<String>();
+            if name.is_empty() || (s.profiles.len() >= 20 && !s.profiles.iter().any(|p| p.0 == name)) {
+                m.notice = Some(if name.is_empty() { "Type a name first.".into() } else { "20 profiles is the most: delete one first.".into() });
+                return false;
+            }
+            let now = profile_now(s);
+            match s.profiles.iter_mut().find(|p| p.0 == name) {
+                Some(p) => p.1 = now,
+                None => s.profiles.push((name.clone(), now)),
+            }
+            m.notice = Some(format!("Saved \"{name}\"."));
+            m.profile_name.clear();
+            m.name_focus = false;
+            true
+        }
+        Action::ProfileLoad(i) => {
+            let Some(name) = s.profiles.get(i).map(|p| p.0.clone()) else { return false };
+            match load_profile(s, &name) {
+                Some(loaded) => {
+                    *s = loaded;
+                    m.notice = Some(format!("Loaded \"{name}\"."));
+                    true
+                }
+                None => false,
+            }
+        }
+        Action::ProfileUpdate(i) => {
+            let now = profile_now(s);
+            match s.profiles.get_mut(i) {
+                Some(p) => {
+                    p.1 = now;
+                    m.notice = Some(format!("Updated \"{}\".", p.0));
+                    true
+                }
+                None => false,
+            }
+        }
+        Action::ProfileDelete(i) => {
+            let Some(name) = s.profiles.get(i).map(|p| p.0.clone()) else { return false };
+            if m.confirm.as_deref() != Some(name.as_str()) {
+                m.confirm = Some(name);
+                return false;
+            }
+            m.confirm = None;
+            s.profiles.remove(i);
+            s.auto_profiles.retain(|(_, n)| *n != name);
+            m.notice = Some(format!("Deleted \"{name}\"."));
+            true
+        }
+        Action::ProfileAuto(i) => {
+            let (Some(k), Some(name)) = (current_server(), s.profiles.get(i).map(|p| p.0.clone())) else { return false };
+            let was = s.auto_profiles.iter().any(|(sk, n)| *sk == k && *n == name);
+            s.auto_profiles.retain(|(sk, _)| *sk != k);
+            if !was {
+                s.auto_profiles.push((k.clone(), name.clone()));
+            }
+            m.notice = Some(if was { format!("{k} loads no profile now.") } else { format!("\"{name}\" loads whenever you join {k}.") });
+            true
+        }
+        Action::CopyCode => {
+            CLIP.with_borrow_mut(|c| *c = Some(Clip::Copy(share_code(s))));
+            m.notice = Some("Share code copied.".into());
+            false
+        }
+        Action::PasteCode => {
+            CLIP.with_borrow_mut(|c| *c = Some(Clip::Paste));
+            false
+        }
+        Action::ResetAll => {
+            if m.confirm.as_deref() != Some("\u{0}reset") {
+                m.confirm = Some("\u{0}reset".into());
+                return false;
+            }
+            m.confirm = None;
+            let keep = (s.profiles.clone(), s.auto_profiles.clone(), s.favorites.clone());
+            *s = Settings::default();
+            (s.profiles, s.auto_profiles, s.favorites) = keep;
+            m.notice = Some("Every setting is back to its default.".into());
+            true
+        }
         Action::ResetHud => {
             if s.layout.is_empty() {
                 return false;
@@ -7397,6 +8075,78 @@ mod tests {
         let out = cloud_tick(&raw, &raw, &none);
         assert!(out.say.unwrap().contains("Minecraft account"));
         assert_eq!(command(&raw, &raw, "cloud save", None, &|_| None), Command::Cloud(true));
+    }
+
+    #[test]
+    fn keys_profiles_codes_and_servers() {
+        assert_eq!(server_of("EU.Play.Example.NET:25565"), "example.net");
+        assert_eq!(server_of("mc.foo.co.uk"), "foo.co.uk");
+        assert_eq!(server_of("1.2.3.4"), "1.2.3.4");
+        assert_eq!(server_of("play.x.net:25566"), "play.x.net:25566");
+        assert_eq!(key_name("key.keyboard.left.shift"), "Left Shift");
+        // A module's key.
+        let mut m = Menu { page: Page::Modules, ..Menu::default() };
+        let mut s = Settings::default();
+        let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();
+        apply(Action::BindKey(zoom), &mut m, &mut s, &Fetch::Loading);
+        assert_eq!(menu_key(&mut m, &mut s, "key.keyboard.h", false), (true, true));
+        assert_eq!(module_key(&s, "key.keyboard.h").map(|e| e.1), Some(JAVA_MODULES[zoom].name));
+        let fb = JAVA_MODULES.iter().position(|j| j.id == "fullbright").unwrap();
+        apply(Action::BindKey(fb), &mut m, &mut s, &Fetch::Loading);
+        menu_key(&mut m, &mut s, "key.keyboard.h", false);
+        assert_eq!(key_clash(&s, "zoom"), vec![JAVA_MODULES[fb].name]);
+        // Profiles: save, change, load back; delete asks twice.
+        let mut p = Menu { page: Page::Profiles, ..Menu::default() };
+        for c in "PvP".chars() {
+            menu_typed(&mut p, c);
+        }
+        s.v[BLOOM] = 1;
+        assert!(apply(Action::ProfileSave, &mut p, &mut s, &Fetch::Loading));
+        s.v[BLOOM] = 0;
+        assert!(apply(Action::ProfileLoad(0), &mut p, &mut s, &Fetch::Loading));
+        assert_eq!((s.v[BLOOM], s.profiles.len()), (1, 1));
+        assert!(!apply(Action::ProfileDelete(0), &mut p, &mut s, &Fetch::Loading));
+        assert!(apply(Action::ProfileDelete(0), &mut p, &mut s, &Fetch::Loading));
+        assert!(s.profiles.is_empty());
+        // Settings keep all of it.
+        s.profiles = vec![("A".into(), vec![("bloom".into(), "true".into())])];
+        s.hud_themes = vec![("armor".into(), "NEON".into())];
+        s.hide_risky = true;
+        let stored = s.stored();
+        let back = Settings::read(|k| stored.iter().find(|(key, _)| *key == k).map(|(_, v)| v.clone()));
+        assert_eq!((back.keys, back.profiles, back.hud_themes, back.hide_risky), (s.keys.clone(), s.profiles.clone(), s.hud_themes.clone(), true));
+        // Hide risky leaves Free Look out.
+        let free = JAVA_MODULES.iter().position(|j| j.id == "free_look").unwrap();
+        let all = Menu { search: "free look".into(), ..Menu::default() };
+        assert!(!shown_modules(&all, &s).contains(&free));
+        assert!(!new_modules().is_empty());
+        // Share codes round trip, and a Java code's module switches load.
+        let mut raw = Settings::default();
+        raw.v[MIST] = 1;
+        let code = share_code(&raw);
+        assert!(code.starts_with("A2:"));
+        let pairs = read_share_code(&code).unwrap();
+        assert!(pairs.contains(&("mist".to_string(), "true".to_string())));
+        let java = r#"{"modules":{"zoom":{"enabled":false,"favorite":true,"key":"key.keyboard.c"}},"onlyChanges":true}"#;
+        let pairs = read_share_code(java).unwrap();
+        assert!(pairs.contains(&("favorites".to_string(), "zoom".to_string())) && pairs.contains(&("module_keys".to_string(), "zoom=key.keyboard.c".to_string())));
+        assert!(read_share_code("hello").is_none());
+        // A theme for one element.
+        let mut t = Settings::default();
+        t.hud_themes = vec![("armor".into(), "NEON".into())];
+        let bg = t.panel_colors().0;
+        let mut shapes = vec![Shape::Fill([0.0, 0.0, 5.0, 5.0], bg)];
+        theme_element(&t, &mut shapes, "armor");
+        assert_eq!(shapes[0], Shape::Fill([0.0, 0.0, 5.0, 5.0], 0xB005_0510));
+        // A server's own layout.
+        set_server(Some("play.example.net"));
+        let mut e = Menu { page: Page::HudEdit, picked: Some("armor"), ..Menu::default() };
+        let mut h = Settings::default();
+        assert!(apply(Action::ServerLayout, &mut e, &mut h, &Fetch::Loading));
+        assert_eq!(h.server_layouts.len(), 1);
+        assert!(apply(Action::HudTheme, &mut e, &mut h, &Fetch::Loading));
+        assert_eq!(h.hud_themes, vec![("armor".to_string(), "CLASSIC".to_string())]);
+        set_server(None);
     }
 
     #[test]

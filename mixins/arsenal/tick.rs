@@ -137,10 +137,50 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         // Inventory Cursor Speed (its own cursor is drawn by gui_post.rs).
         a::CURSOR_SPEED.store(if settings.on(m::CURSOR) { m::FIELDS[m::CURSOR_SPEED].options[settings.v[m::CURSOR_SPEED]].0.parse().unwrap_or(100) } else { 100 }, Relaxed);
         let server = game.arsenal_server();
+        m::set_server(server.as_deref());
+        // Share codes: the clipboard (copy, or read a code to paste).
+        match m::take_clip() {
+            Some(m::Clip::Copy(text)) => game.arsenal_clipboard_set(&text),
+            Some(m::Clip::Paste) => {
+                let text = game.arsenal_clipboard_get();
+                let (pairs, say) = m::pasted(&text);
+                if let Some(pairs) = pairs {
+                    for (key, value) in &pairs {
+                        game.native_set_setting(m::ID, key, value);
+                    }
+                    let fresh = {
+                        let game = &*game;
+                        m::Settings::read(|key| game.native_setting(m::ID, key))
+                    };
+                    m::set_settings(&fresh);
+                }
+                game.native_chat(&say);
+            }
+            None => {}
+        }
         let joined = {
             let game = &*game;
             m::server_tick(&settings, server.as_deref(), &|key| game.native_setting(m::ID, key))
         };
+        if let Some(name) = server.as_deref().map(m::server_of).and_then(|k| {
+            let raw = {
+                let game = &*game;
+                m::raw_settings(|key| game.native_setting(m::ID, key))
+            };
+            m::joined_profile(&raw, &k)
+        }) {
+            let raw = {
+                let game = &*game;
+                m::raw_settings(|key| game.native_setting(m::ID, key))
+            };
+            if let Some(loaded) = m::load_profile(&raw, &name) {
+                m::set_settings(&loaded);
+                for (key, value) in loaded.stored() {
+                    game.native_set_setting(m::ID, key, &value);
+                }
+                game.native_chat(&format!("Profile \"{name}\" loaded for this server."));
+            }
+        }
         for j in joined {
             match j {
                 m::Joined::Note(note) => game.native_chat(&note),

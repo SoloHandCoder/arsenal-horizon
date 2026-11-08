@@ -1,6 +1,6 @@
 [package]
 name = "arsenal-horizon"
-version = "1.14.0"
+version = "1.15.0"
 edition = "2024"
 license = "MIT"
 publish = false
@@ -16,4 +16,5 @@ path = "mixins/arsenal/runtime.rs"
 # The game's own (horizon-client's) crates the mod uses: for its tests here.
 [dependencies]
 serde_json = "1"
+miniz_oxide = "0.8"
 ureq = { version = "2", default-features = false, features = ["tls"] }

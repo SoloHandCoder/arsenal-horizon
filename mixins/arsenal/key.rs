@@ -10,6 +10,23 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
         m::clicked();
         m::attacked();
     }
+    // A module's own key (set on its page): switches it, while playing.
+    if pressed && game.native_playing() {
+        let raw = {
+            let game = &*game;
+            m::raw_settings(|name| game.native_setting(m::ID, name))
+        };
+        if let Some((field, name)) = m::module_key(&raw, key) {
+            let (new, value, _) = m::toggled(&raw, field);
+            m::set_settings(&new);
+            game.native_set_setting(m::ID, m::FIELDS[field].key, value);
+            let settings = m::settings(|n| game.native_setting(m::ID, n));
+            let text = format!("{name}: {}", if new.v[field] == 1 { "ON" } else { "OFF" });
+            if let Some(text) = m::route(&settings, text) {
+                game.native_chat(&text);
+            }
+        }
+    }
     // F8: Inventory Cursor Speed off at once.
     if pressed && key == "key.keyboard.f8" {
         let raw = {
