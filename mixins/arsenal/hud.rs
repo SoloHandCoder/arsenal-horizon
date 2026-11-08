@@ -14,6 +14,16 @@ fn arsenal_hud(
         let game = &*game;
         m::settings(|key| game.native_setting(m::ID, key))
     };
+    // Health HUD: under the crosshair, wherever the corner panel is (and also when the corner is hidden).
+    if let Some(health) = m::health() {
+        let game = &*game;
+        for shape in m::health_shapes(&settings, &health, &|text| game.native_text_width(text)) {
+            match shape {
+                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
+                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+            }
+        }
+    }
     let fps = game.native_frame_rate().0;
     let player = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
     let (speed, session) = m::track(player.map(|(pos, _)| pos), fps, std::time::Instant::now());

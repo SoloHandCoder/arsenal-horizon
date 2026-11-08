@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.3.0";
+pub const VERSION: &str = "1.5.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -51,6 +51,7 @@ pub const JAVA_MODULES: &[JavaModule] = &[
     JavaModule { id: "custom_crosshair", name: "Crosshair Editor", category: 0, description: "Draw your own crosshair pixel by pixel (Open Editor). Shared with setup codes." },
     JavaModule { id: "fight_timer", name: "Fight Timer", category: 0, description: "How long the current fight has lasted." },
     JavaModule { id: "fps_graph", name: "FPS & Ping Graph", category: 0, description: "A small live graph of your FPS and ping, so lag spikes are easy to spot." },
+    JavaModule { id: "health_hud", name: "Health HUD", category: 0, description: "Your health right under the crosshair: a number, a bar or both. Drag and size it in the HUD editor." },
     JavaModule { id: "hotbar_style", name: "Hotbar Style", category: 0, description: "The hotbar in your HUD Theme's look: themed background, accent selected slot (outline, filled or underline) and optional slot numbers." },
     JavaModule { id: "hud_theme", name: "HUD Theme", category: 0, description: "One look for every Arsenal HUD: 20 themes (Glass, Neon, Midnight, Sunset...) plus your own background, gradient, border, corners, padding, colours and rainbow." },
     JavaModule { id: "info_hud", name: "Info HUD", category: 0, description: "Keystrokes, clicks per second, FPS, ping and coordinates." },
@@ -120,6 +121,7 @@ pub const JAVA_MODULES: &[JavaModule] = &[
     JavaModule { id: "sound_tweaks", name: "Sound Tweaks", category: 5, description: "Volume for explosions, totem pops, player hits and mace smashes." },
     JavaModule { id: "weather_time", name: "Weather & Time", category: 5, description: "Only on your screen: no rain and a fixed time of day." },
     JavaModule { id: "old_animations", name: "1.8 Animations", category: 6, description: "1.8 looks on your screen only: the old sword block-hit pose when you hold right-click, and lower held items." },
+    JavaModule { id: "blade_settings", name: "Blade Settings", category: 6, description: "Your Wardrobe blade your way: the inspect key, inspect speed and sounds, hide your hand so only the blade shows, and its size and place in your hand." },
     JavaModule { id: "camera_tweaks", name: "Camera Tweaks", category: 6, description: "Third-person camera distance, and no camera pushed in by walls." },
     JavaModule { id: "free_look", name: "Free Look", category: 6, description: "Hold Left Alt to look around your character in third person without turning: you keep walking and aiming the same way. Let go to get your view back." },
     JavaModule { id: "view_model", name: "Hand View Model", category: 6, description: "Move, scale and tilt the items in your hands." },
@@ -132,8 +134,10 @@ pub const JAVA_MODULES: &[JavaModule] = &[
     JavaModule { id: "zoom", name: "Zoom", category: 6, description: "Hold C to zoom, scroll to zoom further." },
     JavaModule { id: "ambience", name: "Ambience", category: 7, description: "Things floating in the air around you: fireflies, snow, petals, embers, sparkles or leaves, in your colour and size." },
     JavaModule { id: "armor_color", name: "Armor Color", category: 7, description: "Tints your armor (and optionally friends' or everyone's). Lighter armor like iron shows colours best." },
-    JavaModule { id: "blade_skins", name: "Blade Skins", category: 7, description: "Your swords look like a karambit, butterfly knife, bayonet, talon or katana, with an inspect animation." },
+    JavaModule { id: "block_break_animation", name: "Block Break Animation", category: 7, description: "Blocks you break shatter into flying pieces, shrink away, burst or flash." },
     JavaModule { id: "block_outline", name: "Block Outline", category: 7, description: "Custom color and thickness for the block selection outline." },
+    JavaModule { id: "bloom", name: "Bloom", category: 7, description: "Bright things glow softly: the sky, lights, fire, glowing knives and effects." },
+    JavaModule { id: "crit_particles", name: "Crit Particles", category: 7, description: "Critical hit particles your way: stars, hearts, circles, sparks and more, in one colour, a gradient or a rainbow, as big and as many as you like." },
     JavaModule { id: "enchant_glint", name: "Enchant Glint", category: 7, description: "Enchant glint colour (red, blue, green, gold, white) and strength." },
     JavaModule { id: "hand_tint", name: "Hand Tint & Glow", category: 7, description: "Tints the items in your hands (your HUD Theme colour by default) and can make them glow brighter." },
     JavaModule { id: "jump_circles", name: "Jump Circles", category: 7, description: "When you jump, a smooth ring spreads out on the ground from your feet, in any colour or a rainbow." },
@@ -141,8 +145,12 @@ pub const JAVA_MODULES: &[JavaModule] = &[
     JavaModule { id: "motion_blur", name: "Motion Blur", category: 7, description: "Smooth blur when you turn or move the camera. Adjustable strength; the HUD stays sharp. Works with World Look." },
     JavaModule { id: "place_animation", name: "Place Animation", category: 7, description: "Blocks you place pop in, flash, rise up or send out a ripple." },
     JavaModule { id: "world_colors", name: "Sky & World Colors", category: 7, description: "Your own sky, fog and cloud colours. Nights still get dark unless you turn off Follow daylight." },
-    JavaModule { id: "sky_effects", name: "Sky Effects", category: 7, description: "An aurora, shooting stars, a galaxy band and twinkling stars in the sky, in your colours." },
+    JavaModule { id: "sky_effects", name: "Sky Effects", category: 7, description: "The night sky comes alive: auroras, stars and constellations, shooting stars and meteor showers, galaxies, nebulae, planets and comets, in your colours." },
     JavaModule { id: "slick_floors", name: "Slick Floors", category: 7, description: "The ground around you looks wet: darker, glossy, with puddles and rain ripples." },
+    JavaModule { id: "smooth_hotbar", name: "Smooth Hotbar", category: 7, description: "The hotbar's selection box glides to the slot you pick." },
+    JavaModule { id: "smooth_inventory", name: "Smooth Inventory", category: 7, description: "Items you pick up in an inventory glide after the mouse, lean as you move them and pop when picked up." },
+    JavaModule { id: "sweep_effect", name: "Sweep Effect", category: 7, description: "The sweeping edge slash your way: a coloured arc, a flat slash round the player, a ring, sparks or nothing, in your colours." },
+    JavaModule { id: "swing_trails", name: "Swing Trails", category: 7, description: "A short glowing streak follows each swing of your weapon in first person." },
     JavaModule { id: "world_look", name: "World Look", category: 7, description: "Color grading for the world: Dark Blue, Night, Warm, Cold... or your own." },
     JavaModule { id: "arsenal_messages", name: "Arsenal Messages", category: 8, description: "Where Arsenal's own messages appear: chat, above the hotbar, small toasts, or only the chat's Arsenal tab. All of them are kept in that tab." },
     JavaModule { id: "arsenal_users", name: "Arsenal Users", category: 8, description: "The Arsenal logo next to players who also use Arsenal. Only a one-way hash of your account id is stored." },
@@ -151,8 +159,10 @@ pub const JAVA_MODULES: &[JavaModule] = &[
     JavaModule { id: "chat_mentions", name: "Chat Mentions", category: 8, description: "Highlights chat lines that mention you, with a soft ping." },
     JavaModule { id: "chat_tweaks", name: "Chat Tweaks", category: 8, description: "Timestamps, repeated messages stacked as (x3), longer chat history." },
     JavaModule { id: "chat_copy", name: "Click to Copy Chat", category: 8, description: "Click a line in chat to copy it without colours; shift-click copies just the sender's name. Links still work as before." },
+    JavaModule { id: "death_message", name: "Death Message", category: 8, description: "Sends a chat message when you die, GG by default. Several messages split by | are picked at random, and {name} is the player who killed you." },
     JavaModule { id: "discord_presence", name: "Discord Rich Presence", category: 8, description: "Your Discord profile shows you play with Arsenal: the server, the fight you're in and your wins this session. Only talks to the Discord app on your PC." },
     JavaModule { id: "friends", name: "Friends", category: 8, description: "Mark friends (middle mouse on a player or /arsenal friend add): green name, never treated as enemies." },
+    JavaModule { id: "kill_message", name: "Kill Message", category: 8, description: "Sends a chat message after you kill someone, GG by default. Several messages split by | are picked at random, and {name} is the player you killed." },
     JavaModule { id: "mention_ping", name: "Mention Ping", category: 8, description: "A sound, a highlight and a flashing taskbar icon when another player writes your name or one of your words in chat. Your own messages and server announcements never ping; with a cooldown." },
     JavaModule { id: "name_hider", name: "Name Hider", category: 8, description: "Streamer mode: your name shows as a text you choose in chat, the tab list, name tags, scoreboard, titles and the HUD. Only on your screen." },
     JavaModule { id: "nametag_style", name: "Nametag Style", category: 8, description: "Smaller nametags and an optional background." },
@@ -203,6 +213,8 @@ pub const TAG_WHO: &[(&str, &str)] = &[("players", "Players"), ("all", "Players 
 pub const OUTLINE_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("red", "Red"), ("gold", "Gold"), ("blue", "Blue"), ("green", "Green")];
 const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A];
 pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
+pub const HEALTH_SHOWS: &[(&str, &str)] = &[("both", "Number and bar"), ("number", "Number only"), ("bar", "Bar only")];
+pub const HEALTH_UNITS: &[(&str, &str)] = &[("hearts", "Hearts (10 is full)"), ("points", "Health points (20 is full)")];
 
 pub const INFO: usize = 0;
 pub const FPS: usize = 1;
@@ -234,7 +246,10 @@ pub const TAGS_WHO: usize = 26;
 pub const OUTLINE: usize = 27;
 pub const OUTLINE_COLOR: usize = 28;
 pub const OUTLINE_WIDTH: usize = 29;
-const N: usize = 30;
+pub const HEALTH: usize = 30;
+pub const HEALTH_SHOW: usize = 31;
+pub const HEALTH_UNIT: usize = 32;
+const N: usize = 33;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -267,6 +282,9 @@ pub const FIELDS: [Field; N] = [
     Field { key: "outline", label: "Block Outline", options: ONOFF, default: 0 },
     Field { key: "outline_color", label: "Outline colour", options: OUTLINE_COLORS, default: 0 },
     Field { key: "outline_width", label: "Outline thickness", options: OUTLINE_WIDTHS, default: 0 },
+    Field { key: "health_hud", label: "Health HUD", options: ONOFF, default: 0 },
+    Field { key: "health_show", label: "Show", options: HEALTH_SHOWS, default: 0 },
+    Field { key: "health_units", label: "Units", options: HEALTH_UNITS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -289,6 +307,7 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("hide_nametags", HIDE_TAGS, &[TAGS_WHO]),
     ("block_outline", OUTLINE, &[OUTLINE_COLOR, OUTLINE_WIDTH]),
     ("toggle_sprint", SNEAK, &[]),
+    ("health_hud", HEALTH, &[HEALTH_SHOW, HEALTH_UNIT]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -304,16 +323,17 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "camera_tweaks" => "On Horizon: the third-person camera's distance.",
         "view_model" => "On Horizon: the size of the item in your hand.",
         "hide_nametags" => "On Horizon: hides name tags above players (or mobs too).",
+        "health_hud" => "On Horizon: your health under the crosshair as a number, a bar or both, green to red, absorption in gold.",
         _ => return None,
     })
 }
 
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
-    const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes"];
+    const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
     const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "ready_check", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
     const SELF: &[&str] = &["armor_hud", "potion_timers", "cooldown_hud", "inventory_totem", "item_counter", "durability_warning", "offhand_totem_warning", "potion_warning", "retotem_timer", "food_preview", "shulker_preview", "better_tooltips", "bow_charge", "attack_bar", "crit_indicator", "low_health_warning", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
-    const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard"];
+    const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard", "kill_message", "death_message"];
     if ACCOUNT.contains(&id) {
         "Needs your Arsenal account or another app, which Horizon doesn't pass to mods yet."
     } else if PLAYERS.contains(&id) {
@@ -594,6 +614,80 @@ struct State {
     outlined: Option<[i32; 3]>,
     /// The menu's close button was clicked: closed on the next tick (the click hook can't close screens).
     close: bool,
+    /// Health HUD: the player's health as the health rows last saw it, with the screen's GUI size and when.
+    health: Option<(Health, Instant)>,
+}
+
+/// The player's health as the health rows see it (health hook), and the screen's GUI size then.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Health {
+    pub health: f32,
+    pub max: f32,
+    pub absorption: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+/// The health rows were laid out this frame (they aren't under F1, on death screens or in spectator mode).
+pub fn set_health(health: Health) {
+    STATE.with_borrow_mut(|s| s.health = Some((health, Instant::now())));
+}
+
+/// The last health seen, while it's fresh (the rows stop being drawn under F1 and then it hides too).
+pub fn health() -> Option<Health> {
+    STATE.with_borrow(|s| s.health.filter(|(_, at)| at.elapsed() < Duration::from_millis(250)).map(|(h, _)| h))
+}
+
+/// Green when full, yellow at half, red when low (0xRRGGBB).
+pub fn health_rgb(fraction: f32) -> u32 {
+    let f = fraction.clamp(0.0, 1.0);
+    let (r, g) = if f > 0.5 { ((1.0 - f) * 2.0, 1.0) } else { (1.0, f * 2.0) };
+    ((r * 255.0).round() as u32) << 16 | ((g * 220.0).round() as u32) << 8 | 0x40
+}
+
+/// "7.5", "8", "13/20": one decimal only when it isn't whole.
+pub fn health_text(value: f32, max: f32, units_points: bool) -> String {
+    let _ = max;
+    let v = if units_points { value } else { value / 2.0 };
+    let tidy = |x: f32| {
+        let r = (x * 2.0).round() / 2.0;
+        if (r - r.round()).abs() < 1e-3 { format!("{}", r.round() as i32) } else { format!("{r:.1}") }
+    };
+    tidy(v)
+}
+
+/// Health HUD's shapes, in screen (GUI) coordinates: the number and/or bar centred under the crosshair.
+pub fn health_shapes(settings: &Settings, h: &Health, text_width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    if !settings.on(HEALTH) || h.max <= 0.0 {
+        return out;
+    }
+    let show = settings.v[HEALTH_SHOW];
+    let points = settings.v[HEALTH_UNIT] == 1;
+    let fraction = h.health / h.max;
+    let cx = (h.width / 2.0).floor();
+    let mut y = (h.height / 2.0).floor() + 10.0;
+    if show != 2 {
+        let mut text = health_text(h.health, h.max, points);
+        if h.absorption > 0.0 {
+            text.push_str(&format!(" +{}", health_text(h.absorption, h.max, points)));
+        }
+        let w = text_width(&text);
+        out.push(Shape::Text(text, [cx - (w / 2.0).floor(), y], health_rgb(fraction), true));
+        y += 10.0;
+    }
+    if show != 1 {
+        let width = 40.0;
+        let x = cx - width / 2.0;
+        out.push(Shape::Fill([x - 1.0, y - 1.0, width + 2.0, 5.0], 0xA000_0000));
+        let filled = (width * fraction.clamp(0.0, 1.0)).round();
+        out.push(Shape::Fill([x, y, filled, 3.0], 0xFF00_0000 | health_rgb(fraction)));
+        if h.absorption > 0.0 {
+            let gold = (width * (h.absorption / h.max).clamp(0.0, 1.0)).round();
+            out.push(Shape::Fill([x, y + 3.0, gold, 1.0], 0xFFFF_C83D));
+        }
+    }
+    out
 }
 
 thread_local! {
@@ -1374,6 +1468,30 @@ mod tests {
 
     fn cross() -> Crosshair {
         Crosshair { rows: vec!["..#..".into(), "..#..".into(), "#####".into(), "..#..".into(), "..#..".into()], rgb: 0xD277B0, size: 2 }
+    }
+
+    #[test]
+    fn health_hud_number_bar_and_colours() {
+        let h = Health { health: 15.0, max: 20.0, absorption: 4.0, width: 400.0, height: 300.0 };
+        let off = Settings::default();
+        assert!(health_shapes(&off, &h, &width).is_empty(), "off by default");
+        let mut s = Settings::default();
+        s.v[HEALTH] = 1;
+        let shapes = health_shapes(&s, &h, &width);
+        assert!(matches!(&shapes[0], Shape::Text(t, [_, y], _, true) if t == "7.5 +2" && *y == 160.0));
+        assert_eq!(shapes.len(), 4, "number, bar background, bar, absorption");
+        s.v[HEALTH_SHOW] = 1;
+        s.v[HEALTH_UNIT] = 1;
+        let shapes = health_shapes(&s, &h, &width);
+        assert!(matches!(&shapes[..], [Shape::Text(t, ..)] if t == "15 +4"));
+        s.v[HEALTH_SHOW] = 2;
+        assert!(health_shapes(&s, &h, &width).iter().all(|x| matches!(x, Shape::Fill(..))));
+        assert_eq!(health_rgb(1.0) >> 16, 0, "full is green");
+        assert_eq!(health_rgb(0.0) >> 8 & 0xFF, 0, "empty is red");
+        assert_eq!(health_text(13.0, 20.0, false), "6.5");
+        assert_eq!(health_text(20.0, 20.0, false), "10");
+        assert!(on_horizon("health_hud").is_some());
+        assert!(why_not("kill_message").contains("chat") && why_not("death_message").contains("chat"));
     }
 
     #[test]

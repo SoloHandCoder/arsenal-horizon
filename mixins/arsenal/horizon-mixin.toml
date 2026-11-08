@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.4.0"
+version = "1.5.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
@@ -215,4 +215,16 @@ helper = "visuals.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
   { name = "rims", ty = "&mut Vec<crate::game::native_hooks::NativeBlockRim>", value = "&mut *rims" },
+]
+
+[[injection]]
+id = "health"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_health_hud"
+helper = "health.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "inputs", ty = "&horizon_client::hud_layout::HealthInputs", value = "inputs" },
+  { name = "wi", ty = "i32", value = "wi" },
+  { name = "hi", ty = "i32", value = "hi" },
 ]
