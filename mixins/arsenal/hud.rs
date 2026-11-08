@@ -109,6 +109,15 @@ fn arsenal_hud(
         };
         let mut shapes = m::status_shapes(&settings, &status, &others, target.is_some(), totems, falling, cam.as_ref(), batch.width, batch.height, &width, &clock);
         shapes.extend(m::pvp_shapes(&settings, &others, target, cam.as_ref(), batch.width, batch.height, &width));
+        let wd = game.arsenal_world();
+        let world = m::World { crystals: wd.crystals, tnts: wd.tnts, cooldowns: wd.cooldowns };
+        let me = game.native_player().map(|p| [p.x, p.y, p.z]);
+        let armor = game.arsenal_inventory().map_or((0.0, 0.0), |v| {
+            let pieces: Vec<Option<m::Stack>> = v.armor.iter().map(|s| s.as_ref().map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })).collect();
+            m::armor_of(&pieces)
+        });
+        let block = m::take_aimed().map(|pos| game.native_block(pos));
+        shapes.extend(m::world_shapes(&settings, &world, me, armor, target, block.as_deref(), cam.as_ref(), batch.width, batch.height, &width));
         for shape in shapes {
             match shape {
                 m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),

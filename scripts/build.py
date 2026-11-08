@@ -73,12 +73,17 @@ def apply_patches(tree):
         for part in patch.get("files", [patch]):
             target = tree / part["file"]
             text = target.read_text(encoding="utf-8")
-            for insert in part["inserts"]:
+            for insert in part.get("inserts", []):
                 if insert["text"] in text:
                     continue
                 if text.count(insert["before"]) != 1:
                     sys.exit(f"{path.name}: its anchor isn't in {part['file']} exactly once: {insert['before'].strip()!r}")
                 text = text.replace(insert["before"], insert["text"] + insert["before"], 1)
+            # An exact piece of Horizon's code swapped for Arsenal's (a check put inside a loop or a function).
+            for swap in part.get("replaces", []):
+                if text.count(swap["old"]) != 1:
+                    sys.exit(f"{path.name}: the code it replaces isn't in {part['file']} exactly once: {swap['old'].strip()!r}")
+                text = text.replace(swap["old"], swap["new"], 1)
             target.write_text(text, encoding="utf-8")
             log(f"Patched {part['file']} ({path.name})")
 

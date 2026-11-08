@@ -1,0 +1,18 @@
+{
+  "about": "Lets native mods read the end crystals and lit TNT around (position, fuse) and the item cooldowns (ender pearls, chorus fruit, wind charges, shields, maces), as Horizon already keeps them.",
+  "files": [
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "inserts": [
+        {
+          "before": "/// The player as a native mod reads it.\n",
+          "text": "/// End crystals, lit TNT and item cooldowns as a native mod reads them (Arsenal's patch).\n#[allow(dead_code)]\n#[derive(Clone, Debug, Default)]\npub(crate) struct ArsenalWorld {\n    pub(crate) crystals: Vec<[f64; 3]>,\n    /// Position and fuse ticks left.\n    pub(crate) tnts: Vec<([f64; 3], i32)>,\n    /// Item id and how much of its cooldown is left (0..1); only items on cooldown.\n    pub(crate) cooldowns: Vec<(String, f32)>,\n}\n\n"
+        },
+        {
+          "before": "    /// The clock of the world this window shows, for client mods: its game\n",
+          "text": "    /// End crystals, lit TNT and item cooldowns (Arsenal's patch).\n    pub(super) fn arsenal_world(&self) -> ArsenalWorld {\n        ArsenalWorld {\n            crystals: self.crystals.iter().map(|c| [c.position.x as f64, c.position.y as f64, c.position.z as f64]).collect(),\n            tnts: self.tnts.iter().map(|t| ([t.position.x as f64, t.position.y as f64, t.position.z as f64], t.fuse)).collect(),\n            cooldowns: [\"minecraft:ender_pearl\", \"minecraft:chorus_fruit\", \"minecraft:wind_charge\", \"minecraft:shield\", \"minecraft:mace\", \"minecraft:goat_horn\"]\n                .iter()\n                .map(|id| (id.to_string(), self.cooldowns.percent(id, 0.0)))\n                .filter(|c| c.1 > 0.0)\n                .collect(),\n        }\n    }\n"
+        }
+      ]
+    }
+  ]
+}

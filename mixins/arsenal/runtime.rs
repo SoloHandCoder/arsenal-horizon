@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.9.0";
+pub const VERSION: &str = "1.10.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -218,6 +218,14 @@ pub const HEALTH_UNITS: &[(&str, &str)] = &[("hearts", "Hearts (10 is full)"), (
 pub const KILL_TEXTS: &[(&str, &str)] = &[("GG", "GG"), ("gg wp", "gg wp"), ("Good fight!", "Good fight!"), ("gg {name}", "gg {name}"), ("ez", "ez")];
 pub const DEATH_TEXTS: &[(&str, &str)] = &[("GG", "GG"), ("gg wp", "gg wp"), ("nice one {name}", "nice one {name}"), ("ff", "ff")];
 pub const RING_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("rainbow", "Rainbow")];
+pub const FILTER_WHAT: &[(&str, &str)] = &[("both", "Joins/leaves and ads"), ("joins", "Joins and leaves"), ("ads", "Ads and links")];
+pub const FIRE_LOWERS: &[(&str, &str)] = &[("40", "40% lower"), ("20", "20% lower"), ("60", "60% lower"), ("80", "80% lower")];
+pub const PARTICLE_KEEPS: &[(&str, &str)] = &[("50", "Keep half"), ("25", "Keep a quarter"), ("10", "Keep a tenth"), ("0", "None")];
+pub const VIEW_TIMES: &[(&str, &str)] = &[("world", "The world's"), ("morning", "Morning"), ("noon", "Noon"), ("sunset", "Sunset"), ("midnight", "Midnight")];
+pub const VIEW_WEATHERS: &[(&str, &str)] = &[("clear", "Clear"), ("world", "The world's"), ("rain", "Rain"), ("thunder", "Thunder")];
+pub const SIZES: &[(&str, &str)] = &[("80", "80%"), ("90", "90%"), ("70", "70%"), ("60", "60%"), ("50", "50%"), ("100", "100%")];
+pub const GLINTS: &[(&str, &str)] = &[("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("yellow", "Gold"), ("white", "White"), ("cyan", "Cyan"), ("magenta", "Magenta"), ("orange", "Orange"), ("black", "Black")];
+pub const HIT_COLORS: &[(&str, &str)] = &[("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("yellow", "Gold"), ("white", "White"), ("magenta", "Magenta"), ("cyan", "Cyan")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -303,7 +311,31 @@ pub const FEED: usize = 77;
 pub const FIGHT_SUMMARY: usize = 78;
 pub const SHIELD_SOUND: usize = 79;
 pub const DYN_CROSSHAIR: usize = 80;
-const N: usize = 81;
+pub const COOLDOWN: usize = 81;
+pub const TNT: usize = 82;
+pub const ANCHOR: usize = 83;
+pub const CRYSTAL_DMG: usize = 84;
+pub const FALL: usize = 85;
+pub const CHAT_FILTER: usize = 86;
+pub const FILTER_KIND: usize = 87;
+pub const FULLBRIGHT: usize = 88;
+pub const HIT_FX: usize = 89;
+pub const HIT_COLOR: usize = 90;
+pub const LOW_FIRE: usize = 91;
+pub const FIRE_LOWER: usize = 92;
+pub const PARTICLES: usize = 93;
+pub const PARTICLE_KEEP: usize = 94;
+pub const WEATHER_TIME: usize = 95;
+pub const VIEW_TIME: usize = 96;
+pub const VIEW_WEATHER: usize = 97;
+pub const NO_HURT: usize = 98;
+pub const NO_PUMPKIN: usize = 99;
+pub const SMALLER: usize = 100;
+pub const SHIELD_SIZE: usize = 101;
+pub const TOTEM_SIZE: usize = 102;
+pub const GLINT: usize = 103;
+pub const GLINT_COLOR: usize = 104;
+const N: usize = 105;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -387,6 +419,30 @@ pub const FIELDS: [Field; N] = [
     Field { key: "fight_summary", label: "Fight Summary", options: ONOFF, default: 0 },
     Field { key: "shield_break_sound", label: "Shield Break Sound", options: ONOFF, default: 0 },
     Field { key: "dynamic_crosshair", label: "Dynamic Crosshair", options: ONOFF, default: 0 },
+    Field { key: "cooldown_hud", label: "Cooldown HUD", options: ONOFF, default: 0 },
+    Field { key: "tnt_timer", label: "TNT Timer", options: ONOFF, default: 0 },
+    Field { key: "anchor_helper", label: "Anchor Helper", options: ONOFF, default: 0 },
+    Field { key: "crystal_damage", label: "Crystal Damage Preview", options: ONOFF, default: 0 },
+    Field { key: "fall_preview", label: "Fall Damage Preview", options: ONOFF, default: 0 },
+    Field { key: "chat_filter", label: "Chat Filter", options: ONOFF, default: 0 },
+    Field { key: "filter_what", label: "Hide", options: FILTER_WHAT, default: 0 },
+    Field { key: "fullbright", label: "Fullbright", options: ONOFF, default: 0 },
+    Field { key: "hit_effects", label: "Hit Effects", options: ONOFF, default: 0 },
+    Field { key: "hit_color", label: "Hit colour", options: HIT_COLORS, default: 0 },
+    Field { key: "low_fire", label: "Low Fire", options: ONOFF, default: 0 },
+    Field { key: "fire_lower", label: "Fire overlay", options: FIRE_LOWERS, default: 0 },
+    Field { key: "particle_limiter", label: "Particle Limiter", options: ONOFF, default: 0 },
+    Field { key: "particle_keep", label: "Particles", options: PARTICLE_KEEPS, default: 0 },
+    Field { key: "weather_time", label: "Weather & Time", options: ONOFF, default: 0 },
+    Field { key: "view_time", label: "Time", options: VIEW_TIMES, default: 0 },
+    Field { key: "view_weather", label: "Weather", options: VIEW_WEATHERS, default: 0 },
+    Field { key: "no_hurt_cam", label: "No Hurt-Cam", options: ONOFF, default: 0 },
+    Field { key: "no_pumpkin", label: "No Pumpkin Overlay", options: ONOFF, default: 0 },
+    Field { key: "smaller_pvp", label: "Smaller PvP", options: ONOFF, default: 0 },
+    Field { key: "shield_size", label: "Shield size", options: SIZES, default: 0 },
+    Field { key: "totem_size", label: "Totem animation size", options: SIZES, default: 0 },
+    Field { key: "enchant_glint", label: "Enchant Glint", options: ONOFF, default: 0 },
+    Field { key: "glint_color", label: "Glint colour", options: GLINTS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -450,6 +506,21 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("fight_summary", FIGHT_SUMMARY, &[]),
     ("shield_break_sound", SHIELD_SOUND, &[]),
     ("dynamic_crosshair", DYN_CROSSHAIR, &[]),
+    ("cooldown_hud", COOLDOWN, &[]),
+    ("tnt_timer", TNT, &[]),
+    ("anchor_helper", ANCHOR, &[]),
+    ("crystal_damage_preview", CRYSTAL_DMG, &[]),
+    ("fall_preview", FALL, &[]),
+    ("chat_filter", CHAT_FILTER, &[FILTER_KIND]),
+    ("fullbright", FULLBRIGHT, &[]),
+    ("hit_effects", HIT_FX, &[HIT_COLOR]),
+    ("low_fire", LOW_FIRE, &[FIRE_LOWER]),
+    ("particle_limiter", PARTICLES, &[PARTICLE_KEEP]),
+    ("weather_time", WEATHER_TIME, &[VIEW_TIME, VIEW_WEATHER]),
+    ("no_hurt_cam", NO_HURT, &[]),
+    ("no_pumpkin_overlay", NO_PUMPKIN, &[]),
+    ("smaller_pvp", SMALLER, &[SHIELD_SIZE, TOTEM_SIZE]),
+    ("enchant_glint", GLINT, &[GLINT_COLOR]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -499,6 +570,21 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "fight_summary" => "On Horizon: a short card after a fight: hits, damage dealt, pops and how long it took.",
         "shield_break_sound" => "On Horizon: a sound when a player's shield near you is broken.",
         "dynamic_crosshair" => "On Horizon: a red ring round the crosshair when you aim at a player.",
+        "cooldown_hud" => "On Horizon: ender pearl, chorus fruit, wind charge, shield and mace cooldowns above the hotbar.",
+        "tnt_timer" => "On Horizon: the seconds left on each lit TNT, above it.",
+        "anchor_helper" => "On Horizon: a respawn anchor's charges when you aim at it.",
+        "crystal_damage_preview" => "On Horizon: about how much an end crystal near you would hit you (and the player you fight) for, above it.",
+        "fall_preview" => "On Horizon: the fall damage you'd take landing now, under the crosshair.",
+        "chat_filter" => "On Horizon: hides join and leave lines, ads and links (or both) from chat.",
+        "fullbright" => "On Horizon: full brightness everywhere (your brightness comes back when it's off).",
+        "hit_effects" => "On Horizon: hit players and mobs flash in your colour instead of red (Horizon's own hit colour).",
+        "low_fire" => "On Horizon: the fire overlay when you burn sits lower, so you can see.",
+        "particle_limiter" => "On Horizon: fewer particles (or none), for more frames in big fights.",
+        "weather_time" => "On Horizon: your own time of day and weather, only on your screen.",
+        "no_hurt_cam" => "On Horizon: no camera tilt when you're hurt.",
+        "no_pumpkin_overlay" => "On Horizon: no pumpkin blur when you wear a carved pumpkin.",
+        "smaller_pvp" => "On Horizon: a smaller shield in your hand and a smaller totem animation.",
+        "enchant_glint" => "On Horizon: the enchantment glint in your colour.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -804,6 +890,11 @@ struct State {
     warned: Vec<&'static str>,
     /// The combat modules' state (chat, other players, the world).
     pvp: Pvp,
+    /// The visuals Arsenal set (to give each back once when its module goes off), and the brightness before Fullbright.
+    applied: [bool; 8],
+    saved_gamma: Option<f32>,
+    /// The block aimed at this frame.
+    aimed: Option<[i32; 3]>,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -1188,6 +1279,8 @@ struct Pvp {
     warned_effects: Vec<String>,
     armor_warned: Vec<String>,
     low_alerted: Option<u32>,
+    /// Fall Damage Preview: how far you've fallen since you last stood.
+    fallen: f64,
 }
 
 /// The fight going on: who with, since when, your hits, the damage you dealt, their pops.
@@ -1439,6 +1532,11 @@ pub fn own_tick(settings: &Settings, pos: Option<[f64; 3]>) {
         if settings.on(JUMP_RINGS) && dy > 0.25 && p.last_dy.abs() < 0.05 {
             p.rings.push(([pos[0], pos[1] - dy, pos[2]], Instant::now()));
         }
+        if dy < -0.01 {
+            p.fallen += -dy;
+        } else if dy.abs() < 0.001 || dy > 0.0 {
+            p.fallen = 0.0;
+        }
         p.last_dy = dy;
         p.last_y = Some(pos[1]);
         p.rings.retain(|r| r.1.elapsed() < Duration::from_millis(700));
@@ -1579,6 +1677,198 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
                 out.push(Shape::Text(text, [x - tw / 2.0, y], ping_rgb(ms), true));
             }
         }
+    }
+    out
+}
+
+/// What the game should look like (Arsenal's visuals hook): None leaves Horizon's own setting alone.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Visuals {
+    pub gamma: Option<f32>,
+    pub fire_lower: Option<u8>,
+    pub shield_size: Option<u8>,
+    pub totem_size: Option<u8>,
+    pub glint: Option<String>,
+    pub time: Option<String>,
+    pub weather: Option<String>,
+    pub hit: Option<(String, u8)>,
+    pub no_hurt_cam: bool,
+    pub no_pumpkin: bool,
+    pub particles: u32,
+    pub chat_hide: Vec<String>,
+}
+
+/// The lines Chat Filter hides (lower case pieces of them).
+fn chat_hidden(settings: &Settings) -> Vec<String> {
+    if !settings.on(CHAT_FILTER) {
+        return Vec::new();
+    }
+    let joins = ["joined the game", "left the game", "joined the server", "left the server"];
+    let ads = ["discord.gg", "http://", "https://", "[ad]", "/vote", "store.", ".tebex"];
+    let mut out: Vec<String> = Vec::new();
+    match settings.v[FILTER_KIND] {
+        1 => out.extend(joins.iter().map(|s| s.to_string())),
+        2 => out.extend(ads.iter().map(|s| s.to_string())),
+        _ => out.extend(joins.iter().chain(ads.iter()).map(|s| s.to_string())),
+    }
+    out
+}
+
+/// The visuals to apply now. A module switched off gives Horizon's default back once, then leaves the setting to the
+/// player (Horizon's own PvP options keep working). `gamma` is the brightness now, saved before Fullbright raises it.
+pub fn visuals(settings: &Settings, gamma: f32) -> Visuals {
+    STATE.with_borrow_mut(|s| {
+        let a = &mut s.applied;
+        let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), ..Default::default() };
+        let mut pick = |on: bool, slot: usize, value: Option<String>, off: String| -> Option<String> {
+            if on {
+                a[slot] = true;
+                value
+            } else if std::mem::take(&mut a[slot]) {
+                Some(off)
+            } else {
+                None
+            }
+        };
+        let num = |list: &[(&str, &str)], i: usize| list[i].0.to_owned();
+        v.fire_lower = pick(settings.on(LOW_FIRE), 0, Some(num(FIRE_LOWERS, settings.v[FIRE_LOWER])), "0".into()).and_then(|x| x.parse().ok());
+        v.shield_size = pick(settings.on(SMALLER), 1, Some(num(SIZES, settings.v[SHIELD_SIZE])), "100".into()).and_then(|x| x.parse().ok());
+        v.totem_size = pick(settings.on(SMALLER), 2, Some(num(SIZES, settings.v[TOTEM_SIZE])), "100".into()).and_then(|x| x.parse().ok());
+        v.glint = pick(settings.on(GLINT), 3, Some(num(GLINTS, settings.v[GLINT_COLOR])), "vanilla".into());
+        v.time = pick(settings.on(WEATHER_TIME), 4, Some(num(VIEW_TIMES, settings.v[VIEW_TIME])), "world".into());
+        v.weather = pick(settings.on(WEATHER_TIME), 5, Some(num(VIEW_WEATHERS, settings.v[VIEW_WEATHER])), "world".into());
+        v.hit = pick(settings.on(HIT_FX), 6, Some(num(HIT_COLORS, settings.v[HIT_COLOR])), "vanilla".into()).map(|c| (c, 40));
+        v.no_hurt_cam = settings.on(NO_HURT);
+        v.no_pumpkin = settings.on(NO_PUMPKIN);
+        if settings.on(PARTICLES) {
+            v.particles = num(PARTICLE_KEEPS, settings.v[PARTICLE_KEEP]).parse().unwrap_or(100);
+        }
+        // Fullbright: brightness far past the slider, the player's own back when it's off.
+        if settings.on(FULLBRIGHT) {
+            if s.saved_gamma.is_none() && gamma < 2.0 {
+                s.saved_gamma = Some(gamma);
+            }
+            v.gamma = Some(15.0);
+        } else if let Some(g) = s.saved_gamma.take() {
+            v.gamma = Some(g);
+        }
+        v
+    })
+}
+
+/// End crystals, lit TNT and cooldowns (Arsenal's world hook).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct World {
+    pub crystals: Vec<[f64; 3]>,
+    pub tnts: Vec<([f64; 3], i32)>,
+    pub cooldowns: Vec<(String, f32)>,
+}
+
+/// About how much an end crystal at `crystal` hurts someone standing at `at` (health points), after armour points
+/// and toughness: vanilla's explosion (power 6) as if nothing blocked it, on Normal.
+pub fn crystal_damage(crystal: [f64; 3], at: [f64; 3], armor: f32, toughness: f32) -> f32 {
+    let d = ((crystal[0] - at[0]).powi(2) + (crystal[1] - at[1]).powi(2) + (crystal[2] - at[2]).powi(2)).sqrt();
+    let impact = (1.0 - d / 12.0).max(0.0) as f32;
+    if impact <= 0.0 {
+        return 0.0;
+    }
+    let raw = (impact * impact + impact) / 2.0 * 7.0 * 12.0 + 1.0;
+    let reduced = (armor - raw / (2.0 + toughness / 4.0)).max(armor / 5.0).min(20.0);
+    raw * (1.0 - reduced / 25.0)
+}
+
+/// Armour points and toughness of worn pieces (head, chest, legs, feet).
+pub fn armor_of(pieces: &[Option<Stack>]) -> (f32, f32) {
+    let mut points = 0.0;
+    let mut tough = 0.0;
+    for (i, piece) in pieces.iter().enumerate() {
+        let Some(p) = piece else { continue };
+        let id = p.id.strip_prefix("minecraft:").unwrap_or(&p.id);
+        let material = id.split('_').next().unwrap_or("");
+        let table: [f32; 4] = match material {
+            "leather" => [1.0, 3.0, 2.0, 1.0],
+            "golden" | "chainmail" => [2.0, 5.0, 3.0 + if material == "chainmail" { 1.0 } else { 0.0 }, 1.0],
+            "iron" | "copper" => [2.0, 6.0, 5.0, 2.0],
+            "diamond" => [3.0, 8.0, 6.0, 3.0],
+            "netherite" => [3.0, 8.0, 6.0, 3.0],
+            "turtle" => [2.0, 0.0, 0.0, 0.0],
+            _ => [0.0; 4],
+        };
+        points += table[i.min(3)];
+        tough += match material { "diamond" => 2.0, "netherite" => 3.0, _ => 0.0 };
+    }
+    (points, tough)
+}
+
+/// The respawn anchor's charges from a block's name and state ("minecraft:respawn_anchor[charges=2]").
+pub fn anchor_charges(block: &str) -> Option<u32> {
+    if !block.contains("respawn_anchor") {
+        return None;
+    }
+    let at = block.find("charges=")?;
+    block[at + 8..].chars().next()?.to_digit(10)
+}
+
+/// The fall damage landing now would deal (health points), from the distance fallen.
+pub fn fall_damage(fallen: f64) -> f32 {
+    ((fallen - 3.0).ceil()).max(0.0) as f32
+}
+
+/// The world modules' shapes: Cooldown HUD, TNT Timer, Crystal Damage Preview, Fall Damage Preview, Anchor Helper.
+pub fn world_shapes(settings: &Settings, world: &World, me: Option<[f64; 3]>, my_armor: (f32, f32), target: Option<&Other>, block: Option<&str>,
+                    cam: Option<&Cam>, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
+    if settings.on(COOLDOWN) {
+        let mut x = cx - 91.0;
+        for (id, left) in &world.cooldowns {
+            out.push(Shape::Item(id.clone(), [x, h - 58.0]));
+            out.push(Shape::Fill([x, h - 41.0, 16.0, 2.0], 0xA000_0000));
+            out.push(Shape::Fill([x, h - 41.0, (16.0 * left).round(), 2.0], 0xFFFF_5A5A));
+            x += 20.0;
+        }
+    }
+    if let Some(cam) = cam {
+        if settings.on(TNT) {
+            for (pos, fuse) in &world.tnts {
+                if let Some([x, y]) = project(cam, [pos[0], pos[1] + 1.3, pos[2]], w, h) {
+                    let text = format!("{:.1}s", *fuse as f32 / 20.0);
+                    let tw = width(&text);
+                    out.push(Shape::Text(text, [x - tw / 2.0, y], if *fuse < 20 { 0xFF5A5A } else { 0xFFC83D }, true));
+                }
+            }
+        }
+        if let (true, Some(me)) = (settings.on(CRYSTAL_DMG), me) {
+            for c in &world.crystals {
+                let d = ((c[0] - me[0]).powi(2) + (c[1] - me[1]).powi(2) + (c[2] - me[2]).powi(2)).sqrt();
+                if d > 12.0 {
+                    continue;
+                }
+                let mine = crystal_damage(*c, me, my_armor.0, my_armor.1);
+                let mut text = format!("You {:.1}", mine / 2.0);
+                if let Some(t) = target {
+                    let theirs = crystal_damage(*c, t.pos, 20.0, 8.0);
+                    text.push_str(&format!("  Them {:.1}", theirs / 2.0));
+                }
+                if let Some([x, y]) = project(cam, [c[0], c[1] + 2.2, c[2]], w, h) {
+                    let tw = width(&text);
+                    out.push(Shape::Fill([x - tw / 2.0 - 2.0, y - 1.0, tw + 4.0, 10.0], 0x8000_0000));
+                    out.push(Shape::Text(text, [x - tw / 2.0, y], if mine >= 20.0 { 0xFF5A5A } else { 0xFFFFFF }, false));
+                }
+            }
+        }
+    }
+    STATE.with_borrow(|s| {
+        if settings.on(FALL) && s.pvp.fallen > 3.5 {
+            let text = format!("Fall {:.1}", fall_damage(s.pvp.fallen) / 2.0);
+            let tw = width(&text);
+            out.push(Shape::Text(text, [cx - tw / 2.0, cy + 26.0], 0xFF5A5A, true));
+        }
+    });
+    if let (true, Some(n)) = (settings.on(ANCHOR), block.and_then(anchor_charges)) {
+        let text = format!("Anchor {n}/4");
+        let tw = width(&text);
+        out.push(Shape::Text(text, [cx - tw / 2.0, cy - 34.0], if n == 0 { 0xAAAAAA } else { 0xFFC83D }, true));
     }
     out
 }
@@ -1999,6 +2289,16 @@ pub fn sneak(on: bool, down: bool) -> bool {
 /// Whether Toggle Sneak keeps the player sneaking.
 pub fn sneaking() -> bool {
     STATE.with_borrow(|s| s.sneaking)
+}
+
+/// The block you aim at this frame (the highlight hook, whether Block Outline is on or not).
+pub fn set_aimed(pos: [i32; 3]) {
+    STATE.with_borrow_mut(|s| s.aimed = Some(pos));
+}
+
+/// Takes the block aimed at this frame (Anchor Helper): none when you aim at no block.
+pub fn take_aimed() -> Option<[i32; 3]> {
+    STATE.with_borrow_mut(|s| s.aimed.take())
 }
 
 /// Block Outline: the block the game is about to outline this frame, or none.
@@ -2702,6 +3002,49 @@ mod tests {
 
     fn st(id: &str, count: u32, damage: u32) -> Option<Stack> {
         Some(Stack { id: id.into(), count, damage })
+    }
+
+    #[test]
+    fn visuals_go_on_and_give_back_once() {
+        let mut s = Settings::default();
+        assert_eq!(visuals(&s, 0.5), Visuals { particles: 100, ..Default::default() }, "nothing touched");
+        s.v[LOW_FIRE] = 1;
+        s.v[SMALLER] = 1;
+        s.v[FULLBRIGHT] = 1;
+        s.v[WEATHER_TIME] = 1;
+        s.v[PARTICLES] = 1;
+        s.v[CHAT_FILTER] = 1;
+        s.v[FILTER_KIND] = 1;
+        let v = visuals(&s, 0.5);
+        assert_eq!((v.fire_lower, v.shield_size, v.totem_size, v.gamma), (Some(40), Some(80), Some(80), Some(15.0)));
+        assert_eq!((v.time.as_deref(), v.weather.as_deref(), v.particles), (Some("world"), Some("clear"), 50));
+        assert!(v.chat_hide.contains(&"joined the game".to_string()) && !v.chat_hide.contains(&"discord.gg".to_string()));
+        s.v[LOW_FIRE] = 0;
+        s.v[FULLBRIGHT] = 0;
+        let off = visuals(&s, 15.0);
+        assert_eq!((off.fire_lower, off.gamma), (Some(0), Some(0.5)), "given back once, the old brightness");
+        let later = visuals(&s, 0.5);
+        assert_eq!((later.fire_lower, later.gamma), (None, None), "then left alone");
+    }
+
+    #[test]
+    fn crystals_anchors_and_falls() {
+        let bare = crystal_damage([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0.0, 0.0);
+        let armored = crystal_damage([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 20.0, 12.0);
+        assert!(bare > 70.0 && armored < bare && armored > 5.0, "{bare} {armored}");
+        assert_eq!(crystal_damage([0.0; 3], [0.0, 0.0, 13.0], 0.0, 0.0), 0.0, "too far");
+        let full = [st("minecraft:netherite_helmet", 1, 0), st("minecraft:netherite_chestplate", 1, 0), st("minecraft:netherite_leggings", 1, 0), st("minecraft:netherite_boots", 1, 0)];
+        assert_eq!(armor_of(&full), (20.0, 12.0));
+        assert_eq!(anchor_charges("minecraft:respawn_anchor[charges=3]"), Some(3));
+        assert_eq!(anchor_charges("minecraft:stone"), None);
+        assert_eq!(fall_damage(10.0), 7.0);
+        let mut s = Settings::default();
+        s.v[COOLDOWN] = 1;
+        s.v[ANCHOR] = 1;
+        let world = World { crystals: vec![], tnts: vec![], cooldowns: vec![("minecraft:ender_pearl".into(), 0.5)] };
+        let shapes = world_shapes(&s, &world, None, (0.0, 0.0), None, Some("minecraft:respawn_anchor[charges=2]"), None, 400.0, 300.0, &width);
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Item(id, _) if id == "minecraft:ender_pearl")));
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "Anchor 2/4")));
     }
 
     #[test]

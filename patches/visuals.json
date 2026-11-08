@@ -1,0 +1,81 @@
+{
+  "about": "Lets native mods change how the game looks for this player only: Horizon's own PvP extras (the first-person fire overlay's height, the shield and totem sizes, the glint colour, the time and weather seen, the hit colour) and brightness, and three checks Horizon's renderer asks: no hurt-camera tilt, no pumpkin overlay, fewer particles.",
+  "files": [
+    {
+      "file": "crates/horizon-client-render/src/camera.rs",
+      "inserts": [
+        {
+          "before": "/// `GameRenderer.bobHurt`.\n",
+          "text": "/// Arsenal's patch: No Hurt-Cam leaves the camera still when the player is hurt.\npub static ARSENAL_NO_HURT_CAM: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);\n\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "    let Some(living) = state.living else { return };\n",
+          "new": "    let Some(living) = state.living else { return };\n    if ARSENAL_NO_HURT_CAM.load(std::sync::atomic::Ordering::Relaxed) && living.death_time.is_none() {\n        return;\n    }\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud_overlays.rs",
+      "inserts": [
+        {
+          "before": "/// `Hud.extractCameraOverlays`, easing `scope_scale` (`Hud.scopeScale`).\n",
+          "text": "/// Arsenal's patch: No Pumpkin Overlay leaves out the worn items' camera overlays (the carved pumpkin's).\npub static ARSENAL_NO_PUMPKIN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);\n\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "            for texture in &i.equipment {\n",
+          "new": "            for texture in i.equipment.iter().filter(|_| !ARSENAL_NO_PUMPKIN.load(std::sync::atomic::Ordering::Relaxed)) {\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client-render/src/particles.rs",
+      "inserts": [
+        {
+          "before": "/// ClientLevel.addBreakingParticles placement, using local outline boxes.\n",
+          "text": "/// Arsenal's patch: how many particles in a hundred Particle Limiter keeps, and a running count.\npub static ARSENAL_PARTICLES: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(100);\nstatic ARSENAL_PARTICLE_COUNT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);\n\n"
+        },
+        {
+          "before": "    /// `ClientLevel.addParticle`: dropped beyond 32 blocks of the camera unless\n",
+          "text": "    /// Arsenal's patch: Particle Limiter keeps this many particles in a hundred (the rest are never made).\n    pub fn arsenal_keep() -> bool {\n        let percent = ARSENAL_PARTICLES.load(std::sync::atomic::Ordering::Relaxed);\n        percent >= 100 || ARSENAL_PARTICLE_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 100 < percent\n    }\n"
+        },
+        {
+          "before": "        let minimal = self.calculate_particle_level(always_show) == 2;\n",
+          "text": "        if !override_limiter && !options.ty.override_limiter() && !Self::arsenal_keep() {\n            return;\n        }\n"
+        }
+      ],
+      "replaces": []
+    },
+    {
+      "file": "crates/horizon-client-render/src/chat.rs",
+      "replaces": [
+        {
+          "old": "    fn push_message(&mut self, font: &crate::font::Font, mut message: Message, focused: bool) {\n",
+          "new": "    fn push_message(&mut self, font: &crate::font::Font, mut message: Message, focused: bool) {\n        // Arsenal's patch: Chat Filter hides lines holding one of its (lower case) words.\n        if let Ok(hidden) = ARSENAL_CHAT_HIDE.read() {\n            if !hidden.is_empty() {\n                let plain = message.content.plain().to_lowercase();\n                if hidden.iter().any(|w| plain.contains(w.as_str())) {\n                    return;\n                }\n            }\n        }\n"
+        }
+      ],
+      "inserts": [
+        {
+          "before": "#[derive(Default)]\npub struct Chat {\n",
+          "text": "/// Arsenal's patch: lower-case words whose lines Chat Filter hides.\npub static ARSENAL_CHAT_HIDE: std::sync::RwLock<Vec<String>> = std::sync::RwLock::new(Vec::new());\n\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "inserts": [
+        {
+          "before": "/// The player as a native mod reads it.\n",
+          "text": "/// What a native mod wants the game to look like for this player (Arsenal's patch). None leaves Horizon's own.\n#[allow(dead_code)]\n#[derive(Clone, Debug, Default)]\npub(crate) struct ArsenalVisuals {\n    pub(crate) gamma: Option<f32>,\n    pub(crate) fire_lower: Option<u8>,\n    pub(crate) shield_size: Option<u8>,\n    pub(crate) totem_size: Option<u8>,\n    /// `red`, `blue`... or `vanilla`.\n    pub(crate) glint: Option<String>,\n    /// `morning`, `noon`, `sunset`, `midnight` or `world`.\n    pub(crate) time: Option<String>,\n    /// `clear`, `rain`, `thunder` or `world`.\n    pub(crate) weather: Option<String>,\n    /// The hit colour and how much of it covers (percent), or `vanilla`.\n    pub(crate) hit: Option<(String, u8)>,\n    pub(crate) no_hurt_cam: bool,\n    pub(crate) no_pumpkin: bool,\n    pub(crate) particles: u32,\n    pub(crate) chat_hide: Vec<String>,\n}\n\n"
+        },
+        {
+          "before": "    /// The clock of the world this window shows, for client mods: its game\n",
+          "text": "    /// The game's brightness option now (Arsenal's patch).\n    pub(super) fn arsenal_gamma(&self) -> f32 {\n        self.settings.gamma\n    }\n    /// Applies what a native mod wants the game to look like (Arsenal's patch).\n    pub(super) fn arsenal_visuals(&mut self, v: &ArsenalVisuals) {\n        use horizon_client::pvp::{Colour, ViewTime, ViewWeather};\n        use std::sync::atomic::Ordering::Relaxed;\n        let colour = |name: &str| match name {\n            \"white\" => Some(Colour::White), \"red\" => Some(Colour::Red), \"orange\" => Some(Colour::Orange), \"yellow\" => Some(Colour::Yellow),\n            \"green\" => Some(Colour::Green), \"cyan\" => Some(Colour::Cyan), \"blue\" => Some(Colour::Blue), \"magenta\" => Some(Colour::Magenta),\n            \"black\" => Some(Colour::Black), \"inverted\" => Some(Colour::Inverted), _ => None,\n        };\n        if let Some(g) = v.gamma {\n            self.settings.gamma = g;\n        }\n        let t = &mut self.settings.extras.pvp.tweaks;\n        if let Some(x) = v.fire_lower { t.fire_lower = x; }\n        if let Some(x) = v.shield_size { t.shield_size = x; }\n        if let Some(x) = v.totem_size { t.totem_size = x; }\n        if let Some(g) = &v.glint { t.glint = colour(g); }\n        if let Some(time) = &v.time {\n            t.time = match time.as_str() { \"morning\" => Some(ViewTime::Morning), \"noon\" => Some(ViewTime::Noon), \"sunset\" => Some(ViewTime::Sunset), \"midnight\" => Some(ViewTime::Midnight), _ => None };\n        }\n        if let Some(w) = &v.weather {\n            t.weather = match w.as_str() { \"clear\" => Some(ViewWeather::Clear), \"rain\" => Some(ViewWeather::Rain), \"thunder\" => Some(ViewWeather::Thunder), _ => None };\n        }\n        if let Some((c, opacity)) = &v.hit {\n            let h = &mut self.settings.extras.pvp.hit;\n            match colour(c) {\n                Some(c) => { h.custom = true; h.colour = c; h.opacity = *opacity; }\n                None => h.custom = false,\n            }\n        }\n        horizon_client::camera::ARSENAL_NO_HURT_CAM.store(v.no_hurt_cam, Relaxed);\n        horizon_client::hud_overlays::ARSENAL_NO_PUMPKIN.store(v.no_pumpkin, Relaxed);\n        horizon_client::particles::ARSENAL_PARTICLES.store(v.particles.min(100), Relaxed);\n        if let Ok(mut hide) = horizon_client::chat::ARSENAL_CHAT_HIDE.write() {\n            if *hide != v.chat_hide {\n                *hide = v.chat_hide.clone();\n            }\n        }\n    }\n"
+        }
+      ]
+    }
+  ]
+}

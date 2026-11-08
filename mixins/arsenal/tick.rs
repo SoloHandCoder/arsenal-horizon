@@ -13,6 +13,22 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         let game = &*game;
         m::settings(|key| game.native_setting(m::ID, key))
     };
+    // Arsenal's visuals (Horizon's own PvP extras, brightness and the renderer's checks).
+    let v = m::visuals(&settings, game.arsenal_gamma());
+    game.arsenal_visuals(&crate::game::native_hooks::ArsenalVisuals {
+        gamma: v.gamma,
+        fire_lower: v.fire_lower,
+        shield_size: v.shield_size,
+        totem_size: v.totem_size,
+        glint: v.glint,
+        time: v.time,
+        weather: v.weather,
+        hit: v.hit,
+        no_hurt_cam: v.no_hurt_cam,
+        no_pumpkin: v.no_pumpkin,
+        particles: v.particles,
+        chat_hide: v.chat_hide,
+    });
     let lines = game.arsenal_take_chat();
     let own = game.arsenal_me();
     if !lines.is_empty() || own.is_some() {
