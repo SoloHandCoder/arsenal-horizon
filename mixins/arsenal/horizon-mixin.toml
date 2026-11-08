@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.12.0"
+version = "1.13.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
@@ -284,4 +284,25 @@ helper = "shader.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
   { name = "params", ty = "&mut [[f32; 4]; 8]", value = "&mut *params" },
+]
+
+[[injection]]
+id = "command"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_command"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "&mut *ran" },
+]
+
+[[injection]]
+id = "commands"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_commands"
+helper = "commands.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "commands", ty = "&mut Vec<&'static str>", value = "&mut *commands" },
 ]

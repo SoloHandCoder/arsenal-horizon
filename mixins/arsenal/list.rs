@@ -13,6 +13,9 @@ fn arsenal_listed(mods: &mut Vec<crate::game::native_hooks::NativeMod>) {
             [m::HOTKEY_KEYS[1].0.into(), m::HOTKEY_KEYS[1].1.into(), "key.keyboard.unknown".into()],
             [m::HOTKEY_KEYS[2].0.into(), m::HOTKEY_KEYS[2].1.into(), "key.keyboard.unknown".into()],
             [m::HOTKEY_KEYS[3].0.into(), m::HOTKEY_KEYS[3].1.into(), "key.keyboard.unknown".into()],
+            [m::MORE_KEYS[0].0.into(), m::MORE_KEYS[0].1.into(), m::MORE_KEYS[0].2.into()],
+            [m::MORE_KEYS[1].0.into(), m::MORE_KEYS[1].1.into(), m::MORE_KEYS[1].2.into()],
+            [m::MORE_KEYS[2].0.into(), m::MORE_KEYS[2].1.into(), m::MORE_KEYS[2].2.into()],
         ],
     });
 }

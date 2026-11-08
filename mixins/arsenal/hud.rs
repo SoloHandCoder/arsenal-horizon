@@ -131,6 +131,8 @@ fn arsenal_hud(
         shapes.extend(m::more_shapes(&settings, &others, target, inv.as_ref(), &world, using.as_ref().map(|(i, t)| (i.as_str(), *t)), status.attack,
             block.as_deref(), aimed, me, &friends, cam.as_ref(), batch.width, batch.height, &width));
         shapes.extend(m::world_shapes(&settings, &world, me, armor, target, block.as_deref(), cam.as_ref(), batch.width, batch.height, &width));
+        let me_yaw = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
+        shapes.extend(m::later_shapes(&settings, &others, &friends, me_yaw, status.attack, cam.as_ref(), batch.width, batch.height, &width));
         for shape in shapes {
             match shape {
                 m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),

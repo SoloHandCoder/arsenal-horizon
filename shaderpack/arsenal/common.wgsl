@@ -5,6 +5,7 @@
 //   mods[3]: sky tint: rgb colour, w how much
 //   mods[4]: Sky Effects: x aurora, y stars, z sky glow
 //   mods[5]: Mist colour: rgb, w height it lies under (blocks)
+//   mods[6]: x Slick Floors (1 on)
 
 fn luminance(c: vec3<f32>) -> f32 {
     return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));

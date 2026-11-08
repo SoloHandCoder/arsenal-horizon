@@ -4,7 +4,7 @@ fn arsenal_click(game: &mut crate::game::Game<'_>, mod_id: &str, button: usize) 
     if mod_id != m::ID {
         return;
     }
-    let mut settings = m::settings(|key| game.native_setting(m::ID, key));
+    let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
     settings.click(button);
     m::set_settings(&settings);
     for (key, value) in settings.stored() {

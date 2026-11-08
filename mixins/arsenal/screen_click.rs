@@ -13,7 +13,7 @@ fn arsenal_screen_click(
     if button != 0 {
         return;
     }
-    let mut settings = m::settings(|key| game.native_setting(m::ID, key));
+    let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
     let mut menu = m::menu();
     let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
     let Some(action) = m::menu_click(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text)) else {

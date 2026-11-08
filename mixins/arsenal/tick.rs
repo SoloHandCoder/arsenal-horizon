@@ -32,6 +32,100 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         capture: v.capture,
     });
     crate::game::native_hooks::ARSENAL_CRYSTAL_OPT.store(v.crystal_optimizer, std::sync::atomic::Ordering::Relaxed);
+    // This version's looks, chat, sounds and input (Arsenal's patches/more.json).
+    {
+        use horizon_client::camera::arsenal as a;
+        use std::sync::atomic::Ordering::Relaxed;
+        let own = game.arsenal_me();
+        let l = m::looks(&settings, own.as_deref());
+        a::HOTBAR.store(l.hotbar, Relaxed);
+        a::HOTBAR_ACCENT.store(l.hotbar_accent, Relaxed);
+        a::HOTBAR_GLIDE.store(l.glide, Relaxed);
+        a::INV_FRAME.store(l.inv_frame, Relaxed);
+        a::INV_GLIDE.store(l.inv_glide, Relaxed);
+        a::SWING.store(l.swing, Relaxed);
+        a::LOWER.store(l.lower, Relaxed);
+        a::BLOCKHIT.store(l.blockhit, Relaxed);
+        a::HAND_TINT.store(l.hand_tint, Relaxed);
+        a::HAND_GLOW.store(l.hand_glow, Relaxed);
+        a::CRYSTAL_SIZE.store(l.crystal_size, Relaxed);
+        a::CRYSTAL_STILL.store(l.crystal_still, Relaxed);
+        a::ARMOR_TINT.store(l.armor_tint, Relaxed);
+        a::TAG_SIZE.store(l.tag_size, Relaxed);
+        a::TAG_BG.store(l.tag_bg, Relaxed);
+        if a::TAB_PING.swap(l.tab_ping, Relaxed) != l.tab_ping {
+            a::TAB_DIRTY.store(true, Relaxed);
+        }
+        a::CHAT_KEEP.store(l.chat_keep, Relaxed);
+        a::OBSIDIAN_GUARD.store(l.obsidian_guard, Relaxed);
+        a::CRYSTAL_HELP.store(l.crystal_help, Relaxed);
+        if let Ok(mut b) = a::BIG_ITEMS.write() {
+            if *b != l.big_items {
+                *b = l.big_items.clone();
+            }
+        }
+        if let Ok(mut n) = a::NAME_HIDE.write() {
+            if *n != l.name_hide {
+                *n = l.name_hide.clone();
+            }
+        }
+        if let Ok(mut n) = a::MENTION.write() {
+            if *n != l.mention {
+                *n = l.mention.clone();
+            }
+        }
+        if let Ok(mut v) = a::VOLUMES.write() {
+            if *v != l.volumes {
+                *v = l.volumes.clone();
+            }
+        }
+        game.arsenal_more(l.freelook, l.chat, l.reconnect);
+        let events = a::BLOCKS.lock().map(|mut b| std::mem::take(&mut *b)).unwrap_or_default();
+        m::blocks_tick(&settings, &events);
+        m::sprint_tick(game.arsenal_sprinting());
+        if let Some(path) = a::SHOT.lock().ok().and_then(|mut s| s.take()) {
+            if settings.on(m::SHOT_CLIP) {
+                m::copy_image(&path);
+            }
+        }
+        let dir = game.native_data_dir(m::ID);
+        m::crash_hook(&dir);
+        if let Some(note) = m::crash_note(&settings, &dir) {
+            game.native_chat(&note);
+        }
+        if let Some(note) = m::update_note(&settings) {
+            if let Some(note) = m::route(&settings, note) {
+                game.native_chat(&note);
+            }
+        }
+        if m::hello_due(&settings) {
+            let signed = game.arsenal_signed("arsenal-hello-v1", &[m::VERSION.to_string(), "26.3".to_string()]);
+            m::send_hello(&settings, signed);
+        }
+        m::ask_wardrobe(&settings, game.arsenal_uuid());
+        m::lyrics_tick(&settings);
+        let server = game.arsenal_server();
+        let joined = {
+            let game = &*game;
+            m::server_tick(&settings, server.as_deref(), &|key| game.native_setting(m::ID, key))
+        };
+        for j in joined {
+            match j {
+                m::Joined::Note(note) => game.native_chat(&note),
+                m::Joined::Profile(stored) => {
+                    for (key, value) in m::profile_pairs(&stored) {
+                        game.native_set_setting(m::ID, &key, &value);
+                    }
+                    let fresh = {
+                        let game = &*game;
+                        m::Settings::read(|key| game.native_setting(m::ID, key))
+                    };
+                    m::set_settings(&fresh);
+                    game.native_chat("Loaded your setup for this server.");
+                }
+            }
+        }
+    }
     // Arsenal's shader pack goes into shaderpacks/ (once, and again when the mod brings a new version).
     m::install_pack_once(&game.native_instance_dir());
     let lines = game.arsenal_take_chat();
@@ -83,6 +177,8 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         }
     }
     for note in notes {
-        game.native_chat(&note);
+        if let Some(note) = m::route(&settings, note) {
+            game.native_chat(&note);
+        }
     }
 }

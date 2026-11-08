@@ -8,6 +8,30 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
     // Hitmarker: a hit may land after the attack button.
     if pressed && key == "key.mouse.left" && game.native_playing() {
         m::clicked();
+        m::attacked();
+    }
+    // Free Look and Quick Menu (held) and Performance Mode's key; a feature to switch comes back.
+    for (id, _, fallback) in m::MORE_KEYS {
+        if key != game.native_mod_key(m::ID, id, fallback) {
+            continue;
+        }
+        let settings = {
+            let game = &*game;
+            m::settings(|name| game.native_setting(m::ID, name))
+        };
+        let playing = game.native_playing();
+        if let Some(field) = m::more_key(&settings, id, pressed, playing) {
+            let raw = {
+                let game = &*game;
+                m::raw_settings(|name| game.native_setting(m::ID, name))
+            };
+            let (new, value, message) = m::toggled(&raw, field);
+            m::set_settings(&new);
+            game.native_set_setting(m::ID, m::FIELDS[field].key, value);
+            if let Some(message) = m::route(&settings, message) {
+                game.native_chat(&message);
+            }
+        }
     }
     // Chat Hotkeys and Friends (the Friend key on the player you look at).
     if pressed && game.native_playing() {

@@ -5,5 +5,5 @@ fn arsenal_page(game: &mut crate::game::Game<'_>, mod_id: &str, buttons: &mut Ve
         return;
     }
     let game = &*game;
-    buttons.extend(m::settings(|key| game.native_setting(m::ID, key)).labels());
+    buttons.extend(m::raw_settings(|key| game.native_setting(m::ID, key)).labels());
 }

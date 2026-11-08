@@ -1,0 +1,238 @@
+{
+  "about": "Lets Arsenal's modules change more of how Horizon looks and acts for this player only: the hotbar and inventories, held items, swing, end crystals, dropped items, armour colour, nametags, Free Look, block break and place events, the tab list's ping, your name shown, chat highlights and history, sound volumes, misclicks on obsidian and crystal placements, screenshots, the chat options and auto-reconnect, sprinting, the server address, and Arsenal API requests signed with your Mojang chat key (as the Java mod signs them).",
+  "files": [
+    {
+      "file": "crates/horizon-client-render/src/camera.rs",
+      "inserts": [
+        {
+          "before": "/// `GameRenderer.bobHurt`.\n",
+          "text": "/// Arsenal's patch: what its modules change in Horizon's drawing, chat, sounds and input. Its mod sets these each\n/// tick; each is read where Horizon does that thing. Zero or empty leaves Horizon's own.\npub mod arsenal {\n    use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU8, AtomicUsize, Ordering::Relaxed};\n    use std::sync::{Mutex, RwLock};\n\n    /// Hotbar Style: the hotbar's background (0xAARRGGBB, 0 = Horizon's) and the selected slot's accent.\n    pub static HOTBAR: AtomicU32 = AtomicU32::new(0);\n    pub static HOTBAR_ACCENT: AtomicU32 = AtomicU32::new(0);\n    /// Smooth Hotbar: the selection box glides; where it is now (pixels from the first slot, f32 bits).\n    pub static HOTBAR_GLIDE: AtomicBool = AtomicBool::new(false);\n    static GLIDE_X: Mutex<f32> = Mutex::new(-1.0);\n    /// Inventory Style: a frame round inventories in this colour (0xAARRGGBB, 0 = none).\n    pub static INV_FRAME: AtomicU32 = AtomicU32::new(0);\n    /// Smooth Inventory: the item on the cursor glides after it.\n    pub static INV_GLIDE: AtomicBool = AtomicBool::new(false);\n    static CARRIED: Mutex<Option<(f32, f32)>> = Mutex::new(None);\n    /// Swing Animation: the swing's length in percent of vanilla's.\n    pub static SWING: AtomicU32 = AtomicU32::new(100);\n    /// 1.8 Animations: held items lower (hundredths of a block) and the sword block-hit pose.\n    pub static LOWER: AtomicU32 = AtomicU32::new(0);\n    pub static BLOCKHIT: AtomicBool = AtomicBool::new(false);\n    /// Hand Tint & Glow: the hand's tint (0xRRGGBB, 0 = none) and full brightness.\n    pub static HAND_TINT: AtomicU32 = AtomicU32::new(0);\n    pub static HAND_GLOW: AtomicBool = AtomicBool::new(false);\n    /// Smaller Crystals: size in percent and whether they spin.\n    pub static CRYSTAL_SIZE: AtomicU32 = AtomicU32::new(100);\n    pub static CRYSTAL_STILL: AtomicBool = AtomicBool::new(false);\n    /// Big Items: dropped items drawn this many times bigger (item id, scale).\n    pub static BIG_ITEMS: RwLock<Vec<(String, f32)>> = RwLock::new(Vec::new());\n    /// Armor Color: worn armour tinted (0xRRGGBB, 0 = none).\n    pub static ARMOR_TINT: AtomicU32 = AtomicU32::new(0);\n    /// Nametag Style: size in percent and background (0xAARRGGBB; vanilla's is 0x3F000000).\n    pub static TAG_SIZE: AtomicU32 = AtomicU32::new(100);\n    pub static TAG_BG: AtomicU32 = AtomicU32::new(0x3F00_0000);\n    /// Free Look: the camera's own rotation while held, and the view it came from (0 first person, 1 back, 2 front).\n    static FREELOOK: Mutex<Option<(f32, f32)>> = Mutex::new(None);\n    pub static FREELOOK_FROM: AtomicU8 = AtomicU8::new(0);\n    /// Block Break and Place Animation: blocks you broke (0) or placed (1) since the mod last asked.\n    pub static BLOCKS: Mutex<Vec<([i32; 3], u8)>> = Mutex::new(Vec::new());\n    /// Tab List Ping: pings as numbers; set when it changes so the cached layout is made again.\n    pub static TAB_PING: AtomicBool = AtomicBool::new(false);\n    pub static TAB_DIRTY: AtomicBool = AtomicBool::new(false);\n    /// Name Hider: your name and what's shown instead.\n    pub static NAME_HIDE: RwLock<Option<(String, String)>> = RwLock::new(None);\n    /// Chat Mentions: lines holding this (lower case) are highlighted.\n    pub static MENTION: RwLock<String> = RwLock::new(String::new());\n    /// Chat Tweaks: how many lines the chat keeps.\n    pub static CHAT_KEEP: AtomicUsize = AtomicUsize::new(100);\n    /// Sound Tweaks: sounds whose id holds the text play at this volume.\n    pub static VOLUMES: RwLock<Vec<(String, f32)>> = RwLock::new(Vec::new());\n    /// Obsidian Click Guard and Crystal Helper.\n    pub static OBSIDIAN_GUARD: AtomicBool = AtomicBool::new(false);\n    pub static CRYSTAL_HELP: AtomicBool = AtomicBool::new(false);\n    /// Screenshot to Clipboard: the last screenshot saved.\n    pub static SHOT: Mutex<Option<std::path::PathBuf>> = Mutex::new(None);\n\n    pub fn hotbar_x(selected: i32) -> i32 {\n        let target = selected as f32 * 20.0;\n        if !HOTBAR_GLIDE.load(Relaxed) {\n            return selected * 20;\n        }\n        let mut x = GLIDE_X.lock().unwrap_or_else(|e| e.into_inner());\n        if *x < 0.0 || (target - *x).abs() > 180.0 {\n            *x = target;\n        }\n        *x += (target - *x) * 0.3;\n        if (target - *x).abs() < 0.5 {\n            *x = target;\n        }\n        x.round() as i32\n    }\n    pub fn carried(cursor: (f32, f32)) -> (f32, f32) {\n        let mut at = CARRIED.lock().unwrap_or_else(|e| e.into_inner());\n        if !INV_GLIDE.load(Relaxed) {\n            *at = None;\n            return cursor;\n        }\n        let (x, y) = at.unwrap_or(cursor);\n        let next = (x + (cursor.0 - x) * 0.35, y + (cursor.1 - y) * 0.35);\n        *at = Some(next);\n        next\n    }\n    pub fn swing(duration: i32) -> i32 {\n        ((duration as f32) * SWING.load(Relaxed) as f32 / 100.0).round().max(1.0) as i32\n    }\n    pub fn lower() -> f32 {\n        LOWER.load(Relaxed) as f32 / 100.0\n    }\n    /// Multiplies an ABGR (RGBA8) colour by the 0xRRGGBB tint.\n    pub fn tint_abgr(color: u32, tint: u32) -> u32 {\n        let [r, g, b] = [(tint >> 16) & 255, (tint >> 8) & 255, tint & 255];\n        let ch = |shift: u32, by: u32| (((color >> shift) & 255) * by / 255) << shift;\n        (color & 0xFF00_0000) | ch(0, r) | ch(8, g) | ch(16, b)\n    }\n    pub fn crystal_size() -> f32 {\n        CRYSTAL_SIZE.load(Relaxed) as f32 / 100.0\n    }\n    pub fn crystal_age(age: f32) -> f32 {\n        if CRYSTAL_STILL.load(Relaxed) { 0.0 } else { age }\n    }\n    pub fn item_scale(id: &str) -> f32 {\n        BIG_ITEMS.read().ok().and_then(|l| l.iter().find(|(i, _)| i == id || i == \"*\").map(|e| e.1)).unwrap_or(1.0)\n    }\n    pub fn armor(color: u32) -> u32 {\n        match ARMOR_TINT.load(Relaxed) {\n            0 => color,\n            t => tint_abgr(color, t),\n        }\n    }\n    pub fn tag_size() -> f32 {\n        TAG_SIZE.load(Relaxed) as f32 / 100.0\n    }\n    pub fn freelook() -> Option<(f32, f32)> {\n        *FREELOOK.lock().unwrap_or_else(|e| e.into_inner())\n    }\n    pub fn set_freelook(at: Option<(f32, f32)>) {\n        *FREELOOK.lock().unwrap_or_else(|e| e.into_inner()) = at;\n    }\n    /// The mouse turns the free camera instead of the player (`Entity.turn`'s 0.15).\n    pub fn freelook_turn(xo: f64, yo: f64) -> bool {\n        let mut f = FREELOOK.lock().unwrap_or_else(|e| e.into_inner());\n        let Some((yaw, pitch)) = f.as_mut() else { return false };\n        *yaw += (xo * 0.15) as f32;\n        *pitch = (*pitch + (yo * 0.15) as f32).clamp(-90.0, 90.0);\n        true\n    }\n    pub fn block(pos: [i32; 3], kind: u8) {\n        if let Ok(mut b) = BLOCKS.lock() {\n            if b.len() < 64 {\n                b.push((pos, kind));\n            }\n        }\n    }\n    pub fn tab_extra() -> i32 {\n        if TAB_PING.load(Relaxed) { 14 } else { 0 }\n    }\n    pub fn ping_colour(ms: i32) -> u32 {\n        match ms {\n            i32::MIN..0 => 0xFFAAAAAA,\n            0..80 => 0xFF55FF55,\n            80..150 => 0xFFFFFF55,\n            150..300 => 0xFFFFAA00,\n            _ => 0xFFFF5555,\n        }\n    }\n    pub fn hide_name(text: &crate::text::Text) -> Option<crate::text::Text> {\n        let hide = NAME_HIDE.read().ok()?;\n        let (name, shown) = hide.as_ref()?;\n        if name.is_empty() || !text.spans.iter().any(|s| s.text.contains(name.as_str())) {\n            return None;\n        }\n        let mut t = text.clone();\n        for s in &mut t.spans {\n            s.text = s.text.replace(name.as_str(), shown);\n        }\n        Some(t)\n    }\n    pub fn mentions(line: &str) -> bool {\n        MENTION.read().is_ok_and(|m| !m.is_empty() && line.to_lowercase().contains(m.as_str()))\n    }\n    pub fn chat_keep() -> usize {\n        CHAT_KEEP.load(Relaxed).clamp(100, 1000)\n    }\n    pub fn volume(id: &str) -> f32 {\n        VOLUMES.read().ok().and_then(|v| v.iter().find(|(k, _)| id.contains(k.as_str())).map(|e| e.1)).unwrap_or(1.0)\n    }\n}\n\n"
+        },
+        {
+          "before": "            if camera_type.is_mirrored() {\n",
+          "text": "            if let Some((yaw, pitch)) = arsenal::freelook() {\n                self.set_rotation(yaw, pitch);\n            }\n"
+        }
+      ],
+      "replaces": []
+    },
+    {
+      "file": "crates/horizon-client/src/game/perspective.rs",
+      "inserts": [
+        {
+          "before": "        let pitch_o = self.player_model.as_ref().map(|m| m.previous_head_pitch);\n",
+          "text": "        if horizon_client::camera::arsenal::freelook_turn(xo, yo) {\n            return;\n        }\n"
+        }
+      ],
+      "replaces": []
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud_layout.rs",
+      "inserts": [
+        {
+          "before": "    // The off hand is opposite the main arm.\n",
+          "text": "    let arsenal_accent = crate::camera::arsenal::HOTBAR_ACCENT.load(std::sync::atomic::Ordering::Relaxed);\n    if arsenal_bg != 0 && arsenal_accent != 0 {\n        let x = center - 91 + crate::camera::arsenal::hotbar_x(i.selected);\n        out.push(GuiDraw::Fill { x0: x, y0: h - 3, x1: x + 22, y1: h - 1, color: arsenal_accent });\n    }\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "    out.push(sprite(\"hud/hotbar\", center - 91, h - 22, 182, 22));\n",
+          "new": "    let arsenal_bg = crate::camera::arsenal::HOTBAR.load(std::sync::atomic::Ordering::Relaxed);\n    if arsenal_bg == 0 {\n        out.push(sprite(\"hud/hotbar\", center - 91, h - 22, 182, 22));\n    } else {\n        out.push(GuiDraw::Fill { x0: center - 91, y0: h - 22, x1: center + 91, y1: h, color: arsenal_bg });\n        for slot in 1..9 {\n            out.push(GuiDraw::Fill { x0: center - 91 + slot * 20, y0: h - 20, x1: center - 90 + slot * 20, y1: h - 2, color: 0x30FF_FFFF });\n        }\n    }\n"
+        },
+        {
+          "old": "        center - 91 - 1 + i.selected * 20,\n",
+          "new": "        center - 91 - 1 + crate::camera::arsenal::hotbar_x(i.selected),\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game.rs",
+      "inserts": [
+        {
+          "before": "            let part = |\n",
+          "text": "            let frame = horizon_client::camera::arsenal::INV_FRAME.load(std::sync::atomic::Ordering::Relaxed);\n            if frame != 0 {\n                let c = rgba((frame >> 16) as u8, (frame >> 8) as u8, frame as u8, (frame >> 24) as u8);\n                batch.fill(atlas, ox - 3.0, oy - 3.0, 182.0, 3.0, c);\n                batch.fill(atlas, ox - 3.0, oy + 166.0, 182.0, 3.0, c);\n                batch.fill(atlas, ox - 3.0, oy, 3.0, 166.0, c);\n                batch.fill(atlas, ox + 176.0, oy, 3.0, 166.0, c);\n            }\n"
+        },
+        {
+          "before": "        for vertex in &mut out {\n",
+          "text": "        let tint = horizon_client::camera::arsenal::HAND_TINT.load(std::sync::atomic::Ordering::Relaxed);\n        let glow = horizon_client::camera::arsenal::HAND_GLOW.load(std::sync::atomic::Ordering::Relaxed);\n        if tint != 0 || glow {\n            for v in &mut out {\n                if tint != 0 {\n                    v.color = horizon_client::camera::arsenal::tint_abgr(v.color, tint);\n                }\n                if glow {\n                    v.light = 0x00F0_00F0;\n                }\n            }\n        }\n"
+        },
+        {
+          "before": "            let shield_size = self.settings.extras.pvp.tweaks.shield_size;\n",
+          "text": "            let lower = horizon_client::camera::arsenal::lower();\n            if lower > 0.0 {\n                m = glam::Mat4::from_translation(glam::Vec3::new(0.0, -lower, 0.0)) * m;\n            }\n"
+        },
+        {
+          "before": "        self.native_place_block(&stack, target, state);\n",
+          "text": "        horizon_client::camera::arsenal::block(target, 1);\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "        self.draw_item(batch, &stack, self.cursor.0 - 8.0, self.cursor.1 - 8.0);\n",
+          "new": "        let (cx, cy) = horizon_client::camera::arsenal::carried(self.cursor);\n        self.draw_item(batch, &stack, cx - 8.0, cy - 8.0);\n"
+        },
+        {
+          "old": "        let legacy_block = self.settings.extras.pvp.combat.legacy && self.right\n",
+          "new": "        let legacy_block = (horizon_client::camera::arsenal::BLOCKHIT.load(std::sync::atomic::Ordering::Relaxed) || self.settings.extras.pvp.combat.legacy) && self.right\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/hand.rs",
+      "inserts": [
+        {
+          "before": "        let r = self.game.break_block(pos);\n",
+          "text": "        horizon_client::camera::arsenal::block(pos, 0);\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "        let duration = swing_duration(animation, dig_speed, fatigue);\n",
+          "new": "        let duration = horizon_client::camera::arsenal::swing(swing_duration(animation, dig_speed, fatigue));\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/end.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "                * glam::Mat4::from_scale(glam::Vec3::splat(2.0))\n",
+          "new": "                * glam::Mat4::from_scale(glam::Vec3::splat(2.0 * horizon_client::camera::arsenal::crystal_size()))\n"
+        },
+        {
+          "old": "            let age = crystal.time as f32 + partial;\n",
+          "new": "            let age = horizon_client::camera::arsenal::crystal_age(crystal.time as f32 + partial);\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/item_draw.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "                * glam::Mat4::from_rotation_y(spin);\n",
+          "new": "                * glam::Mat4::from_rotation_y(spin)\n                * glam::Mat4::from_scale(glam::Vec3::splat(horizon_client::camera::arsenal::item_scale(&item.stack.item)));\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/armor_stands.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "                let color = layer_color(*undyed, stack);\n",
+          "new": "                let color = horizon_client::camera::arsenal::armor(layer_color(*undyed, stack));\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/names.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "            let (r, u) = (right.as_vec3() * unit, up.as_vec3() * unit);\n",
+          "new": "            let unit = unit * horizon_client::camera::arsenal::tag_size();\n            let (r, u) = (right.as_vec3() * unit, up.as_vec3() * unit);\n"
+        },
+        {
+          "old": "            if background { 0x3F00_0000 } else { 0 },\n",
+          "new": "            if background { horizon_client::camera::arsenal::TAG_BG.load(std::sync::atomic::Ordering::Relaxed) } else { 0 },\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client-render/src/tab_list.rs",
+      "inserts": [
+        {
+          "before": "        let valid = self.cache.as_ref().is_some_and(|c| {\n",
+          "text": "        if crate::camera::arsenal::TAB_DIRTY.swap(false, std::sync::atomic::Ordering::Relaxed) {\n            self.cache = None;\n        }\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "            out.push(sprite(\n                ping_sprite(p.latency),\n                xo - head + slot_width - 11,\n                yo,\n                10,\n                8,\n            ));\n",
+          "new": "            if crate::camera::arsenal::TAB_PING.load(std::sync::atomic::Ordering::Relaxed) {\n                let ms = p.latency.to_string();\n                out.push(GuiDraw::Text {\n                    text: Text::literal(ms.clone()),\n                    x: xo - head + slot_width - 1 - ms.len() as i32 * 6,\n                    y: yo,\n                    color: crate::camera::arsenal::ping_colour(p.latency),\n                    shadow: true,\n                });\n            } else {\n            out.push(sprite(\n                ping_sprite(p.latency),\n                xo - head + slot_width - 11,\n                yo,\n                10,\n                8,\n            ));\n            }\n"
+        },
+        {
+          "old": "        let slot_width = (cols * (head + max_name + width_for_score + 13)).min(sw - 50) / cols;\n",
+          "new": "        let slot_width = (cols * (head + max_name + width_for_score + 13 + crate::camera::arsenal::tab_extra())).min(sw - 50) / cols;\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client-render/src/hud.rs",
+      "inserts": [
+        {
+          "before": "        let font = &atlas.font;\n        let alpha = (color >> 24) as u8;\n",
+          "text": "        let text = match crate::camera::arsenal::hide_name(&text) {\n            Some(t) => std::borrow::Cow::Owned(t),\n            None => text,\n        };\n"
+        }
+      ],
+      "replaces": []
+    },
+    {
+      "file": "crates/horizon-client-render/src/chat.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "            let color = hud_layout::white(opacity);\n",
+          "new": "            let color = if crate::camera::arsenal::mentions(&line.message) {\n                (hud_layout::white(opacity) & 0xFF00_0000) | 0x00FF_D84A\n            } else {\n                hud_layout::white(opacity)\n            };\n"
+        },
+        {
+          "old": "        self.messages.truncate(100);\n",
+          "new": "        self.messages.truncate(crate::camera::arsenal::chat_keep());\n"
+        },
+        {
+          "old": "        self.lines.truncate(100);\n",
+          "new": "        self.lines.truncate(crate::camera::arsenal::chat_keep());\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client-render/src/audio.rs",
+      "inserts": [],
+      "replaces": [
+        {
+          "old": "    fn play_instance(&mut self, instance: SoundInstance, retain: bool) -> (InstanceId, PlayResult) {\n        self.sync_volumes();\n",
+          "new": "    fn play_instance(&mut self, mut instance: SoundInstance, retain: bool) -> (InstanceId, PlayResult) {\n        instance.volume *= crate::camera::arsenal::volume(&instance.identifier);\n        self.sync_volumes();\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "inserts": [
+        {
+          "before": "        // startDestroyBlock refuses a restricted break before predicting it.\n",
+          "text": "        if horizon_client::camera::arsenal::OBSIDIAN_GUARD.load(std::sync::atomic::Ordering::Relaxed)\n            && hit.face == [0, 1, 0]\n            && matches!(&*self.block_name(hit.pos), \"minecraft:obsidian\" | \"minecraft:bedrock\")\n            && !self.stack_in(self.selected).is_some_and(|s| s.item.ends_with(\"_pickaxe\"))\n        {\n            self.mining = None;\n            return;\n        }\n"
+        },
+        {
+          "before": "            // ArmorStandItem.useOn runs in startPrediction before the packet\n",
+          "text": "            if horizon_client::camera::arsenal::CRYSTAL_HELP.load(std::sync::atomic::Ordering::Relaxed)\n                && held.as_ref().is_some_and(|s| &*s.item == \"minecraft:end_crystal\")\n            {\n                let base = self.block_name(hit.pos);\n                let above = [hit.pos[0], hit.pos[1] + 1, hit.pos[2]];\n                let free = |p: [i32; 3]| matches!(&*self.block_name(p), \"minecraft:air\" | \"minecraft:cave_air\");\n                if !matches!(&*base, \"minecraft:obsidian\" | \"minecraft:bedrock\") || !free(above) || !free([above[0], above[1] + 1, above[2]]) {\n                    return true;\n                }\n            }\n"
+        }
+      ],
+      "replaces": [
+        {
+          "old": "    fn predict_place(&mut self, (pos, changes): &DryPlace, seq: i32) {\n",
+          "new": "    fn predict_place(&mut self, (pos, changes): &DryPlace, seq: i32) {\n        horizon_client::camera::arsenal::block([pos.x, pos.y, pos.z], 1);\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/chat.rs",
+      "inserts": [
+        {
+          "before": "                let name = path.file_name().unwrap_or_default().to_string_lossy();\n",
+          "text": "                if let Ok(mut shot) = horizon_client::camera::arsenal::SHOT.lock() {\n                    *shot = Some(path.clone());\n                }\n"
+        }
+      ],
+      "replaces": []
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "inserts": [
+        {
+          "before": "    /// The clock of the world this window shows, for client mods: its game\n",
+          "text": "    /// Free Look's camera (held: third person on its own rotation), Chat Tweaks, Click to Copy Chat and Auto Reconnect\n    /// (Horizon's own PvP extras; None leaves them), Arsenal's patch.\n    pub(super) fn arsenal_more(&mut self, freelook: bool, chat: [Option<bool>; 3], reconnect: Option<bool>) {\n        use super::perspective::CameraType as C;\n        use horizon_client::camera::arsenal as a;\n        use std::sync::atomic::Ordering::Relaxed;\n        let on = freelook && self.native_playing();\n        if on && a::freelook().is_none() {\n            a::FREELOOK_FROM.store(match self.camera_type { C::FirstPerson => 0, C::ThirdPersonBack => 1, C::ThirdPersonFront => 2 }, Relaxed);\n            self.camera_type = C::ThirdPersonBack;\n            a::set_freelook(Some((self.yaw, self.pitch)));\n        } else if !on && a::freelook().is_some() {\n            self.camera_type = match a::FREELOOK_FROM.load(Relaxed) { 1 => C::ThirdPersonBack, 2 => C::ThirdPersonFront, _ => C::FirstPerson };\n            a::set_freelook(None);\n        }\n        let c = &mut self.settings.extras.pvp.chat;\n        if let Some(x) = chat[0] { c.timestamps = x; }\n        if let Some(x) = chat[1] { c.compact = x; }\n        if let Some(x) = chat[2] { c.copy = x; }\n        if let Some(x) = reconnect { self.settings.extras.auto_reconnect = x; }\n    }\n    /// Whether you're sprinting (Arsenal's patch).\n    pub(super) fn arsenal_sprinting(&self) -> bool {\n        self.player.as_ref().is_some_and(|p| p.sprinting)\n    }\n    /// The server you're on (Arsenal's patch).\n    pub(super) fn arsenal_server(&self) -> Option<String> {\n        self.remote.as_ref().map(|r| r.session.address.clone())\n    }\n    /// Your account's UUID, none offline (Arsenal's patch: Wardrobe Kill Effects looks up your effect by it).\n    pub(super) fn arsenal_uuid(&self) -> Option<u128> {\n        horizon_client::auth::current().map(|s| s.uuid)\n    }\n    /// Arsenal's patch: a request body for the Arsenal API signed with your Mojang chat key, as the Java mod signs them\n    /// ({uuid, ts, sig, cert}). Only Arsenal's own messages: the key never signs anything else, and neither the key nor\n    /// your access token leaves Horizon. None for offline accounts or while the key isn't fetched yet.\n    pub(super) fn arsenal_signed(&self, prefix: &str, extra: &[String]) -> Option<String> {\n        const ALLOWED: &[&str] = &[\"arsenal-hello-v1\"];\n        if !ALLOWED.contains(&prefix) {\n            return None;\n        }\n        fn b64(data: &[u8]) -> String {\n            const T: &[u8; 64] = b\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\";\n            let mut out = String::with_capacity(data.len().div_ceil(3) * 4);\n            for c in data.chunks(3) {\n                let n = (u32::from(c[0]) << 16) | (u32::from(*c.get(1).unwrap_or(&0)) << 8) | u32::from(*c.get(2).unwrap_or(&0));\n                out.push(T[(n >> 18) as usize & 63] as char);\n                out.push(T[(n >> 12) as usize & 63] as char);\n                out.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });\n                out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });\n            }\n            out\n        }\n        let session = horizon_client::auth::current()?;\n        let keys = horizon_client::auth::chat_keys_for(session.uuid)?;\n        let uuid = horizon_protocol::crypto::uuid_string(session.uuid);\n        let ts = horizon_client::auth::now_millis();\n        let mut message = format!(\"{prefix}:{uuid}:{ts}\");\n        for e in extra {\n            message.push(':');\n            message.push_str(e);\n        }\n        let sig = keys.private.sign(horizon_protocol::rsa::SignatureHash::Sha256, message.as_bytes()).ok()?;\n        Some(serde_json::json!({\n            \"uuid\": uuid,\n            \"ts\": ts,\n            \"sig\": b64(&sig),\n            \"cert\": { \"expiresAt\": keys.public.expires_at, \"key\": b64(&keys.public.key), \"keySig\": b64(&keys.public.signature) },\n        }).to_string())\n    }\n"
+        }
+      ],
+      "replaces": []
+    }
+  ]
+}

@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.12.0";
+pub const VERSION: &str = "1.13.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -235,6 +235,16 @@ pub const LOOKS: &[(&str, &str)] = &[("vivid", "Vivid"), ("cinematic", "Cinemati
 pub const TINTS: &[(&str, &str)] = &[("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent")];
 pub const MIST_COLORS: &[(&str, &str)] = &[("white", "White"), ("blue", "Blue"), ("purple", "Purple"), ("green", "Green")];
 pub const GOALS: &[(&str, &str)] = &[("10", "10 kills"), ("5", "5 kills"), ("20", "20 kills"), ("50", "50 kills")];
+pub const SWING_SPEEDS: &[(&str, &str)] = &[("150", "Slower"), ("70", "Faster"), ("50", "Much faster"), ("200", "Much slower")];
+pub const CRYSTAL_SIZES: &[(&str, &str)] = &[("50", "Half"), ("75", "Three quarters"), ("35", "Tiny")];
+pub const BIG_WHAT: &[(&str, &str)] = &[("loot", "Valuable loot"), ("all", "All items")];
+pub const TAG_SIZES: &[(&str, &str)] = &[("75", "75%"), ("50", "50%"), ("100", "100%"), ("125", "125%")];
+pub const TAG_BGS: &[(&str, &str)] = &[("dark", "Dark"), ("none", "None"), ("darker", "Darker")];
+pub const BREAK_KINDS: &[(&str, &str)] = &[("shatter", "Shatter"), ("shrink", "Shrink away"), ("flash", "Flash")];
+pub const PLACE_KINDS: &[(&str, &str)] = &[("pop", "Pop in"), ("flash", "Flash"), ("ripple", "Ripple")];
+pub const HIDE_AS: &[(&str, &str)] = &[("You", "You"), ("Player", "Player"), ("Arsenal user", "Arsenal user"), ("???", "???")];
+pub const VOLUME_STEPS: &[(&str, &str)] = &[("50", "50%"), ("25", "25%"), ("0", "Muted"), ("75", "75%"), ("100", "100%"), ("150", "150%")];
+pub const MESSAGE_WHERE: &[(&str, &str)] = &[("chat", "Chat"), ("toast", "Small toasts")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -389,7 +399,60 @@ pub const GOAL: usize = 146;
 pub const GOAL_KILLS: usize = 147;
 pub const INTEL: usize = 148;
 pub const PEARLS: usize = 149;
-const N: usize = 150;
+pub const HOTBAR_STYLE: usize = 150;
+pub const SMOOTH_HOTBAR: usize = 151;
+pub const INV_STYLE: usize = 152;
+pub const SMOOTH_INV: usize = 153;
+pub const OLD_ANIM: usize = 154;
+pub const SWING_ANIM: usize = 155;
+pub const SWING_SPEED: usize = 156;
+pub const HAND_TINT: usize = 157;
+pub const HAND_GLOW: usize = 158;
+pub const SMALL_CRYSTALS: usize = 159;
+pub const CRYSTAL_SIZE: usize = 160;
+pub const CRYSTAL_STILL: usize = 161;
+pub const BIG_ITEMS: usize = 162;
+pub const BIG_WHICH: usize = 163;
+pub const ARMOR_COLOR: usize = 164;
+pub const ARMOR_TINT: usize = 165;
+pub const TAG_STYLE: usize = 166;
+pub const TAG_SIZE: usize = 167;
+pub const TAG_BG: usize = 168;
+pub const FREE_LOOK: usize = 169;
+pub const BREAK_ANIM: usize = 170;
+pub const BREAK_KIND: usize = 171;
+pub const PLACE_ANIM: usize = 172;
+pub const PLACE_KIND: usize = 173;
+pub const SLICK: usize = 174;
+pub const TAB_PING: usize = 175;
+pub const MENTIONS: usize = 176;
+pub const CHAT_TWEAKS: usize = 177;
+pub const CHAT_COPY: usize = 178;
+pub const NAME_HIDER: usize = 179;
+pub const HIDE_NAME_AS: usize = 180;
+pub const SOUND_TWEAKS: usize = 181;
+pub const VOL_EXPLODE: usize = 182;
+pub const VOL_TOTEM: usize = 183;
+pub const VOL_HIT: usize = 184;
+pub const VOL_MACE: usize = 185;
+pub const SPRINT_IND: usize = 186;
+pub const OBSIDIAN_GUARD: usize = 187;
+pub const CRYSTAL_HELPER: usize = 188;
+pub const SHOT_CLIP: usize = 189;
+pub const QUICK_MENU: usize = 190;
+pub const PERF: usize = 191;
+pub const MESSAGES: usize = 192;
+pub const MESSAGES_WHERE: usize = 193;
+pub const PARTY: usize = 194;
+pub const WARDROBE_FX: usize = 195;
+pub const USAGE: usize = 196;
+pub const RECONNECT: usize = 197;
+pub const CRASHES: usize = 198;
+pub const UPDATES: usize = 199;
+pub const NOTES: usize = 200;
+pub const PROFILES: usize = 201;
+pub const LYRICS: usize = 202;
+const N: usize = 203;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -542,6 +605,59 @@ pub const FIELDS: [Field; N] = [
     Field { key: "goal_kills", label: "Goal", options: GOALS, default: 0 },
     Field { key: "opponent_intel", label: "Opponent Intel", options: ONOFF, default: 0 },
     Field { key: "pearl_timer", label: "Enemy Pearl Timer", options: ONOFF, default: 0 },
+    Field { key: "hotbar_style", label: "Hotbar Style", options: ONOFF, default: 0 },
+    Field { key: "smooth_hotbar", label: "Smooth Hotbar", options: ONOFF, default: 0 },
+    Field { key: "inventory_style", label: "Inventory Style", options: ONOFF, default: 0 },
+    Field { key: "smooth_inventory", label: "Smooth Inventory", options: ONOFF, default: 0 },
+    Field { key: "old_animations", label: "1.8 Animations", options: ONOFF, default: 0 },
+    Field { key: "swing_animation", label: "Swing Animation", options: ONOFF, default: 0 },
+    Field { key: "swing_speed", label: "Speed", options: SWING_SPEEDS, default: 0 },
+    Field { key: "hand_tint", label: "Hand Tint & Glow", options: ONOFF, default: 0 },
+    Field { key: "hand_glow", label: "Glow", options: ONOFF, default: 1 },
+    Field { key: "small_crystals", label: "Smaller Crystals", options: ONOFF, default: 0 },
+    Field { key: "crystal_size", label: "Size", options: CRYSTAL_SIZES, default: 0 },
+    Field { key: "crystal_still", label: "No spinning", options: ONOFF, default: 0 },
+    Field { key: "big_items", label: "Big Items", options: ONOFF, default: 0 },
+    Field { key: "big_items_which", label: "Items", options: BIG_WHAT, default: 0 },
+    Field { key: "armor_color", label: "Armor Color", options: ONOFF, default: 0 },
+    Field { key: "armor_tint", label: "Colour", options: TINTS, default: 6 },
+    Field { key: "nametag_style", label: "Nametag Style", options: ONOFF, default: 0 },
+    Field { key: "nametag_size", label: "Size", options: TAG_SIZES, default: 0 },
+    Field { key: "nametag_background", label: "Background", options: TAG_BGS, default: 0 },
+    Field { key: "free_look", label: "Free Look", options: ONOFF, default: 0 },
+    Field { key: "block_break_animation", label: "Block Break Animation", options: ONOFF, default: 0 },
+    Field { key: "break_kind", label: "Style", options: BREAK_KINDS, default: 0 },
+    Field { key: "place_animation", label: "Place Animation", options: ONOFF, default: 0 },
+    Field { key: "place_kind", label: "Style", options: PLACE_KINDS, default: 0 },
+    Field { key: "slick_floors", label: "Slick Floors", options: ONOFF, default: 0 },
+    Field { key: "tab_ping", label: "Tab List Ping", options: ONOFF, default: 0 },
+    Field { key: "chat_mentions", label: "Chat Mentions", options: ONOFF, default: 0 },
+    Field { key: "chat_tweaks", label: "Chat Tweaks", options: ONOFF, default: 0 },
+    Field { key: "chat_copy", label: "Click to Copy Chat", options: ONOFF, default: 0 },
+    Field { key: "name_hider", label: "Name Hider", options: ONOFF, default: 0 },
+    Field { key: "name_hider_text", label: "Show as", options: HIDE_AS, default: 0 },
+    Field { key: "sound_tweaks", label: "Sound Tweaks", options: ONOFF, default: 0 },
+    Field { key: "volume_explosions", label: "Explosions", options: VOLUME_STEPS, default: 0 },
+    Field { key: "volume_totems", label: "Totem pops", options: VOLUME_STEPS, default: 4 },
+    Field { key: "volume_hits", label: "Player hits", options: VOLUME_STEPS, default: 4 },
+    Field { key: "volume_mace", label: "Mace smashes", options: VOLUME_STEPS, default: 4 },
+    Field { key: "sprint_indicator", label: "Sprint Reset Indicator", options: ONOFF, default: 0 },
+    Field { key: "obsidian_guard", label: "Obsidian Click Guard", options: ONOFF, default: 0 },
+    Field { key: "crystal_helper", label: "Crystal Helper", options: ONOFF, default: 0 },
+    Field { key: "screenshot_clipboard", label: "Screenshot to Clipboard", options: ONOFF, default: 0 },
+    Field { key: "quick_menu", label: "Quick Menu", options: ONOFF, default: 0 },
+    Field { key: "performance_mode", label: "Performance Mode", options: ONOFF, default: 0 },
+    Field { key: "arsenal_messages", label: "Arsenal Messages", options: ONOFF, default: 0 },
+    Field { key: "arsenal_messages_where", label: "Where", options: MESSAGE_WHERE, default: 1 },
+    Field { key: "party_hud", label: "Party", options: ONOFF, default: 0 },
+    Field { key: "wardrobe_kill_effects", label: "Wardrobe Kill Effects", options: ONOFF, default: 0 },
+    Field { key: "usage_stats", label: "Anonymous Usage Stats", options: ONOFF, default: 1 },
+    Field { key: "auto_reconnect", label: "Auto Reconnect", options: ONOFF, default: 0 },
+    Field { key: "crash_reports", label: "Crash Reports", options: ONOFF, default: 1 },
+    Field { key: "update_notice", label: "Update Notice", options: ONOFF, default: 1 },
+    Field { key: "server_notes", label: "Server Notes", options: ONOFF, default: 0 },
+    Field { key: "server_profiles", label: "Server Profiles", options: ONOFF, default: 0 },
+    Field { key: "spotify_lyrics", label: "Spotify Lyrics", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -653,6 +769,43 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("session_goals", GOAL, &[GOAL_KILLS]),
     ("opponent_intel", INTEL, &[]),
     ("pearl_timer", PEARLS, &[]),
+    ("hotbar_style", HOTBAR_STYLE, &[]),
+    ("smooth_hotbar", SMOOTH_HOTBAR, &[]),
+    ("inventory_style", INV_STYLE, &[]),
+    ("smooth_inventory", SMOOTH_INV, &[]),
+    ("old_animations", OLD_ANIM, &[]),
+    ("swing_animation", SWING_ANIM, &[SWING_SPEED]),
+    ("hand_tint", HAND_TINT, &[HAND_GLOW]),
+    ("small_crystals", SMALL_CRYSTALS, &[CRYSTAL_SIZE, CRYSTAL_STILL]),
+    ("big_items", BIG_ITEMS, &[BIG_WHICH]),
+    ("armor_color", ARMOR_COLOR, &[ARMOR_TINT]),
+    ("nametag_style", TAG_STYLE, &[TAG_SIZE, TAG_BG]),
+    ("free_look", FREE_LOOK, &[]),
+    ("block_break_animation", BREAK_ANIM, &[BREAK_KIND]),
+    ("place_animation", PLACE_ANIM, &[PLACE_KIND]),
+    ("slick_floors", SLICK, &[]),
+    ("tab_ping", TAB_PING, &[]),
+    ("chat_mentions", MENTIONS, &[]),
+    ("chat_tweaks", CHAT_TWEAKS, &[]),
+    ("chat_copy", CHAT_COPY, &[]),
+    ("name_hider", NAME_HIDER, &[HIDE_NAME_AS]),
+    ("sound_tweaks", SOUND_TWEAKS, &[VOL_EXPLODE, VOL_TOTEM, VOL_HIT, VOL_MACE]),
+    ("sprint_indicator", SPRINT_IND, &[]),
+    ("obsidian_guard", OBSIDIAN_GUARD, &[]),
+    ("crystal_helper", CRYSTAL_HELPER, &[]),
+    ("screenshot_clipboard", SHOT_CLIP, &[]),
+    ("quick_menu", QUICK_MENU, &[]),
+    ("performance_mode", PERF, &[]),
+    ("arsenal_messages", MESSAGES, &[MESSAGES_WHERE]),
+    ("party_hud", PARTY, &[]),
+    ("wardrobe_kill_effects", WARDROBE_FX, &[]),
+    ("usage_stats", USAGE, &[]),
+    ("auto_reconnect", RECONNECT, &[]),
+    ("crash_reports", CRASHES, &[]),
+    ("update_notice", UPDATES, &[]),
+    ("server_notes", NOTES, &[]),
+    ("server_profiles", PROFILES, &[]),
+    ("spotify_lyrics", LYRICS, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -746,6 +899,43 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "session_goals" => "On Horizon: a kill goal for this session and how close you are.",
         "opponent_intel" => "On Horizon: during a fight, what you saw the player use: totems popped, golden apples eaten, shield breaks.",
         "pearl_timer" => "On Horizon: a purple countdown above a player who just threw an ender pearl.",
+        "hotbar_style" => "On Horizon: the hotbar on your HUD Theme's background with an accent line under the selected slot.",
+        "smooth_hotbar" => "On Horizon: the selection box glides to the slot you pick.",
+        "inventory_style" => "On Horizon: a frame in your HUD accent round your inventory (Horizon draws the panel itself).",
+        "smooth_inventory" => "On Horizon: the item on your cursor glides after the mouse.",
+        "old_animations" => "On Horizon: the old sword block-hit pose while you hold right-click, and held items lower.",
+        "swing_animation" => "On Horizon: your hand swings slower or faster (only on your screen).",
+        "hand_tint" => "On Horizon: your hands and held items in your HUD accent, glowing full bright if you like.",
+        "small_crystals" => "On Horizon: end crystals drawn smaller, still if you like. Hitboxes stay the same.",
+        "big_items" => "On Horizon: valuable loot (or every item) lying on the ground is drawn twice as big.",
+        "armor_color" => "On Horizon: worn armour tinted in the colour you pick (everyone's: Horizon draws all armour the same way).",
+        "nametag_style" => "On Horizon: smaller nametags and their background your way.",
+        "free_look" => "On Horizon: hold the Free Look key (Left Alt) to look round your character in third person; you keep moving the same way.",
+        "block_break_animation" => "On Horizon: blocks you break shatter, shrink away or flash in your HUD accent.",
+        "place_animation" => "On Horizon: blocks you place pop in, flash or send out a ripple.",
+        "slick_floors" => "On Horizon: floors near you look wet and glossy, through Arsenal's shader pack (pick it in Video Settings > Shader Packs).",
+        "tab_ping" => "On Horizon: pings as coloured numbers in the tab list.",
+        "chat_mentions" => "On Horizon: chat lines with your name are gold.",
+        "chat_tweaks" => "On Horizon: timestamps, repeated lines stacked as (x3) and 500 lines of chat history.",
+        "chat_copy" => "On Horizon: click a chat line to copy it.",
+        "name_hider" => "On Horizon: your name shows as the text you pick everywhere Horizon draws text (chat, tab list, nametags, scoreboard, titles, HUD).",
+        "sound_tweaks" => "On Horizon: your own volume for explosions, totem pops, player hits and mace smashes.",
+        "sprint_indicator" => "On Horizon: a green bolt by the crosshair while your next hit gives sprint knockback.",
+        "obsidian_guard" => "On Horizon: left-clicking the top of obsidian or bedrock does nothing unless you hold a pickaxe.",
+        "crystal_helper" => "On Horizon: end crystals are only placed where they can spawn (on obsidian or bedrock with room above).",
+        "screenshot_clipboard" => "On Horizon: F2 screenshots are copied to the clipboard as an image too.",
+        "quick_menu" => "On Horizon: hold V, scroll to a feature and let go to switch it.",
+        "performance_mode" => "On Horizon: the shader pack's effects, block animations and lyrics stop and particles are capped; give it a key in Options > Mods > Arsenal. Your settings come back as they were.",
+        "arsenal_messages" => "On Horizon: Arsenal's own messages in chat or as small toasts at the top right.",
+        "party_hud" => "On Horizon: your friends nearby with their health, distance and an arrow to them.",
+        "wardrobe_kill_effects" => "On Horizon: the kill effect you equipped in the Wardrobe plays for your kills (as Kill Effects' burst, ring or lightning).",
+        "usage_stats" => "On Horizon: counts you once a day like the Java mod (a one-way hash, no name or IP), signed with your Minecraft account.",
+        "auto_reconnect" => "On Horizon: reconnects after a disconnect, with a Cancel button (Horizon's own).",
+        "crash_reports" => "On Horizon: if Arsenal crashes the game, the next start offers /arsenal crash to send the error (no names or paths).",
+        "update_notice" => "On Horizon: tells you when a newer Arsenal Horizon is out (the launcher installs it when you press Play).",
+        "server_notes" => "On Horizon: /arsenal note <text> keeps a note for the server you're on; it shows when you join.",
+        "server_profiles" => "On Horizon: /arsenal profile save keeps your setup for this server and loads it whenever you join; /arsenal profile clear forgets it.",
+        "spotify_lyrics" => "On Horizon (Windows): the lyrics of the song playing in Spotify on the HUD, timed from when the song started.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -759,6 +949,14 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
+    match id {
+        "blade_settings" => return "Horizon has no Wardrobe blades to set: they're drawn by the Java mod only.",
+        "inventory_cursor_speed" => return "Horizon's inventories use your real mouse cursor, which Arsenal never moves.",
+        "cloud_backup" => return "The cloud backup holds the Java mod's setup; Horizon's settings are different and would overwrite it.",
+        "album_colors" => return "Needs the album cover's colours, which Horizon can't read from Spotify yet.",
+        "hypixel_skyblock" => return "Horizon doesn't let mods read the sidebar and tab list's lines yet.",
+        _ => {}
+    }
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
     const PLAYERS: &[&str] = &["nametag_ping", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "shield_break_sound", "combo_pop", "sprint_indicator", "session_summary"];
     const SELF: &[&str] = &["potion_timers", "cooldown_hud", "inventory_totem", "potion_warning", "retotem_timer",  "bow_charge", "attack_bar", "crit_indicator", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
@@ -1063,6 +1261,7 @@ struct State {
     presence_at: Option<Instant>,
     extra: Extra,
     pack_done: bool,
+    more: More,
     in_world: bool,
 }
 
@@ -2330,7 +2529,7 @@ pub fn particles_tick(settings: &Settings, caught: &[(&str, [f64; 3])], own_pop:
 
 /// Kill Effects: where a player you killed was (their last place), from Kill Message's chat check.
 pub fn killed_at(settings: &Settings, others: &[Other], victim: &str) {
-    if !settings.on(KILL_FX) {
+    if !settings.on(KILL_FX) && !(settings.on(WARDROBE_FX) && wardrobe_style().is_some()) {
         return;
     }
     if let Some(o) = others.iter().find(|o| o.name.eq_ignore_ascii_case(victim)) {
@@ -2419,7 +2618,7 @@ pub fn effect_shapes(settings: &Settings, others: &[Other], cam: Option<&Cam>, w
                 let t = start.elapsed().as_secs_f32();
                 let alpha = (((1.0 - t / 1.2).max(0.0)) * 255.0) as u32;
                 let Some(c) = project(cam, [at[0], at[1] + 1.0, at[2]], w, h) else { continue };
-                match KILL_STYLES[settings.v[KILL_STYLE]].0 {
+                match KILL_STYLES[kill_style(settings)].0 {
                     "ring" => {
                         let r = 6.0 + t * 60.0;
                         for i in 0..16 {
@@ -2503,6 +2702,9 @@ pub fn effect_shapes(settings: &Settings, others: &[Other], cam: Option<&Cam>, w
 /// The values Arsenal hands its shader pack each frame (`frame.mods`, see shaderpack/arsenal/common.wgsl).
 pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
     let mut p = [[0.0f32; 4]; 8];
+    if settings.on(SLICK) {
+        p[6][0] = 1.0;
+    }
     let amount = |i: usize| AMOUNTS[settings.v[i]].0.parse::<f32>().unwrap_or(0.5);
     if settings.on(BLOOM) {
         p[0][0] = amount(BLOOM_AMT);
@@ -2555,6 +2757,7 @@ pub const PACK: &[(&str, &str)] = &[
 //   mods[3]: sky tint: rgb colour, w how much
 //   mods[4]: Sky Effects: x aurora, y stars, z sky glow
 //   mods[5]: Mist colour: rgb, w height it lies under (blocks)
+//   mods[6]: x Slick Floors (1 on)
 
 fn luminance(c: vec3<f32>) -> f32 {
     return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
@@ -2572,7 +2775,7 @@ fn hash2(p: vec2<f32>) -> f32 {
     ("horizon-shaders.toml", r####"schema = 1
 id = "arsenal"
 name = "Arsenal"
-version = "1.0.0"
+version = "1.1.0"
 api = "0.1"
 description = "Arsenal's visuals on Horizon: Bloom, World Look, Sky & World Colors, Mist, Sky Effects and Motion Blur, switched on and set in Arsenal's menu (Right Shift). With them all off it leaves the picture as it is."
 authors = ["Arsenal"]
@@ -2622,7 +2825,8 @@ fn post(input: PostInput) -> vec4<f32> {
     return vec4<f32>(c, input.color.a);
 }
 "####),
-    ("post/grade.wgsl", r####"// World Look (saturation, contrast, exposure, vignette), Sky & World Colors' world tint, and Mist low over the ground.
+    ("post/grade.wgsl", r####"// World Look (saturation, contrast, exposure, vignette), Sky & World Colors' world tint, Mist low over the ground and
+// Slick Floors.
 fn post(input: PostInput) -> vec4<f32> {
     var c = input.color.rgb;
     let look = frame.mods[1];
@@ -2645,6 +2849,31 @@ fn post(input: PostInput) -> vec4<f32> {
         let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, height);
         let far = 1.0 - exp(-length(p) * 0.03 * density);
         c = mix(c, mist.rgb, clamp(far * low, 0.0, 0.85));
+    }
+    // Slick Floors: up-facing ground near you darker and glossy, with puddles (the normal comes from the depth).
+    if frame.mods[6].x > 0.0 && input.depth > 0.0 {
+        let px = 1.0 / frame.resolution;
+        let right = input.uv + vec2<f32>(px.x, 0.0);
+        let down = input.uv + vec2<f32>(0.0, px.y);
+        let dr = depth_at(right);
+        let dd = depth_at(down);
+        if dr > 0.0 && dd > 0.0 {
+            let p = view_position(input.uv, input.depth);
+            let n = normalize(cross(view_position(right, dr) - p, view_position(down, dd) - p));
+            let near = 1.0 - smoothstep(8.0, 22.0, length(p));
+            let ground = smoothstep(0.9, 0.99, abs(n.y)) * select(0.0, 1.0, p.y < -0.2) * near * frame.mods[6].x;
+            if ground > 0.0 {
+                let world = p.xz + frame.camera_position.xz;
+                let puddle = smoothstep(0.55, 0.8, hash2(floor(world * 0.5)) * 0.6 + hash2(floor(world * 1.7)) * 0.4);
+                let view = normalize(-p);
+                let r = reflect(-view, vec3<f32>(0.0, 1.0, 0.0));
+                let sun = pow(max(dot(r, normalize(frame.sun_direction)), 0.0), 40.0) * (1.0 - night());
+                let fresnel = pow(1.0 - max(view.y, 0.0), 3.0);
+                let sky = mix(vec3<f32>(0.45, 0.55, 0.7), vec3<f32>(0.05, 0.07, 0.12), night());
+                let wet = mix(c * 0.68, c * 0.5 + sky * 0.35, puddle) + sky * fresnel * 0.18 + vec3<f32>(sun);
+                c = mix(c, wet, ground);
+            }
+        }
     }
     if look.w > 0.0 {
         let aspect = frame.resolution.x / frame.resolution.y;
@@ -2769,6 +2998,776 @@ pub fn mace_hit(settings: &Settings, others: &[Other], holding_mace: bool) -> bo
         }
         hit
     })
+}
+
+
+// ---- 1.13.0: the hotbar, inventories, hands and world, chat, sounds, keys, servers and account modules ----
+
+/// What tick.rs puts into Horizon (Arsenal's patches/more.json): 0, empty or None leaves Horizon's own.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Looks {
+    pub hotbar: u32,
+    pub hotbar_accent: u32,
+    pub glide: bool,
+    pub inv_frame: u32,
+    pub inv_glide: bool,
+    pub swing: u32,
+    pub lower: u32,
+    pub blockhit: bool,
+    pub hand_tint: u32,
+    pub hand_glow: bool,
+    pub crystal_size: u32,
+    pub crystal_still: bool,
+    pub big_items: Vec<(String, f32)>,
+    pub armor_tint: u32,
+    pub tag_size: u32,
+    pub tag_bg: u32,
+    pub tab_ping: bool,
+    pub name_hide: Option<(String, String)>,
+    pub mention: String,
+    pub chat_keep: usize,
+    pub volumes: Vec<(String, f32)>,
+    pub obsidian_guard: bool,
+    pub crystal_help: bool,
+    /// Chat Tweaks' timestamps and stacking, Click to Copy Chat: Some when they change.
+    pub chat: [Option<bool>; 3],
+    pub reconnect: Option<bool>,
+    pub freelook: bool,
+}
+
+/// Loot Big Items draws bigger.
+pub const LOOT: &[&str] = &["minecraft:totem_of_undying", "minecraft:enchanted_golden_apple", "minecraft:golden_apple", "minecraft:netherite_ingot",
+    "minecraft:netherite_scrap", "minecraft:ancient_debris", "minecraft:diamond", "minecraft:diamond_block", "minecraft:elytra", "minecraft:nether_star",
+    "minecraft:netherite_sword", "minecraft:netherite_axe", "minecraft:netherite_pickaxe", "minecraft:netherite_helmet", "minecraft:netherite_chestplate",
+    "minecraft:netherite_leggings", "minecraft:netherite_boots", "minecraft:mace", "minecraft:heavy_core", "minecraft:end_crystal", "minecraft:trident",
+    "minecraft:beacon", "minecraft:shulker_box", "minecraft:enchanted_book", "minecraft:experience_bottle"];
+
+/// TINTS as colours (0xRRGGBB): the last is the HUD accent.
+pub fn tint_rgb(settings: &Settings, field: usize) -> u32 {
+    match TINTS[settings.v[field]].0 {
+        "purple" => 0xB884FF,
+        "blue" => 0x5AA9FF,
+        "pink" => 0xFF7AC8,
+        "green" => 0x5CE08A,
+        "orange" => 0xFF9A3C,
+        "red" => 0xFF5A5A,
+        _ => settings.accent(),
+    }
+}
+
+fn option_num(settings: &Settings, field: usize) -> u32 {
+    FIELDS[field].options[settings.v[field]].0.parse().unwrap_or(100)
+}
+
+#[derive(Default)]
+struct More {
+    /// Blocks broken (0) or placed (1) and when.
+    blocks: Vec<([i32; 3], u8, Instant)>,
+    /// Chat Tweaks (twice) and Click to Copy, Auto Reconnect: on last tick.
+    was: [bool; 4],
+    freelook_held: bool,
+    /// Quick Menu: the feature picked while V is held.
+    quick: Option<usize>,
+    /// Sprint Reset Indicator: you hit since you started sprinting.
+    sprint_used: bool,
+    sprinting: bool,
+    toasts: Vec<(String, Instant)>,
+    server: Option<String>,
+    hello_at: Option<Instant>,
+    hello_wait: Duration,
+    asked_wardrobe: bool,
+    asked_update: bool,
+    crash_checked: bool,
+    lyrics_polled: Option<Instant>,
+}
+
+/// What other threads hand back (STATE is this thread's only).
+#[derive(Default)]
+struct NetMore {
+    wardrobe: Option<usize>,
+    update: Option<String>,
+    /// Spotify: the song ("Artist - Song"), when it started, whether it plays, and its timed lines (seconds, text).
+    #[allow(dead_code)]
+    song: Option<String>,
+    song_start: Option<Instant>,
+    paused_at: Option<Instant>,
+    lyrics: Vec<(f32, String)>,
+    #[allow(dead_code)]
+    lyrics_for: Option<String>,
+}
+static NET_MORE: std::sync::Mutex<NetMore> = std::sync::Mutex::new(NetMore {
+    wardrobe: None, update: None, song: None, song_start: None, paused_at: None, lyrics: Vec::new(), lyrics_for: None,
+});
+fn net_more<T>(f: impl FnOnce(&mut NetMore) -> T) -> T {
+    f(&mut NET_MORE.lock().unwrap_or_else(|e| e.into_inner()))
+}
+
+/// The settings put into Horizon each tick. `own` is your name (Name Hider, Chat Mentions).
+pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
+    let accent = 0xFF00_0000 | settings.accent();
+    let mut l = Looks { swing: 100, crystal_size: 100, tag_size: 100, tag_bg: 0x3F00_0000, chat_keep: 100, ..Default::default() };
+    if settings.on(HOTBAR_STYLE) {
+        let bg = settings.panel_colors().0;
+        l.hotbar = if bg >> 24 == 0 { 0xA000_0000 | (bg & 0xFF_FFFF) } else { bg };
+        l.hotbar_accent = accent;
+    }
+    l.glide = settings.on(SMOOTH_HOTBAR);
+    if settings.on(INV_STYLE) {
+        l.inv_frame = accent;
+    }
+    l.inv_glide = settings.on(SMOOTH_INV);
+    if settings.on(SWING_ANIM) {
+        l.swing = option_num(settings, SWING_SPEED);
+    }
+    if settings.on(OLD_ANIM) {
+        l.lower = 12;
+        l.blockhit = true;
+    }
+    if settings.on(HAND_TINT) {
+        l.hand_tint = settings.accent();
+        l.hand_glow = settings.on(HAND_GLOW);
+    }
+    if settings.on(SMALL_CRYSTALS) {
+        l.crystal_size = option_num(settings, CRYSTAL_SIZE);
+        l.crystal_still = settings.on(CRYSTAL_STILL);
+    }
+    if settings.on(BIG_ITEMS) {
+        l.big_items = if BIG_WHAT[settings.v[BIG_WHICH]].0 == "all" {
+            vec![("*".into(), 2.0)]
+        } else {
+            LOOT.iter().map(|i| (i.to_string(), 2.0)).collect()
+        };
+    }
+    if settings.on(ARMOR_COLOR) {
+        l.armor_tint = tint_rgb(settings, ARMOR_TINT);
+    }
+    if settings.on(TAG_STYLE) {
+        l.tag_size = option_num(settings, TAG_SIZE);
+        l.tag_bg = match TAG_BGS[settings.v[TAG_BG]].0 { "none" => 0, "darker" => 0x8000_0000, _ => 0x3F00_0000 };
+    }
+    l.tab_ping = settings.on(TAB_PING);
+    if let Some(name) = own.filter(|n| !n.is_empty()) {
+        if settings.on(NAME_HIDER) {
+            l.name_hide = Some((name.to_owned(), HIDE_AS[settings.v[HIDE_NAME_AS]].0.to_owned()));
+        }
+        if settings.on(MENTIONS) {
+            l.mention = name.to_lowercase();
+        }
+    }
+    if settings.on(CHAT_TWEAKS) {
+        l.chat_keep = 500;
+    }
+    if settings.on(SOUND_TWEAKS) {
+        let v = |f: usize| option_num(settings, f) as f32 / 100.0;
+        l.volumes = vec![("explode".into(), v(VOL_EXPLODE)), ("totem.use".into(), v(VOL_TOTEM)), ("player.hurt".into(), v(VOL_HIT)),
+            ("player.attack".into(), v(VOL_HIT)), ("mace.smash".into(), v(VOL_MACE))];
+    }
+    l.obsidian_guard = settings.on(OBSIDIAN_GUARD);
+    l.crystal_help = settings.on(CRYSTAL_HELPER);
+    STATE.with_borrow_mut(|s| {
+        let m = &mut s.more;
+        let now = [settings.on(CHAT_TWEAKS), settings.on(CHAT_TWEAKS), settings.on(CHAT_COPY), settings.on(RECONNECT)];
+        let change = |i: usize, was: &[bool; 4]| if now[i] { Some(true) } else if was[i] { Some(false) } else { None };
+        l.chat = [change(0, &m.was), change(1, &m.was), change(2, &m.was)];
+        l.reconnect = change(3, &m.was);
+        m.was = now;
+        l.freelook = settings.on(FREE_LOOK) && m.freelook_held;
+    });
+    l
+}
+
+/// The keys this version adds (id, label, default).
+pub const MORE_KEYS: [(&str, &str, &str); 3] = [("key_free_look", "Free Look (hold)", "key.keyboard.left.alt"), ("key_quick_menu", "Quick Menu (hold)", "key.keyboard.v"),
+    ("key_performance", "Performance Mode", "key.keyboard.unknown")];
+
+/// The features on Quick Menu's wheel.
+pub const QUICK: [usize; 8] = [BLOOM, LOOK, MOTION, MIST, HITBOXES, PARTICLES, FREE_LOOK, PERF];
+
+/// A key of this version went down or up: Free Look and Quick Menu are held; a feature to switch comes back.
+pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool) -> Option<usize> {
+    STATE.with_borrow_mut(|s| {
+        let m = &mut s.more;
+        match id {
+            "key_free_look" => {
+                m.freelook_held = pressed && playing;
+                None
+            }
+            "key_quick_menu" if settings.on(QUICK_MENU) => {
+                if pressed && playing {
+                    m.quick = Some(0);
+                    None
+                } else {
+                    m.quick.take().map(|i| QUICK[i])
+                }
+            }
+            "key_performance" if pressed => Some(PERF),
+            _ => None,
+        }
+    })
+}
+
+/// Quick Menu's wheel moves the pick while V is held.
+pub fn quick_wheel(steps: f32) -> bool {
+    STATE.with_borrow_mut(|s| {
+        let Some(i) = s.more.quick.as_mut() else { return false };
+        let n = QUICK.len() as i32;
+        *i = (*i as i32 - steps.signum() as i32).rem_euclid(n) as usize;
+        true
+    })
+}
+
+/// Switches `field` in the stored settings: the new settings, what to store and the message.
+pub fn toggled(raw: &Settings, field: usize) -> (Settings, &'static str, String) {
+    let mut s = raw.clone();
+    s.v[field] = if s.v[field] == 1 { 0 } else { 1 };
+    let value = FIELDS[field].options[s.v[field]].0;
+    let message = format!("{}: {}", FIELDS[field].label, FIELDS[field].options[s.v[field]].1);
+    (s, value, message)
+}
+
+/// Sprint Reset Indicator: you're sprinting (each tick) and you attacked (the left button).
+pub fn sprint_tick(sprinting: bool) {
+    STATE.with_borrow_mut(|s| {
+        if !sprinting {
+            s.more.sprint_used = false;
+        }
+        s.more.sprinting = sprinting;
+    });
+}
+pub fn attacked() {
+    STATE.with_borrow_mut(|s| {
+        if s.more.sprinting {
+            s.more.sprint_used = true;
+        }
+    });
+}
+
+/// Block Break and Place Animation: what you broke or placed since the last tick.
+pub fn blocks_tick(settings: &Settings, events: &[([i32; 3], u8)]) {
+    STATE.with_borrow_mut(|s| {
+        let now = Instant::now();
+        for (pos, kind) in events {
+            if (*kind == 0 && settings.on(BREAK_ANIM)) || (*kind == 1 && settings.on(PLACE_ANIM)) {
+                s.more.blocks.push((*pos, *kind, now));
+            }
+        }
+        s.more.blocks.retain(|b| b.2.elapsed() < Duration::from_millis(700));
+    });
+}
+
+/// Arsenal Messages: Some to show in chat, None when it became a toast.
+pub fn route(settings: &Settings, note: String) -> Option<String> {
+    if settings.on(MESSAGES) && MESSAGE_WHERE[settings.v[MESSAGES_WHERE]].0 == "toast" {
+        STATE.with_borrow_mut(|s| {
+            s.more.toasts.push((note, Instant::now()));
+            if s.more.toasts.len() > 4 {
+                s.more.toasts.remove(0);
+            }
+        });
+        None
+    } else {
+        Some(note)
+    }
+}
+
+/// A server address as a setting's name: "note_play.example.net".
+pub fn server_key(kind: &str, address: &str) -> String {
+    let clean: String = address.to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' { c } else { '_' }).collect();
+    format!("{kind}_{clean}")
+}
+
+/// Your setup as Server Profiles keeps it: "key=value;key=value".
+pub fn profile_of(raw: &Settings) -> String {
+    FIELDS.iter().enumerate().filter(|(i, _)| *i != PROFILES).map(|(i, f)| format!("{}={}", f.key, f.options[raw.v[i]].0)).collect::<Vec<_>>().join(";")
+}
+
+/// A kept profile's pairs.
+pub fn profile_pairs(stored: &str) -> Vec<(String, String)> {
+    stored.split(';').filter_map(|p| p.split_once('=')).filter(|(k, _)| FIELDS.iter().any(|f| f.key == *k)).map(|(k, v)| (k.to_owned(), v.to_owned())).collect()
+}
+
+/// What joining a server asks for.
+#[derive(Debug, PartialEq)]
+pub enum Joined {
+    Note(String),
+    Profile(String),
+}
+
+/// Server Notes and Profiles: the server changed to `server`; `stored` reads a setting.
+pub fn server_tick(settings: &Settings, server: Option<&str>, stored: &dyn Fn(&str) -> Option<String>) -> Vec<Joined> {
+    let changed = STATE.with_borrow_mut(|s| {
+        let now = server.map(str::to_owned);
+        (s.more.server != now).then(|| std::mem::replace(&mut s.more.server, now))
+    });
+    let (Some(_), Some(address)) = (changed, server) else { return Vec::new() };
+    let mut out = Vec::new();
+    if settings.on(PROFILES) {
+        if let Some(p) = stored(&server_key("profile", address)).filter(|p| !p.is_empty()) {
+            out.push(Joined::Profile(p));
+        }
+    }
+    if settings.on(NOTES) {
+        if let Some(n) = stored(&server_key("note", address)).filter(|n| !n.is_empty()) {
+            out.push(Joined::Note(format!("Note for {address}: {n}")));
+        }
+    }
+    out
+}
+
+/// What `/arsenal ...` asks for.
+#[derive(Debug, PartialEq)]
+pub enum Command {
+    Say(String),
+    Store(String, String, String),
+    SendCrash,
+    ForgetCrash,
+}
+
+/// `/arsenal <args>`: notes, profiles and crash reports.
+pub fn command(settings: &Settings, raw: &Settings, args: &str, server: Option<&str>, stored: &dyn Fn(&str) -> Option<String>) -> Command {
+    let args = args.trim();
+    let (word, rest) = args.split_once(' ').map_or((args, ""), |(w, r)| (w, r.trim()));
+    match word {
+        "note" => {
+            if !settings.on(NOTES) {
+                return Command::Say("Turn on Server Notes in Arsenal's menu first.".into());
+            }
+            let Some(address) = server else { return Command::Say("Notes are kept per server: join one first.".into()) };
+            let key = server_key("note", address);
+            match rest {
+                "" => Command::Say(stored(&key).filter(|n| !n.is_empty()).map_or_else(|| format!("No note for {address}."), |n| format!("Note for {address}: {n}"))),
+                "clear" => Command::Store(key, String::new(), format!("Note for {address} forgotten.")),
+                text => Command::Store(key, text.chars().take(200).collect(), format!("Note kept for {address}.")),
+            }
+        }
+        "profile" => {
+            if !settings.on(PROFILES) {
+                return Command::Say("Turn on Server Profiles in Arsenal's menu first.".into());
+            }
+            let Some(address) = server else { return Command::Say("Profiles are kept per server: join one first.".into()) };
+            let key = server_key("profile", address);
+            match rest {
+                "save" => Command::Store(key, profile_of(raw), format!("Your setup loads whenever you join {address}.")),
+                "clear" => Command::Store(key, String::new(), format!("{address} no longer loads a setup.")),
+                _ => Command::Say("/arsenal profile save or /arsenal profile clear".into()),
+            }
+        }
+        "crash" => match rest {
+            "forget" => Command::ForgetCrash,
+            _ => Command::SendCrash,
+        },
+        _ => Command::Say("Arsenal: /arsenal note <text>, /arsenal note clear, /arsenal profile save, /arsenal profile clear".into()),
+    }
+}
+
+/// Crash Reports: Arsenal's own panics are written to `dir/crash.txt` (message and place, no names or paths).
+pub fn crash_hook(dir: &std::path::Path) {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    let file = dir.join("crash.txt");
+    ONCE.call_once(move || {
+        let before = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            if let Some(at) = info.location().filter(|l| l.file().contains("arsenal")) {
+                let message = info.payload().downcast_ref::<&str>().map(|s| s.to_string())
+                    .or_else(|| info.payload().downcast_ref::<String>().cloned()).unwrap_or_default();
+                let name = at.file().rsplit(['/', '\\']).next().unwrap_or("");
+                let _ = std::fs::create_dir_all(file.parent().unwrap_or(std::path::Path::new(".")));
+                let _ = std::fs::write(&file, format!("{} at {}:{}:{} (Arsenal Horizon {VERSION})", scrub(&message), name, at.line(), at.column()));
+            }
+            before(info);
+        }));
+    });
+}
+
+/// Paths and user names out of a crash message.
+pub fn scrub(text: &str) -> String {
+    text.split_whitespace().map(|w| if w.contains(":\\") || w.contains(":/") || w.starts_with('/') || w.contains("Users") { "<path>" } else { w })
+        .collect::<Vec<_>>().join(" ")
+}
+
+/// Crash Reports at start: the note offering to send it, once.
+pub fn crash_note(settings: &Settings, dir: &std::path::Path) -> Option<String> {
+    let first = STATE.with_borrow_mut(|s| !std::mem::replace(&mut s.more.crash_checked, true));
+    (first && settings.on(CRASHES) && dir.join("crash.txt").is_file())
+        .then(|| "Arsenal crashed your game last time. /arsenal crash sends the error (no names or paths) so it gets fixed; /arsenal crash forget drops it.".into())
+}
+
+#[cfg(not(test))]
+pub fn send_crash(dir: &std::path::Path) {
+    let file = dir.join("crash.txt");
+    let Ok(trace) = std::fs::read_to_string(&file) else { return };
+    let _ = std::fs::remove_file(&file);
+    std::thread::spawn(move || {
+        let body = serde_json::json!({ "trace": trace, "version": VERSION, "mc": "26.3", "mods": ["arsenal-horizon"] }).to_string();
+        let _ = ureq::post(&format!("{WEBSITE}/v1/crash")).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body);
+    });
+}
+#[cfg(test)]
+pub fn send_crash(_dir: &std::path::Path) {}
+
+/// Usage Stats and Arsenal Users: the website's hello is due (at start, then every 6 hours; again soon if it couldn't go).
+pub fn hello_due(settings: &Settings) -> bool {
+    (settings.on(USAGE) || settings.on(USERS)) && STATE.with_borrow(|s| s.more.hello_at.is_none_or(|t| t.elapsed() > s.more.hello_wait))
+}
+
+/// Sends the hello: `signed` is the body Horizon signed ({uuid, ts, sig, cert}), None when it couldn't (retried in 30 s).
+pub fn send_hello(settings: &Settings, signed: Option<String>) {
+    let Some(signed) = signed else {
+        STATE.with_borrow_mut(|s| {
+            s.more.hello_at = Some(Instant::now());
+            s.more.hello_wait = Duration::from_secs(30);
+        });
+        return;
+    };
+    STATE.with_borrow_mut(|s| {
+        s.more.hello_at = Some(Instant::now());
+        s.more.hello_wait = Duration::from_secs(6 * 3600);
+    });
+    let Ok(serde_json::Value::Object(mut body)) = serde_json::from_str::<serde_json::Value>(&signed) else { return };
+    body.insert("version".into(), VERSION.into());
+    body.insert("mc".into(), "26.3".into());
+    body.insert("users".into(), settings.on(USERS).into());
+    body.insert("stats".into(), settings.on(USAGE).into());
+    post_json("/v1/hello", serde_json::Value::Object(body).to_string());
+}
+
+#[cfg(not(test))]
+fn post_json(path: &'static str, body: String) {
+    std::thread::spawn(move || {
+        let _ = ureq::post(&format!("{WEBSITE}{path}")).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body);
+    });
+}
+#[cfg(test)]
+fn post_json(_path: &'static str, _body: String) {}
+
+/// Wardrobe Kill Effects: the kill effect you equipped, as Kill Effects' style (burst, ring, lightning).
+pub fn wardrobe_style() -> Option<usize> {
+    net_more(|n| n.wardrobe)
+}
+/// The style a website kill effect id plays as.
+pub fn effect_style(id: &str) -> usize {
+    match id {
+        "lightning" => 2,
+        "firework" | "totem_burst" => 0,
+        _ => 1,
+    }
+}
+fn kill_style(settings: &Settings) -> usize {
+    if settings.on(WARDROBE_FX) {
+        if let Some(i) = wardrobe_style() {
+            return i;
+        }
+    }
+    settings.v[KILL_STYLE]
+}
+
+/// Asks the website once for your equipped kill effect (`uuid` is your account's).
+pub fn ask_wardrobe(settings: &Settings, uuid: Option<u128>) {
+    let Some(uuid) = uuid else { return };
+    if !settings.on(WARDROBE_FX) || STATE.with_borrow_mut(|s| std::mem::replace(&mut s.more.asked_wardrobe, true)) {
+        return;
+    }
+    lookup_effect(user_hash(uuid));
+}
+#[cfg(not(test))]
+fn lookup_effect(hash: String) {
+    std::thread::spawn(move || {
+        let body = serde_json::json!({ "hashes": [hash.clone()] }).to_string();
+        let answer = ureq::post(&format!("{WEBSITE}/v1/cosmetics/lookup")).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body).ok().and_then(|r| r.into_string().ok());
+        let id = answer.and_then(|a| serde_json::from_str::<serde_json::Value>(&a).ok())
+            .and_then(|v| v["killEffects"][&hash].as_str().map(str::to_owned));
+        net_more(|n| n.wardrobe = id.as_deref().map(effect_style));
+    });
+}
+#[cfg(test)]
+fn lookup_effect(_hash: String) {}
+
+/// Update Notice: the newest Arsenal Horizon's version from its releases ("...-arsenal-1.13.0").
+pub fn release_version(tag: &str) -> Option<String> {
+    let v = tag.rsplit("-arsenal-").next().filter(|_| tag.contains("-arsenal-"))?;
+    (v.split('.').count() == 3 && v.split('.').all(|p| p.parse::<u32>().is_ok())).then(|| v.to_owned())
+}
+/// Whether `a` is a newer version than `b`.
+pub fn newer(a: &str, b: &str) -> bool {
+    let parse = |v: &str| v.split('.').map(|p| p.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
+    parse(a) > parse(b)
+}
+/// Asks once a start; the note when a newer one is out.
+pub fn update_note(settings: &Settings) -> Option<String> {
+    if !settings.on(UPDATES) {
+        return None;
+    }
+    if !STATE.with_borrow_mut(|s| std::mem::replace(&mut s.more.asked_update, true)) {
+        ask_update();
+    }
+    let latest = net_more(|n| n.update.take())?;
+    newer(&latest, VERSION).then(|| format!("Arsenal Horizon {latest} is out (you have {VERSION}): the launcher installs it the next time you press Play."))
+}
+#[cfg(not(test))]
+fn ask_update() {
+    std::thread::spawn(|| {
+        let answer = ureq::get("https://api.github.com/repos/SoloHandCoder/arsenal-horizon/releases/latest").timeout(Duration::from_secs(15))
+            .set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
+        let v = answer.and_then(|a| serde_json::from_str::<serde_json::Value>(&a).ok()).and_then(|v| v["tag_name"].as_str().and_then(release_version));
+        net_more(|n| n.update = v);
+    });
+}
+#[cfg(test)]
+fn ask_update() {}
+
+/// Screenshot to Clipboard: copies the image with the system's own tool.
+#[cfg(not(test))]
+pub fn copy_image(path: &std::path::Path) {
+    let p = path.to_string_lossy().to_string();
+    std::thread::spawn(move || {
+        let mut cmd;
+        if cfg!(windows) {
+            cmd = std::process::Command::new("powershell");
+            cmd.args(["-NoProfile", "-STA", "-Command",
+                &format!("Add-Type -AssemblyName System.Windows.Forms,System.Drawing; [System.Windows.Forms.Clipboard]::SetImage([System.Drawing.Image]::FromFile('{}'))", p.replace('\'', "''"))]);
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x0800_0000);
+            }
+        } else if cfg!(target_os = "macos") {
+            cmd = std::process::Command::new("osascript");
+            cmd.args(["-e", &format!("set the clipboard to (read (POSIX file \"{}\") as «class PNGf»)", p.replace('"', ""))]);
+        } else {
+            cmd = std::process::Command::new("xclip");
+            cmd.args(["-selection", "clipboard", "-t", "image/png", "-i", &p]);
+        }
+        let _ = cmd.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status();
+    });
+}
+#[cfg(test)]
+pub fn copy_image(_path: &std::path::Path) {}
+
+/// Spotify Lyrics: "[mm:ss.xx] text" lines as (seconds, text).
+pub fn parse_lrc(text: &str) -> Vec<(f32, String)> {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let Some(rest) = line.strip_prefix('[') else { continue };
+        let Some((stamp, words)) = rest.split_once(']') else { continue };
+        let Some((m, sec)) = stamp.split_once(':') else { continue };
+        if let (Ok(m), Ok(sec)) = (m.parse::<f32>(), sec.parse::<f32>()) {
+            out.push((m * 60.0 + sec, words.trim().to_owned()));
+        }
+    }
+    out
+}
+
+/// Spotify's window title as the song: "Artist - Song", none while paused or not playing.
+pub fn song_of(title: &str) -> Option<String> {
+    let t = title.trim();
+    (t.contains(" - ") && !t.starts_with("Spotify")).then(|| t.to_owned())
+}
+
+fn percent(text: &str) -> String {
+    text.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect()
+}
+
+/// Looks at Spotify every 3 seconds (Windows: its window's title).
+pub fn lyrics_tick(settings: &Settings) {
+    if !settings.on(LYRICS) || !cfg!(windows) {
+        return;
+    }
+    let due = STATE.with_borrow_mut(|s| {
+        let due = s.more.lyrics_polled.is_none_or(|t| t.elapsed() > Duration::from_secs(3));
+        if due {
+            s.more.lyrics_polled = Some(Instant::now());
+        }
+        due
+    });
+    if due {
+        poll_spotify();
+    }
+}
+#[cfg(not(test))]
+fn poll_spotify() {
+    std::thread::spawn(|| {
+        let mut cmd = std::process::Command::new("tasklist");
+        cmd.args(["/v", "/fo", "csv", "/nh", "/fi", "imagename eq Spotify.exe"]);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000);
+        }
+        let Ok(out) = cmd.output() else { return };
+        let text = String::from_utf8_lossy(&out.stdout);
+        let song = text.lines().filter_map(|l| l.trim().strip_suffix('"')?.rsplit("\",\"").next().and_then(song_of)).next();
+        let fetch = net_more(|n| {
+            match (&song, &n.song) {
+                (Some(a), Some(b)) if a == b => {
+                    if let Some(p) = n.paused_at.take() {
+                        if let Some(start) = n.song_start.as_mut() {
+                            *start += p.elapsed();
+                        }
+                    }
+                    None
+                }
+                (Some(a), _) => {
+                    n.song = Some(a.clone());
+                    n.song_start = Some(Instant::now().checked_sub(Duration::from_millis(1500)).unwrap_or_else(Instant::now));
+                    n.paused_at = None;
+                    n.lyrics.clear();
+                    (n.lyrics_for.as_ref() != Some(a)).then(|| a.clone())
+                }
+                (None, _) => {
+                    if n.song.is_some() && n.paused_at.is_none() {
+                        n.paused_at = Some(Instant::now());
+                    }
+                    None
+                }
+            }
+        });
+        if let Some(song) = fetch {
+            let (artist, track) = song.split_once(" - ").unwrap_or(("", &song));
+            let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}", percent(artist), percent(track));
+            let answer = ureq::get(&url).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
+            let lines = answer.and_then(|a| serde_json::from_str::<serde_json::Value>(&a).ok())
+                .and_then(|v| v["syncedLyrics"].as_str().map(parse_lrc)).unwrap_or_default();
+            net_more(|n| {
+                n.lyrics = lines;
+                n.lyrics_for = Some(song);
+            });
+        }
+    });
+}
+#[cfg(test)]
+fn poll_spotify() {}
+
+/// The lyric line sung `at` seconds into the song, and the next.
+pub fn lyric_at(lines: &[(f32, String)], at: f32) -> Option<(&str, Option<&str>)> {
+    let i = lines.iter().rposition(|l| l.0 <= at)?;
+    Some((lines[i].1.as_str(), lines.get(i + 1).map(|l| l.1.as_str())))
+}
+
+/// Party: friends among the players around, with health, distance and the way to them (degrees from where you face).
+pub fn party(others: &[Other], friends: &[String], me: [f64; 3], yaw: f32) -> Vec<(String, f32, f64, f32)> {
+    let mut out: Vec<(String, f32, f64, f32)> = others.iter().filter(|o| friends.iter().any(|f| f.eq_ignore_ascii_case(&o.name))).map(|o| {
+        let (dx, dz) = (o.pos[0] - me[0], o.pos[2] - me[2]);
+        let distance = (dx * dx + dz * dz + (o.pos[1] - me[1]).powi(2)).sqrt();
+        // Minecraft's yaw: 0 faces +z, 90 faces -x.
+        let to = (-dx).atan2(dz).to_degrees() as f32;
+        (o.name.clone(), o.health, distance, (to - yaw + 540.0).rem_euclid(360.0) - 180.0)
+    }).collect();
+    out.sort_by(|a, b| a.2.total_cmp(&b.2));
+    out.truncate(6);
+    out
+}
+
+/// Draws this version's HUD and world parts: block animations, the sprint bolt, toasts, Party, lyrics and Quick Menu.
+#[allow(clippy::too_many_arguments)]
+pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], me: Option<([f64; 3], f32)>, attack: f32, cam: Option<&Cam>,
+                    w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let accent = settings.accent();
+    let (blocks, sprint, toasts, quick) = STATE.with_borrow_mut(|s| {
+        s.more.toasts.retain(|t| t.1.elapsed() < Duration::from_secs(5));
+        (s.more.blocks.clone(), s.more.sprinting && !s.more.sprint_used, s.more.toasts.clone(), s.more.quick)
+    });
+    if let Some(cam) = cam {
+        for (pos, kind, at) in &blocks {
+            let t = (at.elapsed().as_secs_f32() / 0.7).min(1.0);
+            let alpha = ((1.0 - t) * 255.0) as u32;
+            let argb = (alpha << 24) | accent;
+            let c = [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5];
+            let cube = |half: f64, at: [f64; 3], out: &mut Vec<Shape>| {
+                box_edges(cam, [at[0] - half, at[1] - half, at[2] - half], [at[0] + half, at[1] + half, at[2] + half], w, h, argb, out)
+            };
+            let kind_name = if *kind == 0 { BREAK_KINDS[settings.v[BREAK_KIND]].0 } else { PLACE_KINDS[settings.v[PLACE_KIND]].0 };
+            match kind_name {
+                "shatter" => {
+                    for k in 0..8 {
+                        let a = k as f64 * 0.785 + 0.3;
+                        let (dx, dz) = (a.cos(), a.sin());
+                        let tt = t as f64;
+                        let p = [c[0] + dx * tt * 1.2, c[1] + tt * 1.4 - tt * tt * 2.2 + (k % 3) as f64 * 0.1, c[2] + dz * tt * 1.2];
+                        cube(0.12 * (1.0 - tt) + 0.02, p, &mut out);
+                    }
+                }
+                "shrink" => cube(0.5 * (1.0 - t as f64), c, &mut out),
+                "pop" => {
+                    let grow = (t * 2.0).min(1.0) as f64;
+                    let over = 1.0 + (std::f64::consts::PI * grow).sin() * 0.15;
+                    cube(0.5 * grow * over, c, &mut out);
+                }
+                "ripple" => {
+                    let r = 0.5 + t as f64 * 1.6;
+                    let y = pos[1] as f64 + 0.02;
+                    box_edges(cam, [c[0] - r, y, c[2] - r], [c[0] + r, y, c[2] + r], w, h, argb, &mut out);
+                }
+                _ => {
+                    cube(0.51, c, &mut out);
+                    cube(0.53, c, &mut out);
+                }
+            }
+        }
+    }
+    let (cx, cy) = (w / 2.0, h / 2.0);
+    if settings.on(SPRINT_IND) && sprint && attack >= 0.9 {
+        let g = 0xFF55_FF55;
+        let (x, y) = (cx + 8.0, cy - 4.0);
+        out.push(Shape::Quad([[x + 3.0, y], [x + 6.0, y], [x + 3.5, y + 4.0], [x + 1.0, y + 4.0]], g));
+        out.push(Shape::Quad([[x + 2.5, y + 3.5], [x + 5.5, y + 3.5], [x + 1.5, y + 8.5], [x + 3.0, y + 3.5]], g));
+    }
+    for (i, (text, _)) in toasts.iter().enumerate() {
+        let tw = width(text);
+        let y = 4.0 + i as f32 * 14.0;
+        out.push(Shape::Fill([w - tw - 12.0, y, tw + 8.0, 12.0], 0xB000_0000));
+        out.push(Shape::Fill([w - tw - 12.0, y, 2.0, 12.0], 0xFF00_0000 | accent));
+        out.push(Shape::Text(text.clone(), [w - tw - 7.0, y + 2.0], 0xFFFFFF, false));
+    }
+    if settings.on(PARTY) {
+        if let Some((pos, yaw)) = me {
+            for (i, (name, health, distance, angle)) in party(others, friends, pos, yaw).iter().enumerate() {
+                let y = h / 2.0 - 40.0 + i as f32 * 12.0;
+                let text = format!("{name}  {:.0}hp  {:.0}m", health, distance);
+                out.push(Shape::Text(text, [16.0, y], 0xFFFFFF, true));
+                let a = angle.to_radians();
+                let (s, c) = (a.sin(), -a.cos());
+                let (ax, ay) = (8.0, y + 4.0);
+                let tip = [ax + s * 4.0, ay + c * 4.0];
+                let l = [ax - c * 3.0 - s * 3.0, ay + s * 3.0 - c * 3.0];
+                let r = [ax + c * 3.0 - s * 3.0, ay - s * 3.0 - c * 3.0];
+                out.push(Shape::Quad([tip, l, [ax, ay], r], 0xFF00_0000 | accent));
+            }
+        }
+    }
+    if settings.on(LYRICS) {
+        let line = net_more(|n| {
+            let at = n.song_start.map(|s| (n.paused_at.unwrap_or_else(Instant::now)).saturating_duration_since(s).as_secs_f32())?;
+            lyric_at(&n.lyrics, at).map(|(a, b)| (a.to_owned(), b.map(str::to_owned)))
+        });
+        if let Some((now, next)) = line {
+            let tw = width(&now);
+            out.push(Shape::Text(now, [cx - tw / 2.0, 22.0], accent, true));
+            if let Some(next) = next {
+                let nw = width(&next);
+                out.push(Shape::Text(next, [cx - nw / 2.0, 34.0], 0xAAAAAA, true));
+            }
+        }
+    }
+    if let Some(pick) = quick {
+        for (i, f) in QUICK.iter().enumerate() {
+            let a = i as f32 / QUICK.len() as f32 * std::f32::consts::TAU - std::f32::consts::FRAC_PI_2;
+            let label = format!("{} {}", FIELDS[*f].label, if settings.v[*f] == 1 { "ON" } else { "OFF" });
+            let tw = width(&label);
+            let (x, y) = (cx + a.cos() * 70.0 - tw / 2.0, cy + a.sin() * 50.0 - 4.0);
+            out.push(Shape::Fill([x - 3.0, y - 2.0, tw + 6.0, 12.0], if i == pick { 0xD000_0000 | (accent & 0xFF_FFFF) } else { 0xA000_0000 }));
+            out.push(Shape::Text(label, [x, y], 0xFFFFFF, true));
+        }
+    }
+    out
+}
+
+/// The text of a quick toggle's toast when Arsenal Messages makes toasts.
+pub fn toast(text: String) {
+    STATE.with_borrow_mut(|s| s.more.toasts.push((text, Instant::now())));
 }
 
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
@@ -3404,9 +4403,26 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
-/// The settings, read once through `get`.
-pub fn settings(get: impl Fn(&str) -> Option<String>) -> Settings {
+/// The settings as stored, read once through `get` (the menu changes these).
+pub fn raw_settings(get: impl Fn(&str) -> Option<String>) -> Settings {
     STATE.with_borrow_mut(|s| s.settings.get_or_insert_with(|| Settings::read(get)).clone())
+}
+
+/// The settings the modules run with: Performance Mode turns the heavy ones off (the stored ones stay as they are).
+pub fn settings(get: impl Fn(&str) -> Option<String>) -> Settings {
+    performance(raw_settings(get))
+}
+
+/// Performance Mode's switch: the shader pack's effects, block animations, kill and particle effects and lyrics off,
+/// particles capped.
+pub fn performance(mut s: Settings) -> Settings {
+    if s.on(PERF) {
+        for f in [BLOOM, LOOK, COLORS, MOTION, MIST, SKY_FX, AMBIENCE, SLICK, BREAK_ANIM, PLACE_ANIM, KILL_FX, CRITS, SWEEP, LYRICS, WARDROBE_FX] {
+            s.v[f] = 0;
+        }
+        s.v[PARTICLES] = 1;
+    }
+    s
 }
 
 /// Replaces the settings (a settings page changed them).
@@ -4224,6 +5240,82 @@ mod tests {
     }
 
     #[test]
+    fn version_1_13_modules() {
+        let mut s = Settings::default();
+        let l = looks(&s, Some("Steve"));
+        assert_eq!((l.hotbar, l.swing, l.tag_bg, l.chat_keep), (0, 100, 0x3F00_0000, 100), "all off leaves Horizon's own");
+        assert_eq!(l.chat, [None, None, None]);
+        for f in [HOTBAR_STYLE, SWING_ANIM, NAME_HIDER, MENTIONS, CHAT_TWEAKS, BIG_ITEMS, SOUND_TWEAKS, SMALL_CRYSTALS] {
+            s.v[f] = 1;
+        }
+        let l = looks(&s, Some("Steve"));
+        assert!(l.hotbar >> 24 != 0 && l.hotbar_accent != 0);
+        assert_eq!(l.swing, 150);
+        assert_eq!(l.name_hide, Some(("Steve".into(), "You".into())));
+        assert_eq!(l.mention, "steve");
+        assert_eq!(l.chat, [Some(true), Some(true), None]);
+        assert!(l.big_items.iter().any(|(i, _)| i == "minecraft:totem_of_undying"));
+        assert_eq!(l.volumes[0], ("explode".into(), 0.5));
+        assert_eq!(l.crystal_size, 50);
+        s.v[CHAT_TWEAKS] = 0;
+        assert_eq!(looks(&s, None).chat, [Some(false), Some(false), None], "turning off puts Horizon's back once");
+        assert_eq!(looks(&s, None).chat, [None, None, None]);
+
+        // Performance Mode leaves the stored settings alone.
+        let mut raw = Settings::default();
+        raw.v[BLOOM] = 1;
+        raw.v[PERF] = 1;
+        let p = performance(raw.clone());
+        assert_eq!((p.v[BLOOM], p.v[PARTICLES], raw.v[BLOOM]), (0, 1, 1));
+        let (t, value, message) = toggled(&raw, PERF);
+        assert_eq!((t.v[PERF], value, message.as_str()), (0, "false", "Performance Mode: OFF"));
+
+        // Quick Menu: hold, scroll, let go.
+        let mut q = Settings::default();
+        q.v[QUICK_MENU] = 1;
+        assert_eq!(more_key(&q, "key_quick_menu", true, true), None);
+        assert!(quick_wheel(-1.0));
+        assert_eq!(more_key(&q, "key_quick_menu", false, true), Some(QUICK[1]));
+        assert!(!quick_wheel(1.0));
+        assert_eq!(more_key(&q, "key_performance", true, true), Some(PERF));
+
+        // Notes and profiles.
+        let mut n = Settings::default();
+        n.v[NOTES] = 1;
+        n.v[PROFILES] = 1;
+        assert_eq!(server_key("note", "Play.Example.net:25565"), "note_play.example.net_25565");
+        let none = |_: &str| None;
+        assert_eq!(command(&n, &n, "note bring pearls", Some("a.net"), &none), Command::Store("note_a.net".into(), "bring pearls".into(), "Note kept for a.net.".into()));
+        assert!(matches!(command(&n, &n, "note", None, &none), Command::Say(_)));
+        let kept = profile_of(&n);
+        assert!(profile_pairs(&kept).iter().any(|(k, v)| k == "server_notes" && v == "true"));
+        assert!(profile_pairs("server_notes=true;nonsense=1").len() == 1);
+        let stored = |k: &str| match k { "note_a.net" => Some("hi".to_string()), "profile_a.net" => Some("bloom=true".to_string()), _ => None };
+        assert_eq!(server_tick(&n, Some("a.net"), &stored), vec![Joined::Profile("bloom=true".into()), Joined::Note("Note for a.net: hi".into())]);
+        assert!(server_tick(&n, Some("a.net"), &stored).is_empty(), "only on joining");
+        assert!(matches!(command(&n, &n, "crash", None, &none), Command::SendCrash));
+
+        // Lyrics, Spotify's title, releases, kill effects, crash text and Party.
+        let lrc = parse_lrc("[00:01.50] one\n[00:04.00] two\nnot a line");
+        assert_eq!(lrc, vec![(1.5, "one".to_string()), (4.0, "two".to_string())]);
+        assert_eq!(lyric_at(&lrc, 2.0), Some(("one", Some("two"))));
+        assert_eq!(lyric_at(&lrc, 0.5), None);
+        assert_eq!(song_of("Daft Punk - One More Time"), Some("Daft Punk - One More Time".into()));
+        assert_eq!(song_of("Spotify Premium"), None);
+        assert_eq!(release_version("2026-11-07-2ebf00a-arsenal-1.11.0"), Some("1.11.0".into()));
+        assert_eq!(release_version("nightly"), None);
+        assert!(newer("1.13.1", "1.13.0") && !newer("1.9.0", "1.13.0"));
+        assert_eq!((effect_style("lightning"), effect_style("firework"), effect_style("soul_fire")), (2, 0, 1));
+        assert_eq!(scrub(r"failed at D:\Games\x.rs here"), "failed at <path> here");
+        assert_eq!(percent("AC/DC & me"), "AC%2FDC%20%26%20me");
+        let friend = Other { id: 1, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 10.0], health: 18.0, absorption: 0.0, hurt_time: 0, using: 0, using_off_hand: false, equipment: vec![] };
+        let p = party(std::slice::from_ref(&friend), &["alex".into()], [0.0, 64.0, 0.0], 0.0);
+        assert_eq!(p.len(), 1);
+        assert!((p[0].2 - 10.0).abs() < 1e-6 && p[0].3.abs() < 1e-3, "straight ahead: {p:?}");
+        assert!(route(&Settings::default(), "hi".into()).is_some());
+    }
+
+    #[test]
     fn the_last_group() {
         let s0 = Settings::default();
         assert_eq!(shader_params(&s0)[0], [0.0, 0.0, 0.0, 1.0], "the pack passes the picture through");
@@ -4757,7 +5849,7 @@ mod tests {
         assert!(apply(action, &mut m, &mut s, &none));
         assert_ne!(s.v[field], before);
         // A greyed-out module switches nothing but says why.
-        let java_only = *list.iter().find(|&&i| on_horizon(JAVA_MODULES[i].id).is_none()).unwrap();
+        let java_only = (0..JAVA_MODULES.len()).find(|&i| on_horizon(JAVA_MODULES[i].id).is_none()).unwrap();
         assert!(!hits.iter().any(|(_, a)| *a == Action::Toggle(java_only)));
         apply(Action::Open(java_only), &mut m, &mut s, &none);
         let (shapes, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);

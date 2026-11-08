@@ -8,7 +8,7 @@ fn arsenal_screen(
     if screen.id != "mod" || game.native_mod_screen() != Some(m::ID) {
         return;
     }
-    let settings = m::settings(|key| game.native_setting(m::ID, key));
+    let settings = m::raw_settings(|key| game.native_setting(m::ID, key));
     let menu = m::menu();
     let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
     let (shapes, _) = m::menu_layout(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text));
