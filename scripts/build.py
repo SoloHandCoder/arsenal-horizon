@@ -64,8 +64,8 @@ def source(commit):
 
 
 def apply_patches(tree):
-    """Arsenal's own hooks (patches/*.json): code put into Horizon's source right before an exact line. Applied once per
-    source tree (already-applied inserts are skipped); an anchor that isn't there stops the build, so a Horizon change
+    """Arsenal's own hooks (patches/*.json): code put into Horizon's source right before an exact line. Applied to each
+    build's fresh copy of the source; an anchor that isn't there stops the build, so a Horizon change
     never ships with a hook half in."""
     for path in sorted((ROOT / "patches").glob("*.json")):
         patch = json.loads(path.read_text(encoding="utf-8"))
@@ -111,7 +111,6 @@ def main():
         sys.exit("--commit must be a full commit SHA")
 
     tree = source(a.commit)
-    apply_patches(tree)
     bundles = WORK / "mods"
     shutil.rmtree(bundles, ignore_errors=True)
     shutil.copytree(ROOT / "mixins" / "arsenal", bundles / "arsenal")
@@ -120,6 +119,8 @@ def main():
     stage = WORK / "stage"
     shutil.rmtree(stage, ignore_errors=True)
     run([mixins_tool(), "apply", "--workspace", tree, "--mods", bundles, "--out", stage])
+    # Into the fresh copy, never the downloaded source: a changed patch never meets its old text.
+    apply_patches(stage)
 
     env = dict(os.environ, CARGO_TARGET_DIR=str(WORK / "target"), HORIZON_VERSION=a.version, HORIZON_NIGHTLY=a.nightly)
     command = ["cargo", "check" if a.check else "build", "--locked", "--release", "-p", "horizon-client", "--bin", "horizon-client"]

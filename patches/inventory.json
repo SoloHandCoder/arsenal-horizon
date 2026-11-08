@@ -8,7 +8,7 @@
     },
     {
       "before": "    /// The clock of the world this window shows, for client mods: its game\n",
-      "text": "    /// The window's player's inventory, for client mods (Arsenal's patch): none on the title screen.\n    pub(super) fn native_inventory_view(&self) -> Option<NativeInventory> {\n        self.player.as_ref()?;\n        Some(NativeInventory {\n            slots: self.inventory.clone(),\n            armor: self.armor.iter().cloned().collect(),\n            offhand: self.offhand.clone(),\n            selected: self.selected,\n        })\n    }\n"
+      "text": "    /// The window's player's inventory, for client mods (Arsenal's patch): none on the title screen.\n    pub(super) fn arsenal_inventory(&self) -> Option<NativeInventory> {\n        self.player.as_ref()?;\n        Some(NativeInventory {\n            slots: self.inventory.clone(),\n            armor: self.armor.iter().cloned().collect(),\n            offhand: self.offhand.clone(),\n            selected: self.selected,\n        })\n    }\n"
     }
   ]
 }

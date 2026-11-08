@@ -40,7 +40,7 @@ fn arsenal_hud(
     }
     // The inventory modules (Arsenal's inventory hook, patches/inventory.json): Armor HUD, Item Counter, the
     // offhand totem and durability warnings and Ready Check.
-    if let Some(view) = game.native_inventory_view() {
+    if let Some(view) = game.arsenal_inventory() {
         let stack = |s: &Option<horizon_client::items::ItemStack>| {
             s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })
         };
@@ -78,7 +78,7 @@ fn arsenal_hud(
     // The combat modules (Arsenal's chat and players hooks): in the world through the camera, and on the HUD.
     {
         let game = &*game;
-        let others: Vec<m::Other> = game.native_others().into_iter().map(|o| m::Other {
+        let others: Vec<m::Other> = game.arsenal_others().into_iter().map(|o| m::Other {
             id: o.id,
             name: o.name,
             pos: [o.x, o.y, o.z],
@@ -97,9 +97,9 @@ fn arsenal_hud(
             _ => None,
         };
         let width = |text: &str| game.native_text_width(text);
-        let st = game.native_status();
+        let st = game.arsenal_status();
         let status = m::Status { attack: st.attack, effects: st.effects, ping: st.ping, latencies: st.latencies };
-        let totems = game.native_inventory_view().map_or(0, |v| {
+        let totems = game.arsenal_inventory().map_or(0, |v| {
             v.slots.iter().chain(std::iter::once(&v.offhand)).flatten().filter(|s| &*s.item == "minecraft:totem_of_undying").map(|s| s.count).sum()
         });
         let falling = m::falling();

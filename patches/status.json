@@ -19,7 +19,7 @@
         },
         {
           "before": "    /// The clock of the world this window shows, for client mods: its game\n",
-          "text": "    /// The window's player's attack charge, effects and pings (Arsenal's patch).\n    pub(super) fn native_status(&self) -> NativeStatus {\n        NativeStatus {\n            attack: self.attack_strength_scale(),\n            effects: self.potions.effects.list.iter().map(|e| (e.id.to_string(), e.amplifier, e.duration)).collect(),\n            ping: self.own_latency(),\n            latencies: self.arsenal_latencies(),\n        }\n    }\n"
+          "text": "    /// The window's player's attack charge, effects and pings (Arsenal's patch).\n    pub(super) fn arsenal_status(&self) -> NativeStatus {\n        NativeStatus {\n            attack: self.attack_strength_scale(),\n            effects: self.potions.effects.list.iter().map(|e| (e.id.to_string(), e.amplifier, e.duration)).collect(),\n            ping: self.own_latency(),\n            latencies: self.arsenal_latencies(),\n        }\n    }\n"
         }
       ]
     }

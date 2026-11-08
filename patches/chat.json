@@ -28,7 +28,7 @@
       "inserts": [
         {
           "before": "    /// The clock of the world this window shows, for client mods: its game\n",
-          "text": "    /// Sends a chat message or (with `/`) a command, as typing it in the chat box does (Arsenal's patch).\n    pub(super) fn native_send_chat(&mut self, text: &str) {\n        self.handle_chat_input(text);\n    }\n    /// The chat lines shown since the last call, oldest first, as plain text (Arsenal's patch).\n    pub(super) fn native_take_chat(&mut self) -> Vec<String> {\n        std::mem::take(&mut self.ui.chat.arsenal_inbox)\n    }\n    /// The window's player's own name (Arsenal's patch): none before joining a world.\n    pub(super) fn native_own_name(&self) -> Option<String> {\n        self.arsenal_own_name()\n    }\n"
+          "text": "    /// Sends a chat message or (with `/`) a command, as typing it in the chat box does (Arsenal's patch).\n    pub(super) fn arsenal_send_chat(&mut self, text: &str) {\n        self.handle_chat_input(text);\n    }\n    /// The chat lines shown since the last call, oldest first, as plain text (Arsenal's patch).\n    pub(super) fn arsenal_take_chat(&mut self) -> Vec<String> {\n        std::mem::take(&mut self.ui.chat.arsenal_inbox)\n    }\n    /// The window's player's own name (Arsenal's patch): none before joining a world.\n    pub(super) fn arsenal_me(&self) -> Option<String> {\n        self.arsenal_own_name()\n    }\n"
         }
       ]
     }
