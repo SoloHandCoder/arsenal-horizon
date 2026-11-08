@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.13.0";
+pub const VERSION: &str = "1.14.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -1226,6 +1226,7 @@ struct State {
     /// The zoom while the key is held; None when it is up.
     held: Option<f32>,
     menu: Menu,
+    menu_anim: MenuAnim,
     /// Speed Display and Session Clock: the last position sampled and when, the speed measured, and when the player
     /// came into this world.
     sample: Option<(Instant, [f64; 3])>,
@@ -4629,6 +4630,8 @@ pub enum Shape {
     Item(String, [f32; 2]),
     /// Four corners in order (a slanted bar, a wedge): what a rectangle can't draw.
     Quad([[f32; 2]; 4], u32),
+    /// Text with its own opacity (0xAARRGGBB) and size (1 is the game's): the menu's.
+    Styled(String, [f32; 2], u32, bool, f32),
 }
 
 /// The panel's background, as the HUD's own boxes are drawn.
@@ -4815,17 +4818,21 @@ pub enum Action {
     Retry,
 }
 
-const MENU_BG: u32 = 0xF014_141A;
-const SIDEBAR_BG: u32 = 0xF00E_0E12;
-const ROW_BG: u32 = 0x18FF_FFFF;
-const ROW_HOVER: u32 = 0x30FF_FFFF;
+const MENU_BG: u32 = 0xF412_1219;
+const PANEL_EDGE: u32 = 0x26FF_FFFF;
+const SIDEBAR_BG: u32 = 0x700A_0A0E;
+const CARD: u32 = 0x12FF_FFFF;
+const CARD_HOVER: u32 = 0x24FF_FFFF;
+const TRACK: u32 = 0x38FF_FFFF;
 const MUTED: u32 = 0x9A9AA8;
 const GREY: u32 = 0x5E5E6A;
-const ROW: f32 = 26.0;
-const SIDE: f32 = 104.0;
-const HEADER: f32 = 24.0;
-const CARD_W: f32 = 92.0;
-const CARD_H: f32 = 70.0;
+const ROW: f32 = 28.0;
+const SIDE: f32 = 116.0;
+const HEADER: f32 = 34.0;
+/// The category's title over its modules.
+const LIST_TOP: f32 = 26.0;
+const CARD_W: f32 = 98.0;
+const CARD_H: f32 = 76.0;
 
 fn inside(r: [f32; 4], p: [f32; 2]) -> bool {
     p[0] >= r[0] && p[1] >= r[1] && p[0] < r[0] + r[2] && p[1] < r[1] + r[3]
@@ -4843,6 +4850,29 @@ pub fn fit(text: &str, max: f32, width: &dyn Fn(&str) -> f32) -> String {
     format!("{}...", out.trim_end())
 }
 
+/// `text` in lines of at most `max` pixels (at most `lines` of them, the last cut with "...").
+pub fn wrap(text: &str, max: f32, lines: usize, width: &dyn Fn(&str) -> f32) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let next = if line.is_empty() { word.to_owned() } else { format!("{line} {word}") };
+        if width(&next) <= max || line.is_empty() {
+            line = next;
+        } else {
+            out.push(std::mem::replace(&mut line, word.to_owned()));
+        }
+    }
+    if !line.is_empty() {
+        out.push(line);
+    }
+    if out.len() > lines {
+        let rest = out[lines - 1..].join(" ");
+        out.truncate(lines - 1);
+        out.push(fit(&rest, max, width));
+    }
+    out
+}
+
 /// The modules of `category`, as indexes in `JAVA_MODULES`: Horizon's first, then the others, each by name.
 pub fn category_modules(category: usize) -> Vec<usize> {
     let mut list: Vec<usize> = (0..JAVA_MODULES.len()).filter(|&i| JAVA_MODULES[i].category == category).collect();
@@ -4853,17 +4883,17 @@ pub fn category_modules(category: usize) -> Vec<usize> {
 /// How many module rows fit in a menu drawn in `screen` (`[x, y, w, h]`, GUI pixels).
 pub fn rows_shown(screen: [f32; 4]) -> usize {
     let (_, h) = menu_size(screen);
-    (((h - HEADER - 8.0) / ROW).floor().max(1.0)) as usize
+    (((h - HEADER - LIST_TOP - 8.0) / ROW).floor().max(1.0)) as usize
 }
 
 fn menu_size(screen: [f32; 4]) -> (f32, f32) {
-    ((screen[2] - 16.0).min(500.0).max(240.0), (screen[3] - 16.0).min(320.0).max(140.0))
+    ((screen[2] - 20.0).min(540.0).max(260.0), (screen[3] - 20.0).min(330.0).max(150.0))
 }
 
 /// Browse's card grid in a menu of size `w`×`h`: (columns, rows shown).
 fn grid(w: f32, h: f32) -> (usize, usize) {
-    let cols = (((w - 16.0) / (CARD_W + 4.0)).floor().max(1.0)) as usize;
-    let rows = (((h - HEADER - 26.0) / (CARD_H + 4.0)).floor().max(1.0)) as usize;
+    let cols = (((w - 20.0) / (CARD_W + 6.0)).floor().max(1.0)) as usize;
+    let rows = (((h - HEADER - 30.0) / (CARD_H + 6.0)).floor().max(1.0)) as usize;
     (cols, rows)
 }
 
@@ -4872,9 +4902,122 @@ pub fn modules_on(s: &Settings) -> usize {
     ON_HORIZON.iter().filter(|m| s.v[m.1] == 1).count()
 }
 
-fn button(out: &mut Vec<Shape>, hits: &mut Vec<([f32; 4], Action)>, r: [f32; 4], label: &str, action: Action, mouse: [f32; 2], width: &dyn Fn(&str) -> f32) {
-    out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-    out.push(Shape::Text(label.to_owned(), [r[0] + (r[2] - width(label)) / 2.0, r[1] + (r[3] - 8.0) / 2.0], WHITE, false));
+/// 0xRRGGBB at opacity `a` (0..1) as 0xAARRGGBB.
+fn argb(rgb: u32, a: f32) -> u32 {
+    (((a.clamp(0.0, 1.0) * 255.0).round() as u32) << 24) | (rgb & 0xFF_FFFF)
+}
+
+/// Between two 0xAARRGGBB colours.
+fn mix_argb(a: u32, b: u32, t: f32) -> u32 {
+    let t = t.clamp(0.0, 1.0);
+    let ch = |shift: u32| {
+        let (x, y) = (((a >> shift) & 255) as f32, ((b >> shift) & 255) as f32);
+        ((x + (y - x) * t).round() as u32) << shift
+    };
+    ch(24) | ch(16) | ch(8) | ch(0)
+}
+
+/// A rectangle with rounded corners, in rows that don't overlap (so see-through colours stay even).
+fn rounded(out: &mut Vec<Shape>, r: [f32; 4], radius: f32, c: u32) {
+    let [x, y, w, h] = r;
+    let rad = radius.min(w / 2.0).min(h / 2.0).floor().max(0.0);
+    if rad < 1.0 {
+        out.push(Shape::Fill(r, c));
+        return;
+    }
+    for i in 0..rad as i32 {
+        let dy = rad - i as f32 - 0.5;
+        let inset = (rad - (rad * rad - dy * dy).max(0.0).sqrt()).round();
+        out.push(Shape::Fill([x + inset, y + i as f32, w - 2.0 * inset, 1.0], c));
+        out.push(Shape::Fill([x + inset, y + h - 1.0 - i as f32, w - 2.0 * inset, 1.0], c));
+    }
+    out.push(Shape::Fill([x, y + rad, w, h - 2.0 * rad], c));
+}
+
+fn label(out: &mut Vec<Shape>, text: &str, at: [f32; 2], c: u32, shadow: bool, scale: f32) {
+    out.push(Shape::Styled(text.to_owned(), at, c, shadow, scale));
+}
+
+/// The menu's animations: when it opened, when the view changed, and each eased value (hovers, switches, the
+/// sliding markers), by key.
+#[derive(Default)]
+struct MenuAnim {
+    last: Option<Instant>,
+    opened: Option<Instant>,
+    view: Option<(Page, usize, Option<usize>, usize)>,
+    view_at: Option<Instant>,
+    values: std::collections::HashMap<u64, f32>,
+    dt: f32,
+}
+
+/// A frame of the menu starts: a menu not drawn for a moment has just opened.
+fn anim_begin(m: &Menu) {
+    STATE.with_borrow_mut(|s| {
+        let a = &mut s.menu_anim;
+        let now = Instant::now();
+        let gap = a.last.map(|l| now.duration_since(l));
+        if gap.is_none_or(|g| g > Duration::from_millis(300)) {
+            a.opened = Some(now);
+            a.values.clear();
+            a.view = None;
+        }
+        a.dt = gap.map_or(0.0, |g| g.as_secs_f32().min(0.1));
+        a.last = Some(now);
+        let view = (m.page, m.category, m.detail, m.tab);
+        if a.view != Some(view) {
+            if a.view.is_some() {
+                a.view_at = Some(now);
+            }
+            a.view = Some(view);
+        }
+    });
+}
+
+/// Eases the value kept as `key` toward `target` (only while drawing, `animate`); tests see the target.
+fn ease(key: u64, target: f32, start: f32, animate: bool) -> f32 {
+    if cfg!(test) {
+        return target;
+    }
+    STATE.with_borrow_mut(|s| {
+        let a = &mut s.menu_anim;
+        let dt = a.dt;
+        let v = a.values.entry(key).or_insert(start);
+        if animate {
+            *v += (target - *v) * (1.0 - (-dt * 16.0).exp());
+            if (target - *v).abs() < 0.002 {
+                *v = target;
+            }
+        }
+        *v
+    })
+}
+
+/// Ease-out over `secs` since `at` (1 when done, or with no start).
+fn since(at: Option<Instant>, secs: f32) -> f32 {
+    if cfg!(test) {
+        return 1.0;
+    }
+    let t = at.map_or(1.0, |a| (a.elapsed().as_secs_f32() / secs).min(1.0));
+    1.0 - (1.0 - t).powi(3)
+}
+
+fn key(tag: u64, i: usize) -> u64 {
+    (tag << 32) | i as u64
+}
+
+/// An on/off switch: its track and the sliding knob.
+fn switch(out: &mut Vec<Shape>, at: [f32; 2], on: f32, accent: u32) {
+    let track = [at[0], at[1], 22.0, 12.0];
+    rounded(out, track, 6.0, mix_argb(TRACK, 0xFF00_0000 | accent, on));
+    let knob = at[0] + 1.5 + on * 10.0;
+    rounded(out, [knob, at[1] + 1.5, 9.0, 9.0], 4.5, 0xFFFF_FFFF);
+}
+
+fn button(out: &mut Vec<Shape>, hits: &mut Vec<([f32; 4], Action)>, r: [f32; 4], text: &str, action: Action, mouse: [f32; 2],
+          width: &dyn Fn(&str) -> f32, hover: f32) {
+    let _ = mouse;
+    rounded(out, r, 4.0, mix_argb(CARD, CARD_HOVER, hover));
+    label(out, text, [r[0] + (r[2] - width(text)) / 2.0, r[1] + (r[3] - 8.0) / 2.0], 0xFFFF_FFFF, false, 1.0);
     hits.push((r, action));
 }
 
@@ -4888,123 +5031,262 @@ pub fn menu_layout(
     browse: &Fetch,
     width: &dyn Fn(&str) -> f32,
 ) -> (Vec<Shape>, Vec<([f32; 4], Action)>) {
+    let (shapes, hits, _) = layout(screen, mouse, m, s, browse, width, false);
+    (shapes, hits)
+}
+
+/// The menu as drawn this frame: eased hovers and switches, the panel rising in as it opens and each new page sliding in.
+pub fn menu_frame(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, browse: &Fetch, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    anim_begin(m);
+    let (shapes, _, content) = layout(screen, mouse, m, s, browse, width, true);
+    let (open, view) = STATE.with_borrow(|st| (since(st.menu_anim.opened, 0.28), since(st.menu_anim.view_at, 0.22)));
+    shapes.into_iter().enumerate().map(|(i, sh)| {
+        if i == 0 {
+            return fade(sh, open, [0.0, 0.0]);
+        }
+        let mut k = open;
+        let mut d = [0.0, (1.0 - open) * 12.0];
+        if i >= content {
+            k *= view;
+            d[0] += (1.0 - view) * 14.0;
+        }
+        fade(sh, k, d)
+    }).collect()
+}
+
+/// A shape moved by `d` at opacity `k`.
+fn fade(shape: Shape, k: f32, d: [f32; 2]) -> Shape {
+    let a = |c: u32| ((((c >> 24) as f32) * k).round() as u32) << 24 | (c & 0xFF_FFFF);
+    match shape {
+        Shape::Fill(r, c) => Shape::Fill([r[0] + d[0], r[1] + d[1], r[2], r[3]], a(c)),
+        Shape::Text(t, at, rgb, sh) => Shape::Styled(t, [at[0] + d[0], at[1] + d[1]], a(0xFF00_0000 | rgb), sh, 1.0),
+        Shape::Styled(t, at, c, sh, sc) => Shape::Styled(t, [at[0] + d[0], at[1] + d[1]], a(c), sh, sc),
+        Shape::Quad(p, c) => Shape::Quad(p.map(|q| [q[0] + d[0], q[1] + d[1]]), a(c)),
+        Shape::Item(id, at) => if k < 0.6 { Shape::Fill([0.0; 4], 0) } else { Shape::Item(id, [at[0] + d[0], at[1] + d[1]]) },
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn layout(
+    screen: [f32; 4],
+    mouse: [f32; 2],
+    m: &Menu,
+    s: &Settings,
+    browse: &Fetch,
+    width: &dyn Fn(&str) -> f32,
+    animate: bool,
+) -> (Vec<Shape>, Vec<([f32; 4], Action)>, usize) {
     let accent = s.accent();
+    let solid = 0xFF00_0000 | accent;
     let (w, h) = menu_size(screen);
     let x0 = (screen[0] + (screen[2] - w) / 2.0).round();
     let y0 = (screen[1] + (screen[3] - h) / 2.0).round();
-    let mut out = vec![
-        Shape::Fill([0.0, 0.0, screen[2] + screen[0], screen[3] + screen[1]], 0x7000_0000),
-        Shape::Fill([x0, y0, w, h], MENU_BG),
-        Shape::Fill([x0, y0, w, 2.0], 0xFF00_0000 | accent),
-    ];
+    let hover = |k: u64, r: [f32; 4]| ease(k, if inside(r, mouse) { 1.0 } else { 0.0 }, 0.0, animate);
+    let mut out = vec![Shape::Fill([0.0, 0.0, screen[2] + screen[0], screen[3] + screen[1]], 0x9800_0000)];
+    // A soft shadow and the accent's glow round the panel, its edge, then the panel.
+    for (spread, alpha) in [(18.0, 0.10), (10.0, 0.14), (4.0, 0.22)] {
+        rounded(&mut out, [x0 - spread, y0 - spread + 3.0, w + 2.0 * spread, h + 2.0 * spread], 6.0 + spread / 2.0, argb(0x000000, alpha));
+    }
+    rounded(&mut out, [x0 - 6.0, y0 - 6.0, w + 12.0, h + 12.0], 9.0, argb(accent, 0.05));
+    rounded(&mut out, [x0 - 1.0, y0 - 1.0, w + 2.0, h + 2.0], 6.0, PANEL_EDGE);
+    rounded(&mut out, [x0, y0, w, h], 5.0, MENU_BG);
+    // The accent line along the top, fading out to the right.
+    let segs = 32;
+    let sw = (w - 10.0) / segs as f32;
+    for i in 0..segs {
+        let t = i as f32 / segs as f32;
+        out.push(Shape::Fill([x0 + 5.0 + i as f32 * sw, y0, sw + 0.01, 2.0], argb(accent, 1.0 - t * 0.9)));
+    }
     let mut hits = Vec::new();
-    let title = [x0 + 6.0, y0 + 5.0, width("ARSENAL") + 8.0, 14.0];
-    if m.page != Page::Home && inside(title, mouse) {
-        out.push(Shape::Fill(title, ROW_BG));
-    }
-    out.push(Shape::Text("ARSENAL".into(), [x0 + 10.0, y0 + 9.0], accent, true));
+    // Title and where you are.
+    let title_w = width("ARSENAL") * 1.5;
+    let title = [x0 + 8.0, y0 + 6.0, title_w + 10.0, 20.0];
     if m.page != Page::Home {
+        let t = hover(key(1, 0), title);
+        if t > 0.01 {
+            rounded(&mut out, title, 4.0, argb(0xFFFFFF, 0.08 * t));
+        }
         hits.push((title, Action::Go(Page::Home)));
-        let page = match m.page {
-            Page::Modules => "Modules",
-            Page::Browse => "Browse",
-            Page::Cosmetics => "Cosmetics",
-            Page::Home => "",
-        };
-        out.push(Shape::Text(format!("> {page}"), [title[0] + title[2] + 4.0, y0 + 9.0], MUTED, false));
     }
-    let close = [x0 + w - 18.0, y0 + 5.0, 14.0, 14.0];
-    button(&mut out, &mut hits, close, "x", Action::Close, mouse, width);
+    label(&mut out, "ARSENAL", [x0 + 13.0, y0 + 11.0], solid, true, 1.5);
+    let crumb = match (m.page, m.detail.and_then(|d| JAVA_MODULES.get(d))) {
+        (Page::Home, _) => format!("on Horizon  {VERSION}"),
+        (Page::Modules, Some(j)) => format!("/  {}  /  {}", CATEGORIES[j.category], j.name),
+        (Page::Modules, None) => format!("/  Modules  /  {}", CATEGORIES.get(m.category).copied().unwrap_or("")),
+        (Page::Browse, _) => "/  Browse".into(),
+        (Page::Cosmetics, _) => "/  Cosmetics".into(),
+    };
+    label(&mut out, &fit(&crumb, w - title_w - 60.0, width), [x0 + 22.0 + title_w, y0 + 14.0], argb(MUTED, 1.0), false, 1.0);
+    let close = [x0 + w - 24.0, y0 + 9.0, 15.0, 15.0];
+    let t = hover(key(2, 0), close);
+    rounded(&mut out, close, 7.5, mix_argb(CARD, 0xD0E0_4848, t));
+    label(&mut out, "x", [close[0] + (close[2] - width("x")) / 2.0, close[1] + 3.5], 0xFFFF_FFFF, false, 1.0);
+    hits.push((close, Action::Close));
+    out.push(Shape::Fill([x0 + 10.0, y0 + HEADER - 2.0, w - 20.0, 1.0], 0x14FF_FFFF));
     let top = y0 + HEADER;
+    let mut content = out.len();
 
     match m.page {
         Page::Home => {
-            out.push(Shape::Text("on Horizon".into(), [x0 + 14.0 + width("ARSENAL"), y0 + 9.0], GREY, false));
-            let tiles: [(&str, String, Option<Page>); 3] = [
-                ("Modules", format!("{} on · {} of {} run on Horizon", modules_on(s), ON_HORIZON.len(), JAVA_MODULES.len()), Some(Page::Modules)),
-                ("Browse", "Crosshairs and themes from the website".into(), Some(Page::Browse)),
-                ("Cosmetics", "Not on Horizon yet".into(), Some(Page::Cosmetics)),
+            label(&mut out, "Welcome back", [x0 + 18.0, top + 10.0], 0xFFFF_FFFF, true, 1.25);
+            let on = modules_on(s);
+            let line = format!("{} of {} Arsenal modules run on Horizon  ·  {} on", ON_HORIZON.len(), JAVA_MODULES.len(), on);
+            label(&mut out, &fit(&line, w - 36.0, width), [x0 + 18.0, top + 26.0], argb(MUTED, 1.0), false, 1.0);
+            let bar = [x0 + 18.0, top + 40.0, w - 36.0, 4.0];
+            rounded(&mut out, bar, 2.0, 0x20FF_FFFF);
+            let part = ease(key(3, 0), ON_HORIZON.len() as f32 / JAVA_MODULES.len() as f32, 0.0, animate);
+            rounded(&mut out, [bar[0], bar[1], (bar[2] * part).max(4.0), bar[3]], 2.0, solid);
+            let tiles: [(&str, String, Page, u8); 3] = [
+                ("Modules", format!("{on} on. Switch them, set them, see what runs here."), Page::Modules, 0),
+                ("Browse", "Crosshairs and HUD themes from the website, one click to use.".into(), Page::Browse, 1),
+                ("Cosmetics", "Capes, hats and more: shown to players on the Java version.".into(), Page::Cosmetics, 2),
             ];
-            let tw = ((w - 32.0) / 3.0).floor();
-            let ty = top + (h - HEADER - 80.0) / 2.0;
-            for (i, (name, line, page)) in tiles.iter().enumerate() {
-                let r = [x0 + 12.0 + i as f32 * (tw + 4.0), ty, tw, 54.0];
-                let greyed = i == 2;
-                out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-                out.push(Shape::Fill([r[0], r[1], r[2], 2.0], if greyed { 0xFF5E_5E6A } else { 0xFF00_0000 | accent }));
-                out.push(Shape::Text((*name).into(), [r[0] + 8.0, r[1] + 12.0], if greyed { MUTED } else { WHITE }, true));
-                out.push(Shape::Text(fit(line, r[2] - 16.0, width), [r[0] + 8.0, r[1] + 30.0], if greyed { GREY } else { MUTED }, false));
-                if let Some(p) = page {
-                    hits.push((r, Action::Go(*p)));
+            let tw = ((w - 36.0 - 16.0) / 3.0).floor();
+            let ty = top + 54.0;
+            let th = (h - HEADER - 54.0 - 36.0).max(60.0);
+            for (i, (name, text, page, icon)) in tiles.iter().enumerate() {
+                let r = [x0 + 18.0 + i as f32 * (tw + 8.0), ty, tw, th];
+                let t = hover(key(4, i), r);
+                let lift = -2.0 * t;
+                let rr = [r[0], r[1] + lift, r[2], r[3]];
+                if t > 0.01 {
+                    rounded(&mut out, [rr[0] - 2.0, rr[1] - 2.0, rr[2] + 4.0, rr[3] + 4.0], 7.0, argb(accent, 0.12 * t));
                 }
+                rounded(&mut out, rr, 5.0, mix_argb(CARD, CARD_HOVER, t));
+                let line_w = rr[2] * (0.3 + 0.7 * t) - 10.0;
+                rounded(&mut out, [rr[0] + 5.0, rr[1] + 1.0, line_w.max(6.0), 2.0], 1.0, if *icon == 2 { 0xFF5E_5E6A } else { solid });
+                // The tile's mark.
+                let (ix, iy) = (rr[0] + 12.0, rr[1] + 14.0);
+                let ic = if *icon == 2 { argb(MUTED, 1.0) } else { solid };
+                match icon {
+                    0 => {
+                        for (dx, dy) in [(0.0, 0.0), (8.0, 0.0), (0.0, 8.0), (8.0, 8.0)] {
+                            rounded(&mut out, [ix + dx, iy + dy, 6.0, 6.0], 1.0, ic);
+                        }
+                    }
+                    1 => {
+                        out.push(Shape::Fill([ix + 6.0, iy, 2.0, 14.0], ic));
+                        out.push(Shape::Fill([ix, iy + 6.0, 14.0, 2.0], ic));
+                        rounded(&mut out, [ix + 4.0, iy + 4.0, 6.0, 6.0], 3.0, argb(0xFFFFFF, 0.9));
+                    }
+                    _ => {
+                        let (cx, cy) = (ix + 7.0, iy + 7.0);
+                        let pt = |a: f32, r: f32| [cx + a.cos() * r, cy + a.sin() * r];
+                        for k in 0..5 {
+                            let a = -std::f32::consts::FRAC_PI_2 + k as f32 * std::f32::consts::TAU / 5.0;
+                            out.push(Shape::Quad([[cx, cy], pt(a - 0.63, 3.0), pt(a, 7.5), pt(a + 0.63, 3.0)], ic));
+                        }
+                    }
+                }
+                label(&mut out, name, [rr[0] + 12.0, rr[1] + 36.0], 0xFFFF_FFFF, true, 1.25);
+                for (n, l) in wrap(text, rr[2] - 22.0, ((th - 54.0) / 10.0).floor().max(1.0) as usize, width).iter().enumerate() {
+                    label(&mut out, l, [rr[0] + 12.0, rr[1] + 52.0 + n as f32 * 10.0], argb(MUTED, 1.0), false, 1.0);
+                }
+                hits.push((r, Action::Go(*page)));
             }
-            let done = [x0 + (w - 80.0) / 2.0, y0 + h - 26.0, 80.0, 16.0];
-            button(&mut out, &mut hits, done, "Done", Action::Close, mouse, width);
+            let done = [x0 + (w - 84.0) / 2.0, y0 + h - 26.0, 84.0, 17.0];
+            let t = hover(key(5, 0), done);
+            button(&mut out, &mut hits, done, "Done", Action::Close, mouse, width, t);
+            label(&mut out, "Right Shift", [x0 + 18.0, y0 + h - 21.0], argb(GREY, 1.0), false, 1.0);
         }
         Page::Cosmetics => {
+            let card = [x0 + 18.0, top + 10.0, w - 36.0, 86.0];
+            rounded(&mut out, card, 5.0, CARD);
+            out.push(Shape::Fill([card[0], card[1] + 6.0, 2.0, card[3] - 12.0], solid));
+            label(&mut out, "Your cosmetics", [card[0] + 12.0, card[1] + 10.0], 0xFFFF_FFFF, true, 1.25);
             let lines = [
-                "Your Arsenal cosmetics still show to players on the Java version.",
-                "Horizon can't draw capes, hats or other cosmetics on players yet,",
-                "and doesn't pass your account to mods, so the Wardrobe isn't here yet.",
+                "They still show to players on the Java version of Arsenal.",
+                "Horizon can't draw capes, hats or pets on players yet, so the Wardrobe isn't here.",
                 "Change what you wear on the launcher's Cosmetics page.",
             ];
-            for (i, l) in lines.iter().enumerate() {
-                out.push(Shape::Text(fit(l, w - 28.0, width), [x0 + 14.0, top + 10.0 + i as f32 * 14.0], if i == 0 { WHITE } else { MUTED }, false));
+            let mut y = card[1] + 28.0;
+            for l in lines {
+                for part in wrap(l, card[2] - 24.0, 2, width) {
+                    label(&mut out, &part, [card[0] + 12.0, y], argb(MUTED, 1.0), false, 1.0);
+                    y += 11.0;
+                }
             }
-            let back = [x0 + 14.0, top + 74.0, 70.0, 16.0];
-            button(&mut out, &mut hits, back, "< Home", Action::Go(Page::Home), mouse, width);
+            let back = [x0 + 18.0, card[1] + card[3] + 10.0, 76.0, 17.0];
+            let t = hover(key(6, 0), back);
+            button(&mut out, &mut hits, back, "< Home", Action::Go(Page::Home), mouse, width, t);
         }
         Page::Browse => {
-            let mut tx = x0 + 10.0;
-            for (i, (label, _)) in BROWSE_TABS.iter().enumerate() {
-                let r = [tx, top, width(label) + 14.0, 15.0];
-                let selected = m.tab == i;
-                out.push(Shape::Fill(r, if selected { ROW_HOVER } else if inside(r, mouse) { ROW_BG } else { 0 }));
-                if selected {
-                    out.push(Shape::Fill([r[0], r[1] + r[3] - 1.0, r[2], 1.0], 0xFF00_0000 | accent));
-                }
-                out.push(Shape::Text((*label).into(), [r[0] + 7.0, r[1] + 4.0], if selected { WHITE } else { MUTED }, false));
-                hits.push((r, Action::Tab(i)));
+            let mut tx = x0 + 14.0;
+            let mut tabs = Vec::new();
+            for (name, _) in BROWSE_TABS.iter() {
+                let r = [tx, top + 4.0, width(name) + 18.0, 17.0];
+                tabs.push(r);
                 tx += r[2] + 4.0;
             }
-            if let Some(n) = &m.notice {
-                out.push(Shape::Text(fit(n, x0 + w - tx - 12.0, width), [tx + 6.0, top + 4.0], accent, false));
+            // The marker slides to the chosen tab.
+            if let Some(sel) = tabs.get(m.tab) {
+                let x = ease(key(7, 0), sel[0], sel[0], animate);
+                let tw = ease(key(7, 1), sel[2], sel[2], animate);
+                rounded(&mut out, [x, sel[1], tw, sel[3]], 5.0, CARD_HOVER);
+                rounded(&mut out, [x + 6.0, sel[1] + sel[3] - 2.0, tw - 12.0, 2.0], 1.0, solid);
             }
-            let gy = top + 22.0;
-            match browse {
-                Fetch::Loading => out.push(Shape::Text("Loading from the Arsenal website...".into(), [x0 + 12.0, gy + 6.0], MUTED, false)),
-                Fetch::Failed => {
-                    out.push(Shape::Text("Couldn't reach the Arsenal website.".into(), [x0 + 12.0, gy + 6.0], MUTED, false));
-                    button(&mut out, &mut hits, [x0 + 12.0, gy + 22.0, 70.0, 16.0], "Try again", Action::Retry, mouse, width);
+            for (i, r) in tabs.iter().enumerate() {
+                let t = hover(key(8, i), *r);
+                let selected = m.tab == i;
+                if !selected && t > 0.01 {
+                    rounded(&mut out, *r, 5.0, argb(0xFFFFFF, 0.07 * t));
                 }
-                Fetch::Ready(items) if items.is_empty() => out.push(Shape::Text("Nothing here yet.".into(), [x0 + 12.0, gy + 6.0], MUTED, false)),
+                let c = if selected { 0xFFFF_FFFF } else { mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, t) };
+                label(&mut out, BROWSE_TABS[i].0, [r[0] + 9.0, r[1] + 5.0], c, false, 1.0);
+                hits.push((*r, Action::Tab(i)));
+            }
+            if let Some(n) = &m.notice {
+                let text = fit(n, x0 + w - tx - 22.0, width);
+                let r = [tx + 6.0, top + 4.0, width(&text) + 14.0, 17.0];
+                rounded(&mut out, r, 5.0, argb(accent, 0.18));
+                label(&mut out, &text, [r[0] + 7.0, r[1] + 5.0], solid, false, 1.0);
+            }
+            content = out.len();
+            let gy = top + 28.0;
+            match browse {
+                Fetch::Loading => {
+                    let dots = if cfg!(test) { 3 } else { (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis()) / 300 % 4) as usize };
+                    label(&mut out, &format!("Loading from the Arsenal website{}", ".".repeat(dots)), [x0 + 16.0, gy + 6.0], argb(MUTED, 1.0), false, 1.0);
+                }
+                Fetch::Failed => {
+                    label(&mut out, "Couldn't reach the Arsenal website.", [x0 + 16.0, gy + 6.0], argb(MUTED, 1.0), false, 1.0);
+                    let r = [x0 + 16.0, gy + 22.0, 80.0, 17.0];
+                    let t = hover(key(9, 0), r);
+                    button(&mut out, &mut hits, r, "Try again", Action::Retry, mouse, width, t);
+                }
+                Fetch::Ready(items) if items.is_empty() => label(&mut out, "Nothing here yet.", [x0 + 16.0, gy + 6.0], argb(MUTED, 1.0), false, 1.0),
                 Fetch::Ready(items) => {
                     let (cols, rows) = grid(w, h);
                     let first_row = m.browse_scroll.min(items.len().div_ceil(cols).saturating_sub(rows));
                     for (n, item) in items.iter().enumerate().skip(first_row * cols).take(cols * rows) {
                         let k = n - first_row * cols;
-                        let r = [x0 + 10.0 + (k % cols) as f32 * (CARD_W + 4.0), gy + (k / cols) as f32 * (CARD_H + 4.0), CARD_W, CARD_H];
+                        let r = [x0 + 14.0 + (k % cols) as f32 * (CARD_W + 6.0), gy + (k / cols) as f32 * (CARD_H + 6.0), CARD_W, CARD_H];
                         let usable = !matches!(item.look, Look::Preset);
-                        out.push(Shape::Fill(r, if usable && inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-                        let preview = [r[0] + 4.0, r[1] + 4.0, r[2] - 8.0, 36.0];
-                        out.push(Shape::Fill(preview, 0xFF0A_0A0E));
+                        let t = if usable { hover(key(10, n), r) } else { 0.0 };
+                        let rr = [r[0], r[1] - 2.0 * t, r[2], r[3]];
+                        if t > 0.01 {
+                            rounded(&mut out, [rr[0] - 2.0, rr[1] - 2.0, rr[2] + 4.0, rr[3] + 4.0], 7.0, argb(accent, 0.14 * t));
+                        }
+                        rounded(&mut out, rr, 5.0, mix_argb(CARD, CARD_HOVER, t));
+                        let preview = [rr[0] + 4.0, rr[1] + 4.0, rr[2] - 8.0, 38.0];
+                        rounded(&mut out, preview, 3.0, 0xFF0A_0A0E);
                         match &item.look {
                             Look::Crosshair(c) => {
                                 let span = c.rows.len().max(c.rows.iter().map(|x| x.len()).max().unwrap_or(1)) as f32;
                                 let cell = (32.0 / span).min(3.0);
                                 out.extend(crosshair_shapes(c, [preview[0] + preview[2] / 2.0, preview[1] + preview[3] / 2.0], cell));
                             }
-                            Look::Theme(t) => {
-                                let p = [preview[0] + 8.0, preview[1] + 8.0, preview[2] - 16.0, 20.0];
-                                out.push(Shape::Fill(p, t.background));
-                                out.push(Shape::Fill([p[0], p[1], 2.0, p[3]], 0xFF00_0000 | t.accent));
-                                out.push(Shape::Text("FPS".into(), [p[0] + 6.0, p[1] + 6.0], t.accent, true));
-                                out.push(Shape::Text("144".into(), [p[0] + 8.0 + width("FPS"), p[1] + 6.0], t.text, true));
+                            Look::Theme(th) => {
+                                let p = [preview[0] + 8.0, preview[1] + 9.0, preview[2] - 16.0, 20.0];
+                                rounded(&mut out, p, 3.0, th.background);
+                                out.push(Shape::Fill([p[0], p[1] + 3.0, 2.0, p[3] - 6.0], 0xFF00_0000 | th.accent));
+                                out.push(Shape::Text("FPS".into(), [p[0] + 6.0, p[1] + 6.0], th.accent, true));
+                                out.push(Shape::Text("144".into(), [p[0] + 8.0 + width("FPS"), p[1] + 6.0], th.text, true));
                             }
-                            Look::Preset => out.push(Shape::Text("Java only".into(), [preview[0] + 6.0, preview[1] + 14.0], GREY, false)),
+                            Look::Preset => label(&mut out, "Java only", [preview[0] + 6.0, preview[1] + 15.0], argb(GREY, 1.0), false, 1.0),
                         }
-                        out.push(Shape::Text(fit(&item.title, r[2] - 8.0, width), [r[0] + 4.0, r[1] + 44.0], if usable { WHITE } else { GREY }, false));
-                        out.push(Shape::Text(fit(&item.author, r[2] - 8.0, width), [r[0] + 4.0, r[1] + 56.0], GREY, false));
+                        label(&mut out, &fit(&item.title, rr[2] - 10.0, width), [rr[0] + 5.0, rr[1] + 47.0], if usable { 0xFFFF_FFFF } else { argb(GREY, 1.0) }, false, 1.0);
+                        label(&mut out, &fit(&format!("by {}", item.author), rr[2] - 10.0, width), [rr[0] + 5.0, rr[1] + 59.0], argb(GREY, 1.0), false, 1.0);
                         if usable {
                             hits.push((r, Action::Apply(n)));
                         }
@@ -5013,101 +5295,148 @@ pub fn menu_layout(
             }
         }
         Page::Modules => {
-            out.push(Shape::Fill([x0, top, SIDE, h - HEADER], SIDEBAR_BG));
+            let side = [x0 + 6.0, top + 2.0, SIDE - 4.0, h - HEADER - 8.0];
+            rounded(&mut out, side, 4.0, SIDEBAR_BG);
+            let selected = m.detail.and_then(|d| JAVA_MODULES.get(d)).map_or(m.category, |j| j.category);
+            let cat_r = |i: usize| [side[0] + 4.0, side[1] + 5.0 + i as f32 * 19.0, side[2] - 8.0, 17.0];
+            // The marker slides to the chosen category.
+            let target = cat_r(selected);
+            let y = ease(key(11, 0), target[1], target[1], animate);
+            rounded(&mut out, [target[0], y, target[2], target[3]], 4.0, CARD_HOVER);
+            rounded(&mut out, [target[0], y + 4.0, 2.0, target[3] - 8.0], 1.0, solid);
             for (i, name) in CATEGORIES.iter().enumerate() {
-                let r = [x0, top + 4.0 + i as f32 * 16.0, SIDE, 16.0];
-                let selected = match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
-                    Some(j) => j.category == i,
-                    None => m.category == i,
-                };
-                if selected {
-                    out.push(Shape::Fill(r, ROW_HOVER));
-                    out.push(Shape::Fill([r[0], r[1], 2.0, r[3]], 0xFF00_0000 | accent));
-                } else if inside(r, mouse) {
-                    out.push(Shape::Fill(r, ROW_BG));
+                let r = cat_r(i);
+                let t = hover(key(12, i), r);
+                if i != selected && t > 0.01 {
+                    rounded(&mut out, r, 4.0, argb(0xFFFFFF, 0.06 * t));
                 }
-                out.push(Shape::Text(fit(name, SIDE - 16.0, width), [r[0] + 9.0, r[1] + 4.0], if selected { WHITE } else { MUTED }, false));
+                let list = category_modules(i);
+                let on = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some_and(|(f, _)| s.v[f] == 1)).count();
+                let count = if on > 0 { on.to_string() } else { String::new() };
+                let c = if i == selected { 0xFFFF_FFFF } else { mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, t) };
+                label(&mut out, &fit(name, r[2] - 26.0, width), [r[0] + 8.0, r[1] + 5.0], c, false, 1.0);
+                if !count.is_empty() {
+                    label(&mut out, &count, [r[0] + r[2] - width(&count) - 6.0, r[1] + 5.0], if i == selected { solid } else { argb(GREY, 1.0) }, false, 1.0);
+                }
                 hits.push((r, Action::Category(i)));
             }
-            let cx = x0 + SIDE + 8.0;
-            let cw = w - SIDE - 16.0;
+            content = out.len();
+            let cx = x0 + SIDE + 10.0;
+            let cw = w - SIDE - 22.0;
             match m.detail.and_then(|d| JAVA_MODULES.get(d)) {
                 Some(module) => {
-                    let back = [cx, top, width("< Back") + 10.0, 14.0];
-                    button(&mut out, &mut hits, back, "< Back", Action::Back, mouse, width);
-                    out.push(Shape::Text(module.name.into(), [back[0] + back[2] + 8.0, top + 3.0], accent, true));
-                    out.push(Shape::Text(fit(module.description, cw, width), [cx, top + 20.0], MUTED, false));
-                    let mut y = top + 34.0;
+                    let back = [cx, top + 4.0, width("< Back") + 14.0, 16.0];
+                    let t = hover(key(13, 0), back);
+                    button(&mut out, &mut hits, back, "< Back", Action::Back, mouse, width, t);
+                    label(&mut out, &fit(module.name, cw - back[2] - 12.0, width), [back[0] + back[2] + 10.0, top + 7.0], solid, true, 1.25);
+                    let mut y = top + 26.0;
+                    for l in wrap(module.description, cw, 2, width) {
+                        label(&mut out, &l, [cx, y], argb(MUTED, 1.0), false, 1.0);
+                        y += 10.0;
+                    }
+                    y += 4.0;
                     match on_horizon(module.id) {
                         Some((toggle, fields)) => {
                             if let Some(note) = horizon_note(module.id) {
-                                out.push(Shape::Text(fit(note, cw, width), [cx, y], GREY, false));
-                                y += 14.0;
+                                let lines = wrap(note, cw - 18.0, 3, width);
+                                let r = [cx, y, cw, 8.0 + lines.len() as f32 * 10.0];
+                                rounded(&mut out, r, 4.0, argb(accent, 0.10));
+                                out.push(Shape::Fill([r[0], r[1] + 3.0, 2.0, r[3] - 6.0], solid));
+                                for (n, l) in lines.iter().enumerate() {
+                                    label(&mut out, l, [r[0] + 9.0, r[1] + 5.0 + n as f32 * 10.0], 0xFFE0_E0E8, false, 1.0);
+                                }
+                                y += r[3] + 6.0;
                             }
                             for &f in std::iter::once(&toggle).chain(fields.iter()) {
-                                if y + 18.0 > y0 + h - 4.0 {
+                                if y + 20.0 > y0 + h - 4.0 {
                                     break;
                                 }
-                                let r = [cx, y, cw, 16.0];
-                                out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-                                let label = if f == toggle { format!("Enabled: {}", FIELDS[f].options[s.v[f]].1) } else { s.label(f) };
-                                out.push(Shape::Text(fit(&label, cw - 12.0, width), [r[0] + 6.0, r[1] + 4.0], WHITE, false));
+                                let r = [cx, y, cw, 19.0];
+                                let t = hover(key(14, f), r);
+                                rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
+                                let name = if f == toggle { "Enabled" } else { FIELDS[f].label };
+                                label(&mut out, &fit(name, cw - 110.0, width), [r[0] + 8.0, r[1] + 6.0], 0xFFFF_FFFF, false, 1.0);
+                                if FIELDS[f].options == ONOFF {
+                                    let on = ease(key(15, f), s.v[f] as f32, s.v[f] as f32, animate);
+                                    switch(&mut out, [r[0] + r[2] - 30.0, r[1] + 4.0], on, accent);
+                                } else {
+                                    let value = fit(FIELDS[f].options[s.v[f]].1, 90.0, width);
+                                    let vw = width(&value) + 22.0;
+                                    let chip = [r[0] + r[2] - vw - 6.0, r[1] + 3.0, vw, 13.0];
+                                    rounded(&mut out, chip, 4.0, mix_argb(0x20FF_FFFF, argb(accent, 0.35), t));
+                                    label(&mut out, &value, [chip[0] + 11.0, chip[1] + 3.0], 0xFFFF_FFFF, false, 1.0);
+                                    label(&mut out, ">", [chip[0] + chip[2] - 8.0, chip[1] + 3.0], argb(MUTED, 1.0), false, 1.0);
+                                }
                                 hits.push((r, Action::Setting(f)));
-                                y += 19.0;
+                                y += 22.0;
                             }
                             if module.id == "custom_crosshair" || module.id == "hud_theme" {
-                                let r = [cx, y + 4.0, width("Open Browse") + 14.0, 16.0];
-                                button(&mut out, &mut hits, r, "Open Browse", Action::Go(Page::Browse), mouse, width);
+                                let r = [cx, y + 4.0, width("Open Browse") + 18.0, 17.0];
+                                let t = hover(key(16, 0), r);
+                                button(&mut out, &mut hits, r, "Open Browse", Action::Go(Page::Browse), mouse, width, t);
                             }
                         }
                         None => {
-                            out.push(Shape::Text("Only in the Java version of Arsenal for now:".into(), [cx, y], GREY, false));
-                            out.push(Shape::Text(fit(why_not(module.id), cw, width), [cx, y + 12.0], GREY, false));
+                            let lines = wrap(why_not(module.id), cw - 18.0, 3, width);
+                            let r = [cx, y, cw, 20.0 + lines.len() as f32 * 10.0];
+                            rounded(&mut out, r, 4.0, CARD);
+                            label(&mut out, "Only in the Java version of Arsenal for now:", [r[0] + 9.0, r[1] + 6.0], 0xFFFF_FFFF, false, 1.0);
+                            for (n, l) in lines.iter().enumerate() {
+                                label(&mut out, l, [r[0] + 9.0, r[1] + 18.0 + n as f32 * 10.0], argb(MUTED, 1.0), false, 1.0);
+                            }
                         }
                     }
                 }
                 None => {
                     let list = category_modules(m.category);
+                    let on = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some_and(|(f, _)| s.v[f] == 1)).count();
+                    let here = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some()).count();
+                    label(&mut out, CATEGORIES.get(m.category).copied().unwrap_or(""), [cx + 2.0, top + 7.0], 0xFFFF_FFFF, true, 1.25);
+                    let info = format!("{on} on  ·  {here} of {} on Horizon", list.len());
+                    label(&mut out, &info, [cx + cw - width(&info) - 2.0, top + 9.0], argb(GREY, 1.0), false, 1.0);
                     let shown = rows_shown(screen);
                     let first = m.scroll.min(list.len().saturating_sub(shown));
+                    let ly = top + LIST_TOP;
                     for (row, &i) in list.iter().skip(first).take(shown).enumerate() {
                         let module = &JAVA_MODULES[i];
-                        let r = [cx, top + 4.0 + row as f32 * ROW, cw, ROW - 3.0];
+                        let r = [cx, ly + row as f32 * ROW, cw, ROW - 4.0];
                         let here = on_horizon(module.id);
-                        out.push(Shape::Fill(r, if inside(r, mouse) { ROW_HOVER } else { ROW_BG }));
-                        let right = 44.0;
-                        let (name_rgb, desc_rgb) = if here.is_some() { (WHITE, MUTED) } else { (GREY, GREY) };
-                        out.push(Shape::Text(fit(module.name, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 3.0], name_rgb, false));
-                        out.push(Shape::Text(fit(module.description, cw - right - 12.0, width), [r[0] + 6.0, r[1] + 13.0], desc_rgb, false));
-                        // Every row opens: the greyed-out ones say why they don't run here.
+                        let t = hover(key(17, i), r);
+                        rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
+                        if t > 0.01 && here.is_some() {
+                            out.push(Shape::Fill([r[0], r[1] + 5.0, 2.0, (r[3] - 10.0) * t], solid));
+                        }
+                        let right = 46.0;
+                        let (name_c, desc_c) = if here.is_some() { (0xFFFF_FFFF, argb(MUTED, 1.0)) } else { (argb(GREY, 1.0), argb(GREY, 0.8)) };
+                        label(&mut out, &fit(module.name, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 3.5], name_c, false, 1.0);
+                        label(&mut out, &fit(module.description, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 13.5], desc_c, false, 1.0);
                         hits.push((r, Action::Open(i)));
                         match here {
                             Some((toggle, _)) => {
-                                let pill = [r[0] + r[2] - 30.0, r[1] + 6.0, 22.0, 11.0];
-                                let on = s.v[toggle] == 1;
-                                out.push(Shape::Fill(pill, if on { 0xFF00_0000 | accent } else { 0x50FF_FFFF }));
-                                let knob = if on { pill[0] + pill[2] - 10.0 } else { pill[0] + 1.0 };
-                                out.push(Shape::Fill([knob, pill[1] + 1.0, 9.0, 9.0], 0xFFFF_FFFF));
-                                hits.push(([pill[0] - 4.0, r[1], pill[2] + 8.0, r[3]], Action::Toggle(i)));
+                                let on = ease(key(18, i), s.v[toggle] as f32, s.v[toggle] as f32, animate);
+                                switch(&mut out, [r[0] + r[2] - 30.0, r[1] + 6.0], on, accent);
+                                hits.push(([r[0] + r[2] - 36.0, r[1], 36.0, r[3]], Action::Toggle(i)));
                             }
                             None => {
                                 let tag = "Java only";
-                                out.push(Shape::Text(tag.into(), [r[0] + r[2] - width(tag) - 6.0, r[1] + 8.0], GREY, false));
+                                let tr = [r[0] + r[2] - width(tag) - 16.0, r[1] + 6.0, width(tag) + 10.0, 12.0];
+                                rounded(&mut out, tr, 4.0, 0x14FF_FFFF);
+                                label(&mut out, tag, [tr[0] + 5.0, tr[1] + 2.5], argb(GREY, 1.0), false, 1.0);
                             }
                         }
                     }
                     if list.len() > shown {
-                        let track = [cx + cw + 3.0, top + 4.0, 2.0, shown as f32 * ROW - 3.0];
-                        out.push(Shape::Fill(track, ROW_BG));
+                        let track = [cx + cw + 4.0, ly, 3.0, shown as f32 * ROW - 4.0];
+                        rounded(&mut out, track, 1.5, 0x14FF_FFFF);
                         let part = shown as f32 / list.len() as f32;
-                        let at = first as f32 / list.len() as f32;
-                        out.push(Shape::Fill([track[0], track[1] + track[3] * at, 2.0, (track[3] * part).max(6.0)], 0xFF00_0000 | accent));
+                        let at = ease(key(19, m.category), first as f32 / list.len() as f32, 0.0, animate);
+                        rounded(&mut out, [track[0], track[1] + track[3] * at, 3.0, (track[3] * part).max(8.0)], 1.5, solid);
                     }
                 }
             }
         }
     }
-    (out, hits)
+    (out, hits, content)
 }
 
 /// What a click at `mouse` does, from the same layout as the drawing.
@@ -5313,6 +5642,28 @@ mod tests {
         assert_eq!(p.len(), 1);
         assert!((p[0].2 - 10.0).abs() < 1e-6 && p[0].3.abs() < 1e-3, "straight ahead: {p:?}");
         assert!(route(&Settings::default(), "hi".into()).is_some());
+    }
+
+    #[test]
+    fn the_menu_remake_draws_round_and_wraps() {
+        let mut out = Vec::new();
+        rounded(&mut out, [0.0, 0.0, 20.0, 10.0], 3.0, 0x80FF_FFFF);
+        let area: f32 = out.iter().map(|s| if let Shape::Fill(r, _) = s { r[2] * r[3] } else { 0.0 }).sum();
+        assert!(area < 200.0 && area > 185.0, "corners cut, nothing drawn twice: {area}");
+        assert_eq!(mix_argb(0x0000_0000, 0xFFFF_FFFF, 0.5), 0x8080_8080);
+        assert_eq!(argb(0x123456, 1.0), 0xFF12_3456);
+        let lines = wrap("one two three four five six", 6.0 * 9.0, 2, &width);
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].ends_with("...") || lines[1].split(' ').count() <= 2);
+        // A frame of every page has the same clicks as its layout, and fades nothing out once settled.
+        let screen = [0.0, 0.0, 640.0, 360.0];
+        let s = Settings::default();
+        for page in [Page::Home, Page::Modules, Page::Browse, Page::Cosmetics] {
+            let m = Menu { page, ..Menu::default() };
+            let frame = menu_frame(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+            let (layout, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+            assert_eq!(frame.len(), layout.len());
+        }
     }
 
     #[test]
@@ -5833,7 +6184,7 @@ mod tests {
         let mut m = Menu::default();
         // Home: the Modules tile opens the modules.
         let (shapes, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
-        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Text(t, _, _, _) if t == "ARSENAL")));
+        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Styled(t, ..) if t == "ARSENAL")));
         let tile = hits.iter().find(|(_, a)| *a == Action::Go(Page::Modules)).unwrap().0;
         let a = menu_click(screen, [tile[0] + 5.0, tile[1] + 5.0], &m, &s, &none, &width).unwrap();
         apply(a, &mut m, &mut s, &none);
@@ -5853,7 +6204,7 @@ mod tests {
         assert!(!hits.iter().any(|(_, a)| *a == Action::Toggle(java_only)));
         apply(Action::Open(java_only), &mut m, &mut s, &none);
         let (shapes, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
-        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Text(t, _, _, _) if t.starts_with("Only in the Java version"))));
+        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Styled(t, ..) if t.starts_with("Only in the Java version"))));
         apply(Action::Back, &mut m, &mut s, &none);
         // Settings view.
         let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();

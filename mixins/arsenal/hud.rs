@@ -35,6 +35,7 @@ fn arsenal_hud(
                     game.native_item(batch, &id, at, 16.0);
                 }
                 m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
             }
         }
     }
@@ -72,6 +73,7 @@ fn arsenal_hud(
                     game.native_item(batch, &id, at, 16.0);
                 }
                 m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
             }
         }
     }
@@ -141,6 +143,7 @@ fn arsenal_hud(
                     game.native_item(batch, &id, at, 16.0);
                 }
                 m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
             }
         }
     }
@@ -180,6 +183,7 @@ fn arsenal_hud(
                     game.native_item(batch, &id, [x + dx, y + dy], 16.0);
                 }
                 m::Shape::Quad(points, argb) => game.native_quad(batch, points.map(|[px, py]| [x + px, y + py]), argb),
+                m::Shape::Styled(text, [dx, dy], argb, shadow, scale) => game.arsenal_text(batch, &text, [x + dx, y + dy], argb, shadow, scale),
             }
         }
     }

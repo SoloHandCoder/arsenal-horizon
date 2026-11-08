@@ -11,7 +11,7 @@ fn arsenal_screen(
     let settings = m::raw_settings(|key| game.native_setting(m::ID, key));
     let menu = m::menu();
     let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
-    let (shapes, _) = m::menu_layout(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text));
+    let shapes = m::menu_frame(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text));
     for shape in shapes {
         match shape {
             m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
@@ -20,6 +20,7 @@ fn arsenal_screen(
                 game.native_item(batch, &id, at, 16.0);
             }
             m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+            m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
         }
     }
 }
