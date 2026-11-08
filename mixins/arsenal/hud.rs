@@ -10,6 +10,24 @@ fn arsenal_hud(
         return;
     }
     use horizon_client::extras::Corner;
+    // Draws Arsenal's shapes.
+    let arsenal_draw = |game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, shapes: Vec<m::Shape>| {
+        for shape in shapes {
+            match shape {
+                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
+                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+                m::Shape::Item(id, at) => {
+                    game.native_item(batch, &id, at, 16.0);
+                }
+                m::Shape::Icon(id, at, size) => {
+                    game.native_item(batch, &id, at, size);
+                }
+                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
+            }
+        }
+    };
+    m::hud_begin();
     let settings = {
         let game = &*game;
         m::settings(|key| game.native_setting(m::ID, key))
@@ -24,20 +42,16 @@ fn arsenal_hud(
         }
         let game = &*game;
         let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
+        let width = |text: &str| game.native_text_width(text);
+        let (w, h) = (batch.width, batch.height);
         let mut shapes = m::low_health_shapes(&settings, &health, millis);
+        let at = shapes.len();
         shapes.extend(m::saturation_shapes(&settings, &health));
-        shapes.extend(m::health_shapes(&settings, &health, &|text| game.native_text_width(text)));
-        for shape in shapes {
-            match shape {
-                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
-                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
-                m::Shape::Item(id, at) => {
-                    game.native_item(batch, &id, at, 16.0);
-                }
-                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
-                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
-            }
-        }
+        m::place(&settings, &mut shapes, at, "saturation", w, h, &width);
+        let at = shapes.len();
+        shapes.extend(m::health_shapes(&settings, &health, &width));
+        m::place(&settings, &mut shapes, at, "health", w, h, &width);
+        arsenal_draw(game, batch, shapes);
     }
     // The inventory modules (Arsenal's inventory hook, patches/inventory.json): Armor HUD, Item Counter, the
     // offhand totem and durability warnings and Ready Check.
@@ -62,20 +76,17 @@ fn arsenal_hud(
         let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
         let width = |text: &str| game.native_text_width(text);
         let mut shapes = m::armor_shapes(&settings, &inv, w, h, &width);
-        shapes.extend(m::counter_shapes(&settings, &inv, w, h, &width));
-        shapes.extend(m::warning_shapes(&settings, &inv, w, h, millis, &width));
-        shapes.extend(m::ready_shapes(&settings, &inv, h, &width));
-        for shape in shapes {
-            match shape {
-                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
-                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
-                m::Shape::Item(id, at) => {
-                    game.native_item(batch, &id, at, 16.0);
-                }
-                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
-                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
-            }
+        m::place(&settings, &mut shapes, 0, "armor", w, h, &width);
+        for (id, more) in [
+            ("counter", m::counter_shapes(&settings, &inv, w, h, &width)),
+            ("warnings", m::warning_shapes(&settings, &inv, w, h, millis, &width)),
+            ("ready", m::ready_shapes(&settings, &inv, h, &width)),
+        ] {
+            let at = shapes.len();
+            shapes.extend(more);
+            m::place(&settings, &mut shapes, at, id, w, h, &width);
         }
+        arsenal_draw(game, batch, shapes);
     }
     // The combat modules (Arsenal's chat and players hooks): in the world through the camera, and on the HUD.
     {
@@ -134,18 +145,10 @@ fn arsenal_hud(
             block.as_deref(), aimed, me, &friends, cam.as_ref(), batch.width, batch.height, &width));
         shapes.extend(m::world_shapes(&settings, &world, me, armor, target, block.as_deref(), cam.as_ref(), batch.width, batch.height, &width));
         let me_yaw = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
-        shapes.extend(m::later_shapes(&settings, &others, &friends, me_yaw, status.attack, cam.as_ref(), batch.width, batch.height, &width));
-        for shape in shapes {
-            match shape {
-                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
-                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
-                m::Shape::Item(id, at) => {
-                    game.native_item(batch, &id, at, 16.0);
-                }
-                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
-                m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
-            }
-        }
+        shapes.extend(m::skyblock_shapes(&settings, batch.width, batch.height, &width));
+        let aim = horizon_client::camera::arsenal::quick_aim();
+        shapes.extend(m::later_shapes(&settings, &others, &friends, me_yaw, status.attack, aim, cam.as_ref(), batch.width, batch.height, &width));
+        arsenal_draw(game, batch, shapes);
     }
     let fps = game.native_frame_rate().0;
     let player = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
@@ -166,25 +169,20 @@ fn arsenal_hud(
     let game = &*game;
     let mut boxes = Vec::new();
     if let Some(panel) = m::panel(&lines, &settings, &|text| game.native_text_width(text)) {
-        boxes.push(panel);
+        boxes.push(("panel", panel));
     }
     if settings.on(m::GRAPH) {
         if let Some(graph) = m::graph(&m::fps_history(), &settings) {
-            boxes.push(graph);
+            boxes.push(("graph", graph));
         }
     }
-    for (shapes, w, h) in boxes {
+    let width = |text: &str| game.native_text_width(text);
+    let (sw, sh) = (batch.width, batch.height);
+    for (id, (shapes, w, h)) in boxes {
         let (x, y) = corners.place(corner, w, h);
-        for shape in shapes {
-            match shape {
-                m::Shape::Fill([dx, dy, w, h], argb) => game.native_fill(batch, [x + dx, y + dy, w, h], argb),
-                m::Shape::Text(text, [dx, dy], rgb, shadow) => game.native_text(batch, &text, [x + dx, y + dy], rgb, shadow),
-                m::Shape::Item(id, [dx, dy]) => {
-                    game.native_item(batch, &id, [x + dx, y + dy], 16.0);
-                }
-                m::Shape::Quad(points, argb) => game.native_quad(batch, points.map(|[px, py]| [x + px, y + py]), argb),
-                m::Shape::Styled(text, [dx, dy], argb, shadow, scale) => game.arsenal_text(batch, &text, [x + dx, y + dy], argb, shadow, scale),
-            }
-        }
+        let mut moved: Vec<m::Shape> = shapes.into_iter().map(|s| m::offset(s, [x, y])).collect();
+        m::place(&settings, &mut moved, 0, id, sw, sh, &width);
+        arsenal_draw(game, batch, moved);
     }
 }
+

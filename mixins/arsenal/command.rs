@@ -33,6 +33,10 @@ fn arsenal_command(game: &mut crate::game::Game<'_>, command: &str, ran: &mut bo
             m::send_crash(&dir);
             game.native_chat("Crash report sent. Thanks!");
         }
+        m::Command::Cloud(save) => {
+            m::cloud_ask(save);
+            game.native_chat(if save { "Saving to your Arsenal cloud backup..." } else { "Restoring from your Arsenal cloud backup..." });
+        }
         m::Command::ForgetCrash => {
             let _ = std::fs::remove_file(dir.join("crash.txt"));
             game.native_chat("Crash report dropped.");

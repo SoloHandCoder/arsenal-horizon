@@ -10,6 +10,19 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
         m::clicked();
         m::attacked();
     }
+    // F8: Inventory Cursor Speed off at once.
+    if pressed && key == "key.keyboard.f8" {
+        let raw = {
+            let game = &*game;
+            m::raw_settings(|name| game.native_setting(m::ID, name))
+        };
+        if raw.on(m::CURSOR) {
+            let (new, value, _) = m::toggled(&raw, m::CURSOR);
+            m::set_settings(&new);
+            game.native_set_setting(m::ID, m::FIELDS[m::CURSOR].key, value);
+            game.native_chat("Inventory Cursor Speed is off (F8).");
+        }
+    }
     // Free Look and Quick Menu (held) and Performance Mode's key; a feature to switch comes back.
     for (id, _, fallback) in m::MORE_KEYS {
         if key != game.native_mod_key(m::ID, id, fallback) {
@@ -20,7 +33,12 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
             m::settings(|name| game.native_setting(m::ID, name))
         };
         let playing = game.native_playing();
-        if let Some(field) = m::more_key(&settings, id, pressed, playing) {
+        let quick = id == m::MORE_KEYS[1].0 && settings.on(m::QUICK_MENU);
+        let aim = horizon_client::camera::arsenal::quick_aim();
+        if quick {
+            horizon_client::camera::arsenal::set_quick(pressed && playing);
+        }
+        if let Some(field) = m::more_key(&settings, id, pressed, playing, aim) {
             let raw = {
                 let game = &*game;
                 m::raw_settings(|name| game.native_setting(m::ID, name))

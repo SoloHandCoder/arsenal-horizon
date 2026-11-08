@@ -104,6 +104,38 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         }
         m::ask_wardrobe(&settings, game.arsenal_uuid());
         m::lyrics_tick(&settings);
+        // Hypixel SkyBlock: the sidebar and tab list (Arsenal's patches/more.json).
+        let sidebar = game.arsenal_sidebar();
+        let tab = game.arsenal_tab_lines();
+        if let Some(note) = m::skyblock_tick(&settings, game.arsenal_server().as_deref(), &sidebar, &tab) {
+            if let Some(note) = m::route(&settings, note) {
+                game.native_chat(&note);
+            }
+        }
+        // Cloud Backup: requests signed with your Mojang chat key, as the Java mod's.
+        let raw = {
+            let game = &*game;
+            m::raw_settings(|key| game.native_setting(m::ID, key))
+        };
+        let cloud = {
+            let game = &*game;
+            m::cloud_tick(&settings, &raw, &|prefix, extra| game.arsenal_signed(prefix, extra))
+        };
+        if !cloud.restore.is_empty() {
+            for (key, value) in &cloud.restore {
+                game.native_set_setting(m::ID, key, value);
+            }
+            let fresh = {
+                let game = &*game;
+                m::Settings::read(|key| game.native_setting(m::ID, key))
+            };
+            m::set_settings(&fresh);
+        }
+        if let Some(note) = cloud.say {
+            game.native_chat(&note);
+        }
+        // Inventory Cursor Speed (its own cursor is drawn by gui_post.rs).
+        a::CURSOR_SPEED.store(if settings.on(m::CURSOR) { m::FIELDS[m::CURSOR_SPEED].options[settings.v[m::CURSOR_SPEED]].0.parse().unwrap_or(100) } else { 100 }, Relaxed);
         let server = game.arsenal_server();
         let joined = {
             let game = &*game;
@@ -133,6 +165,7 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
     if !lines.is_empty() || own.is_some() {
         m::chat_lines(&settings, own.as_deref(), &lines);
     }
+    m::skyblock_chat(&lines);
     let others: Vec<m::Other> = game.arsenal_others().into_iter().map(|o| m::Other {
         id: o.id,
         uuid: o.uuid,

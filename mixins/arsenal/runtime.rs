@@ -245,6 +245,7 @@ pub const PLACE_KINDS: &[(&str, &str)] = &[("pop", "Pop in"), ("flash", "Flash")
 pub const HIDE_AS: &[(&str, &str)] = &[("You", "You"), ("Player", "Player"), ("Arsenal user", "Arsenal user"), ("???", "???")];
 pub const VOLUME_STEPS: &[(&str, &str)] = &[("50", "50%"), ("25", "25%"), ("0", "Muted"), ("75", "75%"), ("100", "100%"), ("150", "150%")];
 pub const MESSAGE_WHERE: &[(&str, &str)] = &[("chat", "Chat"), ("toast", "Small toasts")];
+pub const CURSOR_SPEEDS: &[(&str, &str)] = &[("50", "50%"), ("75", "75%"), ("125", "125%"), ("150", "150%"), ("200", "200%")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -452,7 +453,15 @@ pub const UPDATES: usize = 199;
 pub const NOTES: usize = 200;
 pub const PROFILES: usize = 201;
 pub const LYRICS: usize = 202;
-const N: usize = 203;
+pub const SKYBLOCK: usize = 203;
+pub const SB_PRICES: usize = 204;
+pub const SB_SPAM: usize = 205;
+pub const ALBUM: usize = 206;
+pub const ALBUM_SKY: usize = 207;
+pub const CLOUD: usize = 208;
+pub const CURSOR: usize = 209;
+pub const CURSOR_SPEED: usize = 210;
+const N: usize = 211;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -658,6 +667,14 @@ pub const FIELDS: [Field; N] = [
     Field { key: "server_notes", label: "Server Notes", options: ONOFF, default: 0 },
     Field { key: "server_profiles", label: "Server Profiles", options: ONOFF, default: 0 },
     Field { key: "spotify_lyrics", label: "Spotify Lyrics", options: ONOFF, default: 0 },
+    Field { key: "hypixel_skyblock", label: "Hypixel SkyBlock", options: ONOFF, default: 0 },
+    Field { key: "skyblock_prices", label: "Prices in tooltips", options: ONOFF, default: 0 },
+    Field { key: "skyblock_spam_filter", label: "Hide spammy lines", options: ONOFF, default: 1 },
+    Field { key: "album_colors", label: "Spotify Album Colors", options: ONOFF, default: 0 },
+    Field { key: "album_sky", label: "Sky too", options: ONOFF, default: 1 },
+    Field { key: "cloud_backup", label: "Cloud Backup", options: ONOFF, default: 0 },
+    Field { key: "inventory_cursor_speed", label: "Inventory Cursor Speed", options: ONOFF, default: 0 },
+    Field { key: "cursor_speed", label: "Speed", options: CURSOR_SPEEDS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -806,6 +823,10 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("server_notes", NOTES, &[]),
     ("server_profiles", PROFILES, &[]),
     ("spotify_lyrics", LYRICS, &[]),
+    ("hypixel_skyblock", SKYBLOCK, &[SB_PRICES, SB_SPAM]),
+    ("album_colors", ALBUM, &[ALBUM_SKY]),
+    ("cloud_backup", CLOUD, &[]),
+    ("inventory_cursor_speed", CURSOR, &[CURSOR_SPEED]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -935,7 +956,11 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "update_notice" => "On Horizon: tells you when a newer Arsenal Horizon is out (the launcher installs it when you press Play).",
         "server_notes" => "On Horizon: /arsenal note <text> keeps a note for the server you're on; it shows when you join.",
         "server_profiles" => "On Horizon: /arsenal profile save keeps your setup for this server and loads it whenever you join; /arsenal profile clear forgets it.",
-        "spotify_lyrics" => "On Horizon (Windows): the lyrics of the song playing in Spotify on the HUD, timed from when the song started.",
+        "spotify_lyrics" => "On Horizon: the lyrics of the song playing in Spotify on the HUD, in time with Spotify (Windows, macOS, Linux with playerctl).",
+        "hypixel_skyblock" => "On Horizon: your area, purse, bits and the SkyBlock date, Booster Cookie and God Potion timers, dungeon and slayer cards, Bazaar and NPC prices in tooltips and a spam filter. Only reads what the game shows.",
+        "album_colors" => "On Horizon (Windows): the HUD and menu accent, and the sky with Arsenal's shader pack, take the colours of the album playing in Spotify.",
+        "cloud_backup" => "On Horizon: /arsenal cloud save keeps your Horizon setup in your Arsenal cloud backup (next to the Java one, which stays as it is) and every 5 minutes after a change; /arsenal cloud restore brings it back on any PC (or your Java setup's modules when there's no Horizon one).",
+        "inventory_cursor_speed" => "On Horizon: a separate mouse speed in inventories. Your real cursor is never moved: Arsenal draws its own. F8 turns it off at once.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -950,11 +975,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
     match id {
-        "blade_settings" => return "Horizon has no Wardrobe blades to set: they're drawn by the Java mod only.",
-        "inventory_cursor_speed" => return "Horizon's inventories use your real mouse cursor, which Arsenal never moves.",
-        "cloud_backup" => return "The cloud backup holds the Java mod's setup; Horizon's settings are different and would overwrite it.",
-        "album_colors" => return "Needs the album cover's colours, which Horizon can't read from Spotify yet.",
-        "hypixel_skyblock" => return "Horizon doesn't let mods read the sidebar and tab list's lines yet.",
+        "blade_settings" => return "Horizon doesn't draw Wardrobe blades yet (they're models the Java mod adds), so there's nothing to set.",
         _ => {}
     }
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
@@ -1009,6 +1030,10 @@ pub struct Settings {
     /// What Browse applied.
     pub theme: Option<Theme>,
     pub crosshair: Option<Crosshair>,
+    /// Where the HUD editor moved elements: (element, [dx, dy, scale]).
+    pub layout: Vec<(String, [f32; 3])>,
+    /// The modules starred in the menu (Java ids), in the order starred.
+    pub favorites: Vec<String>,
 }
 
 impl Default for Settings {
@@ -1017,7 +1042,7 @@ impl Default for Settings {
         for (i, f) in FIELDS.iter().enumerate() {
             v[i] = f.default;
         }
-        Self { v, theme: None, crosshair: None }
+        Self { v, theme: None, crosshair: None, layout: Vec::new(), favorites: Vec::new() }
     }
 }
 
@@ -1048,6 +1073,9 @@ impl Settings {
             let c: Vec<u32> = t.split(',').filter_map(parse_color).collect();
             (c.len() == 3).then(|| Theme { background: c[0], text: c[1] & 0xFF_FFFF, accent: c[2] & 0xFF_FFFF })
         });
+        s.layout = get("hud_layout").map(|t| parse_layout(&t)).unwrap_or_default();
+        s.favorites = get("favorites").map(|t| t.split(',').map(str::trim).filter(|f| JAVA_MODULES.iter().any(|j| j.id == *f)).map(str::to_owned).collect())
+            .unwrap_or_default();
         s.crosshair = get("browse_crosshair").and_then(|t| {
             let mut parts = t.trim().split(';');
             let rows: Vec<String> = parts.next()?.split('/').map(str::to_owned).collect();
@@ -1084,6 +1112,8 @@ impl Settings {
         let mut out: Vec<(&'static str, String)> = FIELDS.iter().enumerate().map(|(i, f)| (f.key, f.options[self.v[i]].0.to_owned())).collect();
         out.push(("browse_theme", self.theme.map_or(String::new(), |t| format!("#{:08X},#{:06X},#{:06X}", t.background, t.text, t.accent))));
         out.push(("browse_crosshair", self.crosshair.as_ref().map_or(String::new(), |c| format!("{};#{:06X};{}", c.rows.join("/"), c.rgb, c.size))));
+        out.push(("hud_layout", layout_text(&self.layout)));
+        out.push(("favorites", self.favorites.join(",")));
         out
     }
 
@@ -1097,11 +1127,17 @@ impl Settings {
 
     /// The panel's and the menu's accent (0xRRGGBB): HUD Theme's, else gold.
     pub fn accent(&self) -> u32 {
-        match self.browse_theme() {
+        let base = match self.browse_theme() {
             Some(t) => t.accent,
             None if self.on(THEME) => ACCENT_RGB.get(self.v[ACCENT]).copied().unwrap_or(ACCENT_RGB[0]),
             None => ACCENT_RGB[0],
+        };
+        if self.on(ALBUM) {
+            if let Some(c) = album_now().map(|p| p.0) {
+                return mix_rgb(base, c, 0.8);
+            }
         }
+        base
     }
 
     /// The panel's background (0xAARRGGBB) and value text (0xRRGGBB).
@@ -1202,6 +1238,17 @@ pub enum Page {
     Modules,
     Browse,
     Cosmetics,
+    /// The HUD editor: drag, resize and reset Arsenal's HUD elements over the game.
+    HudEdit,
+}
+
+/// A HUD element being dragged: which, where the pointer holds it, and the layout before (for Undo).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Drag {
+    pub id: &'static str,
+    pub grab: [f32; 2],
+    pub before: String,
+    pub moved: bool,
 }
 
 /// The Right Shift menu's own state.
@@ -1217,7 +1264,18 @@ pub struct Menu {
     pub tab: usize,
     pub browse_scroll: usize,
     pub notice: Option<String>,
+    /// Modules: what's typed in the search box, and whether typing goes there.
+    pub search: String,
+    pub search_focus: bool,
+    /// The HUD editor: the element held, the one picked, Undo's layouts and the snap lines shown.
+    pub drag: Option<Drag>,
+    pub picked: Option<&'static str>,
+    pub undo: Vec<String>,
+    pub guides: Vec<[f32; 4]>,
 }
+
+/// The sidebar's Favorites row (after the categories in `category`).
+pub const FAVORITES: usize = CATEGORIES.len();
 
 #[derive(Default)]
 struct State {
@@ -1263,6 +1321,7 @@ struct State {
     extra: Extra,
     pack_done: bool,
     more: More,
+    more2: More2,
     in_world: bool,
 }
 
@@ -1956,6 +2015,7 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
     let mut out = Vec::new();
     let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
     let now = Instant::now();
+    let mark = out.len();
     if settings.on(POTIONS) && !status.effects.is_empty() {
         let mut y = (h / 2.0 - status.effects.len() as f32 * 6.0).floor();
         for (id, level, ticks) in &status.effects {
@@ -1966,10 +2026,13 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
             y += 12.0;
         }
     }
+    place(settings, &mut out, mark, "potions", w, h, width);
+    let mark = out.len();
     if settings.on(ATTACK_BAR) && status.attack < 1.0 {
         out.push(Shape::Fill([cx - 8.0, cy + 9.0, 16.0, 2.0], 0xA000_0000));
         out.push(Shape::Fill([cx - 8.0, cy + 9.0, (16.0 * status.attack).round(), 2.0], 0xFF00_0000 | settings.accent()));
     }
+    place(settings, &mut out, mark, "attack_bar", w, h, width);
     if settings.on(CRIT_IND) && falling && status.attack >= 0.9 {
         out.push(Shape::Quad([[cx, cy - 6.0], [cx + 2.0, cy - 4.0], [cx, cy - 2.0], [cx - 2.0, cy - 4.0]], 0xFFFF_C83D));
     }
@@ -1979,15 +2042,19 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
         }
     }
     let mut corner: Vec<(String, u32)> = Vec::new();
+    let mark = out.len();
     if settings.on(CLOCK) {
         corner.push((clock.to_owned(), 0xFFFFFF));
     }
+    place(settings, &mut out, mark, "clock", w, h, width);
+    let mark = out.len();
     if settings.on(LAG) {
         match status.ping {
             Some(ms) => corner.push((format!("Ping {ms} ms"), ping_rgb(ms))),
             None => corner.push(("Ping -".into(), 0xAAAAAA)),
         }
     }
+    place(settings, &mut out, mark, "lag", w, h, width);
     STATE.with_borrow(|st| {
         let p = &st.pvp;
         if settings.on(SESSION_STATS) {
@@ -2034,17 +2101,21 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
         }
         let _ = now;
     });
+    let mark = out.len();
     if settings.on(INV_TOTEM) && totems > 0 {
         out.push(Shape::Item("minecraft:totem_of_undying".into(), [cx - 30.0, cy - 8.0]));
         out.push(Shape::Text(totems.to_string(), [cx - 13.0, cy - 4.0], 0xFFFFFF, true));
     }
+    place(settings, &mut out, mark, "totems", w, h, width);
     let mut y = 4.0;
+    let mark = out.len();
     for (text, rgb) in corner {
         let tw = width(&text);
         out.push(Shape::Fill([2.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
         out.push(Shape::Text(text, [5.0, y], rgb, false));
         y += 12.0;
     }
+    place(settings, &mut out, mark, "stats", w, h, width);
     if let (true, Some(cam)) = (settings.on(NAMETAG_PING), cam) {
         for o in others {
             let Some(ms) = status.latencies.iter().find(|l| l.0 == o.name).map(|l| l.1).filter(|ms| *ms > 0) else { continue };
@@ -2080,8 +2151,12 @@ pub struct Visuals {
 
 /// The lines Chat Filter hides (lower case pieces of them).
 fn chat_hidden(settings: &Settings) -> Vec<String> {
+    let mut spam: Vec<String> = Vec::new();
+    if settings.on(SKYBLOCK) && settings.on(SB_SPAM) && STATE.with_borrow(|s| s.more2.skyblock.is_some()) {
+        spam.extend(SKYBLOCK_SPAM.iter().map(|s| s.to_string()));
+    }
     if !settings.on(CHAT_FILTER) {
-        return Vec::new();
+        return spam;
     }
     let joins = ["joined the game", "left the game", "joined the server", "left the server"];
     let ads = ["discord.gg", "http://", "https://", "[ad]", "/vote", "store.", ".tebex"];
@@ -2091,6 +2166,7 @@ fn chat_hidden(settings: &Settings) -> Vec<String> {
         2 => out.extend(ads.iter().map(|s| s.to_string())),
         _ => out.extend(joins.iter().chain(ads.iter()).map(|s| s.to_string())),
     }
+    out.extend(spam);
     out
 }
 
@@ -2201,6 +2277,7 @@ pub fn world_shapes(settings: &Settings, world: &World, me: Option<[f64; 3]>, my
                     cam: Option<&Cam>, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
     let mut out = Vec::new();
     let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
+    let mark = out.len();
     if settings.on(COOLDOWN) {
         let mut x = cx - 91.0;
         for (id, left) in &world.cooldowns {
@@ -2210,6 +2287,7 @@ pub fn world_shapes(settings: &Settings, world: &World, me: Option<[f64; 3]>, my
             x += 20.0;
         }
     }
+    place(settings, &mut out, mark, "cooldowns", w, h, width);
     if let Some(cam) = cam {
         if settings.on(TNT) {
             for (pos, fuse) in &world.tnts {
@@ -2706,6 +2784,11 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
     if settings.on(SLICK) {
         p[6][0] = 1.0;
     }
+    if settings.on(ALBUM) && settings.on(ALBUM_SKY) {
+        if let Some((_, sky)) = album_now() {
+            p[3] = [((sky >> 16) & 255) as f32 / 255.0, ((sky >> 8) & 255) as f32 / 255.0, (sky & 255) as f32 / 255.0, 0.55];
+        }
+    }
     let amount = |i: usize| AMOUNTS[settings.v[i]].0.parse::<f32>().unwrap_or(0.5);
     if settings.on(BLOOM) {
         p[0][0] = amount(BLOOM_AMT);
@@ -3079,7 +3162,6 @@ struct More {
     asked_wardrobe: bool,
     asked_update: bool,
     crash_checked: bool,
-    lyrics_polled: Option<Instant>,
 }
 
 /// What other threads hand back (STATE is this thread's only).
@@ -3181,11 +3263,28 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
 pub const MORE_KEYS: [(&str, &str, &str); 3] = [("key_free_look", "Free Look (hold)", "key.keyboard.left.alt"), ("key_quick_menu", "Quick Menu (hold)", "key.keyboard.v"),
     ("key_performance", "Performance Mode", "key.keyboard.unknown")];
 
-/// The features on Quick Menu's wheel.
+/// The features on Quick Menu's wheel when nothing is starred.
 pub const QUICK: [usize; 8] = [BLOOM, LOOK, MOTION, MIST, HITBOXES, PARTICLES, FREE_LOOK, PERF];
 
+/// Quick Menu's wheel: the starred modules that run on Horizon (up to 10), else the usual eight.
+pub fn quick_list(settings: &Settings) -> Vec<usize> {
+    let starred: Vec<usize> = settings.favorites.iter().filter_map(|f| on_horizon(f).map(|(field, _)| field)).take(10).collect();
+    if starred.is_empty() { QUICK.to_vec() } else { starred }
+}
+
+/// The wheel's entry the mouse points to (the pointer's pull from the middle), else the one the wheel picked.
+pub fn quick_pick(n: usize, aim: Option<(f32, f32)>, wheel: usize) -> usize {
+    match aim {
+        Some((x, y)) if (x * x + y * y).sqrt() > 12.0 && n > 0 => {
+            let a = y.atan2(x) + std::f32::consts::FRAC_PI_2;
+            ((a / std::f32::consts::TAU * n as f32).round() as i64).rem_euclid(n as i64) as usize
+        }
+        _ => wheel.min(n.saturating_sub(1)),
+    }
+}
+
 /// A key of this version went down or up: Free Look and Quick Menu are held; a feature to switch comes back.
-pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool) -> Option<usize> {
+pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool, aim: Option<(f32, f32)>) -> Option<usize> {
     STATE.with_borrow_mut(|s| {
         let m = &mut s.more;
         match id {
@@ -3198,7 +3297,8 @@ pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool) -> 
                     m.quick = Some(0);
                     None
                 } else {
-                    m.quick.take().map(|i| QUICK[i])
+                    let list = quick_list(settings);
+                    m.quick.take().map(|i| list[quick_pick(list.len(), aim, i)])
                 }
             }
             "key_performance" if pressed => Some(PERF),
@@ -3211,7 +3311,7 @@ pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool) -> 
 pub fn quick_wheel(steps: f32) -> bool {
     STATE.with_borrow_mut(|s| {
         let Some(i) = s.more.quick.as_mut() else { return false };
-        let n = QUICK.len() as i32;
+        let n = 10;
         *i = (*i as i32 - steps.signum() as i32).rem_euclid(n) as usize;
         true
     })
@@ -3322,6 +3422,8 @@ pub enum Command {
     Store(String, String, String),
     SendCrash,
     ForgetCrash,
+    /// Cloud Backup: save (true) or restore.
+    Cloud(bool),
 }
 
 /// `/arsenal <args>`: notes, profiles and crash reports.
@@ -3353,11 +3455,16 @@ pub fn command(settings: &Settings, raw: &Settings, args: &str, server: Option<&
                 _ => Command::Say("/arsenal profile save or /arsenal profile clear".into()),
             }
         }
+        "cloud" => match rest {
+            "save" => Command::Cloud(true),
+            "restore" => Command::Cloud(false),
+            _ => Command::Say("/arsenal cloud save or /arsenal cloud restore".into()),
+        },
         "crash" => match rest {
             "forget" => Command::ForgetCrash,
             _ => Command::SendCrash,
         },
-        _ => Command::Say("Arsenal: /arsenal note <text>, /arsenal note clear, /arsenal profile save, /arsenal profile clear".into()),
+        _ => Command::Say("Arsenal: /arsenal note <text>, /arsenal note clear, /arsenal profile save, /arsenal profile clear, /arsenal cloud save, /arsenal cloud restore".into()),
     }
 }
 
@@ -3562,6 +3669,7 @@ pub fn parse_lrc(text: &str) -> Vec<(f32, String)> {
 }
 
 /// Spotify's window title as the song: "Artist - Song", none while paused or not playing.
+#[allow(dead_code)]
 pub fn song_of(title: &str) -> Option<String> {
     let t = title.trim();
     (t.contains(" - ") && !t.starts_with("Spotify")).then(|| t.to_owned())
@@ -3571,75 +3679,12 @@ fn percent(text: &str) -> String {
     text.bytes().map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") }).collect()
 }
 
-/// Looks at Spotify every 3 seconds (Windows: its window's title).
+/// Spotify Lyrics and Album Colors read Spotify through the media reader (started once).
 pub fn lyrics_tick(settings: &Settings) {
-    if !settings.on(LYRICS) || !cfg!(windows) {
-        return;
-    }
-    let due = STATE.with_borrow_mut(|s| {
-        let due = s.more.lyrics_polled.is_none_or(|t| t.elapsed() > Duration::from_secs(3));
-        if due {
-            s.more.lyrics_polled = Some(Instant::now());
-        }
-        due
-    });
-    if due {
-        poll_spotify();
+    if settings.on(LYRICS) || settings.on(ALBUM) {
+        media_start();
     }
 }
-#[cfg(not(test))]
-fn poll_spotify() {
-    std::thread::spawn(|| {
-        let mut cmd = std::process::Command::new("tasklist");
-        cmd.args(["/v", "/fo", "csv", "/nh", "/fi", "imagename eq Spotify.exe"]);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x0800_0000);
-        }
-        let Ok(out) = cmd.output() else { return };
-        let text = String::from_utf8_lossy(&out.stdout);
-        let song = text.lines().filter_map(|l| l.trim().strip_suffix('"')?.rsplit("\",\"").next().and_then(song_of)).next();
-        let fetch = net_more(|n| {
-            match (&song, &n.song) {
-                (Some(a), Some(b)) if a == b => {
-                    if let Some(p) = n.paused_at.take() {
-                        if let Some(start) = n.song_start.as_mut() {
-                            *start += p.elapsed();
-                        }
-                    }
-                    None
-                }
-                (Some(a), _) => {
-                    n.song = Some(a.clone());
-                    n.song_start = Some(Instant::now().checked_sub(Duration::from_millis(1500)).unwrap_or_else(Instant::now));
-                    n.paused_at = None;
-                    n.lyrics.clear();
-                    (n.lyrics_for.as_ref() != Some(a)).then(|| a.clone())
-                }
-                (None, _) => {
-                    if n.song.is_some() && n.paused_at.is_none() {
-                        n.paused_at = Some(Instant::now());
-                    }
-                    None
-                }
-            }
-        });
-        if let Some(song) = fetch {
-            let (artist, track) = song.split_once(" - ").unwrap_or(("", &song));
-            let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}", percent(artist), percent(track));
-            let answer = ureq::get(&url).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
-            let lines = answer.and_then(|a| serde_json::from_str::<serde_json::Value>(&a).ok())
-                .and_then(|v| v["syncedLyrics"].as_str().map(parse_lrc)).unwrap_or_default();
-            net_more(|n| {
-                n.lyrics = lines;
-                n.lyrics_for = Some(song);
-            });
-        }
-    });
-}
-#[cfg(test)]
-fn poll_spotify() {}
 
 /// The lyric line sung `at` seconds into the song, and the next.
 pub fn lyric_at(lines: &[(f32, String)], at: f32) -> Option<(&str, Option<&str>)> {
@@ -3663,7 +3708,7 @@ pub fn party(others: &[Other], friends: &[String], me: [f64; 3], yaw: f32) -> Ve
 
 /// Draws this version's HUD and world parts: block animations, the sprint bolt, toasts, Party, lyrics and Quick Menu.
 #[allow(clippy::too_many_arguments)]
-pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], me: Option<([f64; 3], f32)>, attack: f32, cam: Option<&Cam>,
+pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], me: Option<([f64; 3], f32)>, attack: f32, aim: Option<(f32, f32)>, cam: Option<&Cam>,
                     w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
     let mut out = Vec::new();
     let accent = settings.accent();
@@ -3716,6 +3761,7 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
         out.push(Shape::Quad([[x + 3.0, y], [x + 6.0, y], [x + 3.5, y + 4.0], [x + 1.0, y + 4.0]], g));
         out.push(Shape::Quad([[x + 2.5, y + 3.5], [x + 5.5, y + 3.5], [x + 1.5, y + 8.5], [x + 3.0, y + 3.5]], g));
     }
+    let mark = out.len();
     for (i, (text, _)) in toasts.iter().enumerate() {
         let tw = width(text);
         let y = 4.0 + i as f32 * 14.0;
@@ -3723,6 +3769,8 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
         out.push(Shape::Fill([w - tw - 12.0, y, 2.0, 12.0], 0xFF00_0000 | accent));
         out.push(Shape::Text(text.clone(), [w - tw - 7.0, y + 2.0], 0xFFFFFF, false));
     }
+    place(settings, &mut out, mark, "toasts", w, h, width);
+    let mark = out.len();
     if settings.on(PARTY) {
         if let Some((pos, yaw)) = me {
             for (i, (name, health, distance, angle)) in party(others, friends, pos, yaw).iter().enumerate() {
@@ -3739,6 +3787,8 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
             }
         }
     }
+    place(settings, &mut out, mark, "party", w, h, width);
+    let mark = out.len();
     if settings.on(LYRICS) {
         let line = net_more(|n| {
             let at = n.song_start.map(|s| (n.paused_at.unwrap_or_else(Instant::now)).saturating_duration_since(s).as_secs_f32())?;
@@ -3753,15 +3803,33 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
             }
         }
     }
-    if let Some(pick) = quick {
-        for (i, f) in QUICK.iter().enumerate() {
-            let a = i as f32 / QUICK.len() as f32 * std::f32::consts::TAU - std::f32::consts::FRAC_PI_2;
-            let label = format!("{} {}", FIELDS[*f].label, if settings.v[*f] == 1 { "ON" } else { "OFF" });
-            let tw = width(&label);
-            let (x, y) = (cx + a.cos() * 70.0 - tw / 2.0, cy + a.sin() * 50.0 - 4.0);
-            out.push(Shape::Fill([x - 3.0, y - 2.0, tw + 6.0, 12.0], if i == pick { 0xD000_0000 | (accent & 0xFF_FFFF) } else { 0xA000_0000 }));
-            out.push(Shape::Text(label, [x, y], 0xFFFFFF, true));
+    place(settings, &mut out, mark, "lyrics", w, h, width);
+    if let Some(wheel) = quick {
+        let list = quick_list(settings);
+        let pick = quick_pick(list.len(), aim, wheel);
+        let n = list.len() as f32;
+        rounded(&mut out, [cx - 18.0, cy - 18.0, 36.0, 36.0], 18.0, 0x9010_1014);
+        if let Some((x, y)) = aim {
+            let len = (x * x + y * y).sqrt().min(16.0);
+            let a = y.atan2(x);
+            rounded(&mut out, [cx + a.cos() * len - 2.5, cy + a.sin() * len - 2.5, 5.0, 5.0], 2.5, 0xFF00_0000 | accent);
         }
+        for (i, f) in list.iter().enumerate() {
+            let a = i as f32 / n * std::f32::consts::TAU - std::f32::consts::FRAC_PI_2;
+            let on = settings.v[*f] == 1;
+            let text = FIELDS[*f].label.to_owned();
+            let tw = width(&text) + 20.0;
+            let (x, y) = (cx + a.cos() * 84.0 - tw / 2.0, cy + a.sin() * 58.0 - 8.0);
+            let r = [x, y, tw, 16.0];
+            if i == pick {
+                rounded(&mut out, [r[0] - 2.0, r[1] - 2.0, r[2] + 4.0, r[3] + 4.0], 9.0, argb(accent, 0.35));
+            }
+            rounded(&mut out, r, 8.0, if i == pick { 0xF020_2028 } else { 0xD014_141A });
+            rounded(&mut out, [r[0] + 5.0, r[1] + 5.0, 6.0, 6.0], 3.0, if on { 0xFF00_0000 | accent } else { 0x60FF_FFFF });
+            out.push(Shape::Text(text, [r[0] + 14.0, r[1] + 4.0], 0xFFFFFF, false));
+        }
+        let hint = "Point, then let go";
+        out.push(Shape::Text(hint.into(), [cx - width(hint) / 2.0, cy + 84.0], 0xAAAAAA, true));
     }
     out
 }
@@ -3770,6 +3838,1099 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
 pub fn toast(text: String) {
     STATE.with_borrow_mut(|s| s.more.toasts.push((text, Instant::now())));
 }
+
+
+// ---- Movable HUD elements ----
+
+/// The HUD elements the editor moves: (id, name).
+pub const HUD_ELEMENTS: &[(&str, &str)] = &[
+    ("panel", "Info HUD"), ("graph", "FPS Graph"), ("health", "Health HUD"), ("saturation", "Saturation"), ("armor", "Armor HUD"),
+    ("counter", "Item Counter"), ("warnings", "Warnings"), ("ready", "Ready Check"), ("potions", "Potion Timers"),
+    ("attack_bar", "Attack Charge Bar"), ("clock", "Clock"), ("lag", "Lag Meter"), ("stats", "Session and fight lines"),
+    ("totems", "Totem Count"), ("streak", "Kill Streaks"), ("combat_tag", "Combat Tag Timer"), ("mention", "Mention Ping"),
+    ("pops", "Totem Pop Counter"), ("target", "Target HUD"), ("bow", "Bow Charge"), ("retotem", "Re-totem Timer"),
+    ("goal", "Session Goal"), ("intel", "Opponent Intel"), ("summary", "Session Summary"), ("cooldowns", "Cooldown HUD"),
+    ("toasts", "Arsenal toasts"), ("party", "Party"), ("lyrics", "Spotify Lyrics"), ("skyblock_info", "SkyBlock"),
+    ("skyblock_timers", "SkyBlock timers"), ("skyblock_dungeon", "SkyBlock dungeon"), ("skyblock_slayer", "SkyBlock slayer"),
+];
+
+/// "id=dx,dy,scale;..." as the layout.
+pub fn parse_layout(text: &str) -> Vec<(String, [f32; 3])> {
+    text.split(';').filter_map(|p| {
+        let (id, v) = p.split_once('=')?;
+        let n: Vec<f32> = v.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+        (n.len() == 3 && HUD_ELEMENTS.iter().any(|e| e.0 == id.trim()) && n.iter().all(|x| x.is_finite()))
+            .then(|| (id.trim().to_owned(), [n[0].clamp(-4000.0, 4000.0), n[1].clamp(-4000.0, 4000.0), n[2].clamp(0.5, 3.0)]))
+    }).collect()
+}
+
+pub fn layout_text(layout: &[(String, [f32; 3])]) -> String {
+    layout.iter().map(|(id, v)| format!("{id}={:.0},{:.0},{:.1}", v[0], v[1], v[2])).collect::<Vec<_>>().join(";")
+}
+
+thread_local! {
+    /// This frame's HUD elements as drawn: (id, where it is, where it would be unmoved).
+    static HUD_BOXES: RefCell<Vec<(&'static str, [f32; 4], [f32; 4])>> = const { RefCell::new(Vec::new()) };
+}
+
+/// A HUD frame starts.
+pub fn hud_begin() {
+    HUD_BOXES.with_borrow_mut(|b| b.clear());
+}
+
+/// This frame's HUD elements: (id, rect drawn, rect unmoved).
+pub fn hud_boxes() -> Vec<(&'static str, [f32; 4], [f32; 4])> {
+    HUD_BOXES.with_borrow(|b| b.clone())
+}
+
+/// What `shapes` cover.
+pub fn bounds(shapes: &[Shape], width: &dyn Fn(&str) -> f32) -> Option<[f32; 4]> {
+    let mut b: Option<[f32; 4]> = None;
+    let mut add = |r: [f32; 4]| {
+        if r[2] <= 0.0 && r[3] <= 0.0 {
+            return;
+        }
+        b = Some(match b {
+            None => [r[0], r[1], r[0] + r[2], r[1] + r[3]],
+            Some(o) => [o[0].min(r[0]), o[1].min(r[1]), o[2].max(r[0] + r[2]), o[3].max(r[1] + r[3])],
+        });
+    };
+    for sh in shapes {
+        match sh {
+            Shape::Fill(r, c) => if c >> 24 != 0 { add(*r) },
+            Shape::Text(t, at, _, _) => add([at[0], at[1], width(t), 8.0]),
+            Shape::Styled(t, at, _, _, sc) => add([at[0], at[1], width(t) * sc, 8.0 * sc]),
+            Shape::Item(_, at) => add([at[0], at[1], 16.0, 16.0]),
+            Shape::Icon(_, at, size) => add([at[0], at[1], *size, *size]),
+            Shape::Quad(p, _) => {
+                let (x0, x1) = (p.iter().map(|q| q[0]).fold(f32::MAX, f32::min), p.iter().map(|q| q[0]).fold(f32::MIN, f32::max));
+                let (y0, y1) = (p.iter().map(|q| q[1]).fold(f32::MAX, f32::min), p.iter().map(|q| q[1]).fold(f32::MIN, f32::max));
+                add([x0, y0, x1 - x0, y1 - y0]);
+            }
+        }
+    }
+    b.map(|b| [b[0], b[1], b[2] - b[0], b[3] - b[1]])
+}
+
+/// A shape moved by `d`.
+pub fn offset(shape: Shape, d: [f32; 2]) -> Shape {
+    let p = |q: [f32; 2]| [q[0] + d[0], q[1] + d[1]];
+    match shape {
+        Shape::Fill(r, c) => Shape::Fill([r[0] + d[0], r[1] + d[1], r[2], r[3]], c),
+        Shape::Text(t, at, rgb, sh) => Shape::Text(t, p(at), rgb, sh),
+        Shape::Styled(t, at, c, sh, sc) => Shape::Styled(t, p(at), c, sh, sc),
+        Shape::Item(i, at) => Shape::Item(i, p(at)),
+        Shape::Icon(i, at, size) => Shape::Icon(i, p(at), size),
+        Shape::Quad(q, c) => Shape::Quad(q.map(p), c),
+    }
+}
+
+/// HUD element `id` is `out[from..]`: moved and sized as the HUD editor left it, kept on screen, and noted for the editor.
+pub fn place(settings: &Settings, out: &mut Vec<Shape>, from: usize, id: &'static str, w: f32, h: f32, width: &dyn Fn(&str) -> f32) {
+    let Some(home) = bounds(&out[from..], width) else { return };
+    let [dx, dy, sc] = settings.layout.iter().find(|(i, _)| i == id).map_or([0.0, 0.0, 1.0], |e| e.1);
+    let (bw, bh) = (home[2] * sc, home[3] * sc);
+    let x = (home[0] + dx).clamp(0.0, (w - bw).max(0.0));
+    let y = (home[1] + dy).clamp(0.0, (h - bh).max(0.0));
+    let moved = [x, y, bw, bh];
+    if dx != 0.0 || dy != 0.0 || sc != 1.0 || x != home[0] + dx || y != home[1] + dy {
+        let (ox, oy) = (home[0], home[1]);
+        let p = |q: [f32; 2]| [x + (q[0] - ox) * sc, y + (q[1] - oy) * sc];
+        for sh in &mut out[from..] {
+            *sh = match std::mem::replace(sh, Shape::Fill([0.0; 4], 0)) {
+                Shape::Fill(r, c) => {
+                    let a = p([r[0], r[1]]);
+                    Shape::Fill([a[0], a[1], r[2] * sc, r[3] * sc], c)
+                }
+                Shape::Text(t, at, rgb, shadow) if sc != 1.0 => Shape::Styled(t, p(at), 0xFF00_0000 | rgb, shadow, sc),
+                Shape::Text(t, at, rgb, shadow) => Shape::Text(t, p(at), rgb, shadow),
+                Shape::Styled(t, at, c, shadow, s2) => Shape::Styled(t, p(at), c, shadow, s2 * sc),
+                Shape::Item(i, at) if sc != 1.0 => Shape::Icon(i, p(at), 16.0 * sc),
+                Shape::Item(i, at) => Shape::Item(i, p(at)),
+                Shape::Icon(i, at, size) => Shape::Icon(i, p(at), size * sc),
+                Shape::Quad(q, c) => Shape::Quad(q.map(p), c),
+            };
+        }
+    }
+    HUD_BOXES.with_borrow_mut(|b| b.push((id, moved, home)));
+}
+
+
+// ---- 1.14: SkyBlock, Album Colors and the media reader, Cloud Backup ----
+
+#[derive(Default)]
+struct More2 {
+    /// In SkyBlock now (Hypixel), what the sidebar and tab list said.
+    skyblock: Option<SkyBlock>,
+    /// Booster Cookie and God Potion: seconds left when read, and when.
+    cookie: Option<(u64, Instant)>,
+    god: Option<(u64, Instant)>,
+    /// The ability's cooldown: until when.
+    ability: Option<Instant>,
+    deaths: u32,
+    run_start: Option<Instant>,
+    cookie_warned: bool,
+    cloud: Cloud,
+}
+
+/// SkyBlock's lines Hide spammy lines hides (lower case).
+pub const SKYBLOCK_SPAM: &[&str] = &["kill combo", "there are blocks in the way", "you are playing on profile:", "watchdog has banned",
+    "staff have banned an additional", "[watchdog announcement]", "this item is on cooldown", "autopet equipped your", "enemies for "];
+
+/// What SkyBlock's sidebar and tab list show.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SkyBlock {
+    pub area: String,
+    pub purse: Option<(String, f64)>,
+    pub bits: Option<f64>,
+    pub date: String,
+    pub time: String,
+    pub objective: String,
+    pub pet: String,
+    pub slayer: Option<(String, String)>,
+    pub dungeon_time: String,
+    pub cleared: Option<u32>,
+    pub crypts: Option<u32>,
+    pub secrets: Option<u32>,
+}
+
+/// A line without colour codes, odd symbols or extra spaces.
+pub fn sb_clean(text: &str) -> String {
+    let mut out = String::new();
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c == '§' {
+            chars.next();
+            continue;
+        }
+        if matches!(c, '⚽' | '⛃' | '\u{200B}' | '\u{FE0F}') || ('\u{1F000}'..='\u{1FAFF}').contains(&c) {
+            continue;
+        }
+        out.push(c);
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The first number in a line: "1,234.5" as 1234.5.
+pub fn first_number(text: &str) -> Option<f64> {
+    let start = text.find(|c: char| c.is_ascii_digit())?;
+    let neg = start > 0 && text[..start].ends_with('-');
+    let num: String = text[start..].chars().take_while(|c| c.is_ascii_digit() || *c == ',' || *c == '.').filter(|c| *c != ',').collect();
+    num.trim_end_matches('.').parse::<f64>().ok().map(|v| if neg { -v } else { v })
+}
+
+/// "1d 2h 3m", "12:34" or "1:02:03" as seconds.
+pub fn sb_duration(text: &str) -> Option<u64> {
+    let t = text.to_lowercase();
+    let mut total = 0u64;
+    let mut found = false;
+    let words: Vec<&str> = t.split_whitespace().collect();
+    for w in &words {
+        let digits: String = w.chars().take_while(|c| c.is_ascii_digit()).collect();
+        let unit = &w[digits.len()..];
+        if let (Ok(n), Some(u)) = (digits.parse::<u64>(), unit.chars().next()) {
+            if unit.len() == 1 || unit.chars().nth(1).is_some_and(|c| !c.is_alphabetic()) {
+                let mul = match u { 'y' => 365 * 86400, 'd' => 86400, 'h' => 3600, 'm' => 60, 's' => 1, _ => 0 };
+                if mul > 0 {
+                    total += n * mul;
+                    found = true;
+                }
+            }
+        }
+    }
+    if found {
+        return Some(total);
+    }
+    let clock = words.iter().find(|w| w.contains(':') && w.chars().all(|c| c.is_ascii_digit() || c == ':'))?;
+    let parts: Vec<u64> = clock.split(':').filter_map(|p| p.parse().ok()).collect();
+    match parts.as_slice() {
+        [m, s] => Some(m * 60 + s),
+        [h, m, s] => Some(h * 3600 + m * 60 + s),
+        _ => None,
+    }
+}
+
+/// Coins as SkyBlock shows them short: 1.2B, 4.56M, 12.3k.
+pub fn coins(v: f64) -> String {
+    let a = v.abs();
+    if a >= 1e9 {
+        format!("{:.1}B", v / 1e9)
+    } else if a >= 1e6 {
+        format!("{:.2}M", v / 1e6)
+    } else if a >= 1e4 {
+        format!("{:.1}k", v / 1e3)
+    } else if a >= 100.0 {
+        let n = v.round() as i64;
+        let s = n.abs().to_string();
+        let mut out = String::new();
+        for (i, c) in s.chars().enumerate() {
+            if i > 0 && (s.len() - i) % 3 == 0 {
+                out.push(',');
+            }
+            out.push(c);
+        }
+        if n < 0 { format!("-{out}") } else { out }
+    } else {
+        let t = format!("{v:.2}");
+        t.trim_end_matches('0').trim_end_matches('.').to_owned()
+    }
+}
+
+/// On Hypixel: the address is hypixel.net or under it.
+pub fn on_hypixel(server: Option<&str>) -> bool {
+    server.is_some_and(|a| {
+        let host = a.rsplit_once(':').map_or(a, |(h, _)| h).to_lowercase();
+        host == "hypixel.net" || host.ends_with(".hypixel.net")
+    })
+}
+
+fn is_date(line: &str) -> bool {
+    let rest = line.strip_prefix("Early ").or_else(|| line.strip_prefix("Late ")).unwrap_or(line);
+    let Some((season, day)) = rest.split_once(' ') else { return false };
+    matches!(season, "Spring" | "Summer" | "Autumn" | "Winter")
+        && day.len() > 2 && day[..day.len() - 2].chars().all(|c| c.is_ascii_digit()) && ["st", "nd", "rd", "th"].contains(&&day[day.len() - 2..])
+}
+
+/// The sidebar (title then lines) and tab list read as SkyBlock: none when it isn't SkyBlock's.
+pub fn read_skyblock(sidebar: &[String], tab: &[String]) -> Option<SkyBlock> {
+    let title = sb_clean(sidebar.first()?).to_uppercase().replace(' ', "");
+    if !title.contains("SKYBLOCK") {
+        return None;
+    }
+    let lines: Vec<String> = sidebar.iter().skip(1).map(|l| sb_clean(l)).collect();
+    let mut sb = SkyBlock::default();
+    for (i, l) in lines.iter().enumerate() {
+        let next = lines.get(i + 1).cloned().unwrap_or_default();
+        if let Some(a) = l.strip_prefix('⏣').or_else(|| l.strip_prefix('ф')) {
+            sb.area = a.trim().to_owned();
+        } else if l.starts_with("Purse:") || l.starts_with("Piggy:") {
+            sb.purse = first_number(&l[6..]).map(|v| (l[..5].to_owned(), v));
+        } else if let Some(b) = l.strip_prefix("Bits:") {
+            sb.bits = first_number(b);
+        } else if is_date(l) {
+            sb.date = l.clone();
+        } else if sb.time.is_empty() && l.len() >= 5 && l.chars().next().is_some_and(|c| c.is_ascii_digit()) && l.contains(':')
+            && (l.to_lowercase().contains("am") || l.to_lowercase().contains("pm")) {
+            let low = l.to_lowercase();
+            let end = low.find("am").or_else(|| low.find("pm")).map_or(low.len(), |i| i + 2);
+            sb.time = low[..end].replace(' ', "");
+        } else if l == "Objective" {
+            sb.objective = next.clone();
+        } else if l == "Slayer Quest" {
+            let progress = lines.get(i + 2).cloned().unwrap_or_default();
+            sb.slayer = Some((next.clone(), progress));
+        } else if let Some(t) = l.strip_prefix("Time Elapsed:") {
+            sb.dungeon_time = t.trim().to_owned();
+        } else if let Some(c) = l.strip_prefix("Cleared:") {
+            sb.cleared = first_number(c).map(|v| v as u32);
+        }
+    }
+    let tab: Vec<String> = tab.iter().flat_map(|t| t.split('\n').map(sb_clean).collect::<Vec<_>>()).collect();
+    for (i, l) in tab.iter().enumerate() {
+        if let Some(p) = l.strip_prefix("Pet:") {
+            let p = p.trim();
+            let pet = if p.is_empty() { tab.get(i + 1).cloned().unwrap_or_default() } else { p.to_owned() };
+            if !pet.is_empty() && pet != "None" && !pet.ends_with(':') {
+                sb.pet = pet;
+            }
+        } else if let Some(a) = l.strip_prefix("Area: ").or_else(|| l.strip_prefix("Dungeon: ")) {
+            if sb.area.is_empty() {
+                sb.area = a.trim().to_owned();
+            }
+        } else if let Some(c) = l.strip_prefix("Crypts:") {
+            sb.crypts = first_number(c).map(|v| v as u32);
+        } else if let Some(c) = l.strip_prefix("Secrets Found:") {
+            if !c.contains('%') {
+                sb.secrets = first_number(c).map(|v| v as u32);
+            }
+        }
+    }
+    Some(sb)
+}
+
+/// Booster Cookie and God Potion from the tab list's lines: seconds left (0 when the cookie isn't active).
+pub fn buff_times(tab: &[String]) -> (Option<u64>, Option<u64>) {
+    let lines: Vec<String> = tab.iter().flat_map(|t| t.split('\n').map(sb_clean).collect::<Vec<_>>()).filter(|l| !l.is_empty()).collect();
+    let mut cookie = None;
+    let mut god = None;
+    for (i, l) in lines.iter().enumerate() {
+        if l.eq_ignore_ascii_case("Cookie Buff") {
+            for n in lines.iter().skip(i + 1).take(2) {
+                if n.to_lowercase().contains("not active") {
+                    cookie = Some(0);
+                    break;
+                }
+                if let Some(d) = sb_duration(n) {
+                    cookie = Some(d);
+                    break;
+                }
+            }
+        }
+        let low = l.to_lowercase();
+        if let Some(at) = low.find("god potion") {
+            if let Some(d) = sb_duration(&low[at + 10..]) {
+                god = Some(d);
+            }
+        }
+    }
+    (cookie, god)
+}
+
+/// Each tick: on Hypixel, what the sidebar and tab list say (`tab` is the header, the players and the footer).
+pub fn skyblock_tick(settings: &Settings, server: Option<&str>, sidebar: &[String], tab: &[String]) -> Option<String> {
+    let sb = (settings.on(SKYBLOCK) && on_hypixel(server)).then(|| read_skyblock(sidebar, tab)).flatten();
+    STATE.with_borrow_mut(|s| {
+        let x = &mut s.more2;
+        let now = Instant::now();
+        if sb.is_some() {
+            let (cookie, god) = buff_times(tab);
+            if let Some(c) = cookie {
+                x.cookie = Some((c, now));
+            }
+            if let Some(g) = god {
+                x.god = Some((g, now));
+            }
+        }
+        x.skyblock = sb;
+        // One reminder when the cookie runs low (under 12 hours).
+        let left = x.cookie.map(|(c, at)| c.saturating_sub(at.elapsed().as_secs()));
+        if x.skyblock.is_some() && left.is_some_and(|l| l > 0 && l < 12 * 3600) && !x.cookie_warned {
+            x.cookie_warned = true;
+            return Some(format!("Your Booster Cookie runs out in {}", short_time(left.unwrap_or(0))));
+        }
+        None
+    })
+}
+
+/// SkyBlock's chat: the ability's cooldown, dungeon deaths and runs.
+pub fn skyblock_chat(lines: &[String]) {
+    STATE.with_borrow_mut(|s| {
+        let x = &mut s.more2;
+        if x.skyblock.is_none() {
+            return;
+        }
+        for l in lines {
+            let l = sb_clean(l);
+            if let Some(rest) = l.strip_prefix("This ability is on cooldown for ").or_else(|| l.strip_prefix("This ability is currently on cooldown for ")) {
+                if let Some(secs) = first_number(rest) {
+                    x.ability = Some(Instant::now() + Duration::from_secs_f64(secs));
+                }
+            } else if l.starts_with("[NPC] Mort: Here, I found this map when I first entered the dungeon.") {
+                x.run_start = Some(Instant::now());
+                x.deaths = 0;
+            } else if l.starts_with("☠ ") && l.contains("became a ghost") {
+                x.deaths += 1;
+            } else if l == "> EXTRA STATS <" {
+                x.run_start = None;
+            }
+        }
+    });
+}
+
+fn short_time(secs: u64) -> String {
+    if secs >= 86400 {
+        format!("{}d {}h", secs / 86400, secs / 3600 % 24)
+    } else if secs >= 3600 {
+        format!("{}h {}m", secs / 3600, secs / 60 % 60)
+    } else {
+        format!("{}:{:02}", secs / 60, secs % 60)
+    }
+}
+
+/// SkyBlock's HUD: the info card, timers, dungeon and slayer cards (each a HUD element the editor moves).
+pub fn skyblock_shapes(settings: &Settings, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    if !settings.on(SKYBLOCK) {
+        return out;
+    }
+    let accent = settings.accent();
+    let (bg, text) = settings.panel_colors();
+    let (sb, cookie, god, ability, deaths, run) = STATE.with_borrow(|s| {
+        let x = &s.more2;
+        (x.skyblock.clone(), x.cookie, x.god, x.ability, x.deaths, x.run_start)
+    });
+    let Some(sb) = sb else { return out };
+    let card = |out: &mut Vec<Shape>, at: [f32; 2], lines: Vec<(String, u32)>, id: &'static str| {
+        if lines.is_empty() {
+            return;
+        }
+        let mark = out.len();
+        let tw = lines.iter().map(|l| width(&l.0)).fold(40.0, f32::max);
+        out.push(Shape::Fill([at[0], at[1], tw + 8.0, lines.len() as f32 * 10.0 + 4.0], bg));
+        for (i, (t, c)) in lines.into_iter().enumerate() {
+            out.push(Shape::Text(t, [at[0] + 4.0, at[1] + 3.0 + i as f32 * 10.0], c, false));
+        }
+        place(settings, out, mark, id, w, h, width);
+    };
+    let mut info = vec![("SkyBlock".to_owned(), accent)];
+    if !sb.area.is_empty() {
+        info.push((format!("Area: {}", sb.area), 0x55FFFF));
+    }
+    if let Some((label, v)) = &sb.purse {
+        info.push((format!("{label}: {}", coins(*v)), 0xFFAA00));
+    }
+    if let Some(b) = sb.bits {
+        info.push((format!("Bits: {}", coins(b)), 0x55FFFF));
+    }
+    if !sb.date.is_empty() || !sb.time.is_empty() {
+        info.push((format!("{} {}", sb.date, sb.time).trim().to_owned(), 0xFFFF55));
+    }
+    if !sb.objective.is_empty() {
+        info.push((format!("Objective: {}", sb.objective), text));
+    }
+    if !sb.pet.is_empty() {
+        info.push((format!("Pet: {}", sb.pet), 0x55FF55));
+    }
+    card(&mut out, [4.0, 60.0], info, "skyblock_info");
+    let mut timers = Vec::new();
+    if let Some((c, at)) = cookie {
+        let left = c.saturating_sub(at.elapsed().as_secs());
+        timers.push((if left == 0 { "Booster Cookie: none".to_owned() } else { format!("Booster Cookie: {}", short_time(left)) },
+                     if left < 12 * 3600 { 0xFF5555 } else { text }));
+    }
+    if let Some((g, at)) = god {
+        let left = g.saturating_sub(at.elapsed().as_secs());
+        if left > 0 {
+            timers.push((format!("God Potion: {}", short_time(left)), text));
+        }
+    }
+    if let Some(until) = ability.filter(|u| *u > Instant::now()) {
+        timers.push((format!("Ability: {:.1}s", (until - Instant::now()).as_secs_f32()), 0xFFAA00));
+    }
+    card(&mut out, [4.0, 130.0], timers, "skyblock_timers");
+    let in_dungeon = !sb.dungeon_time.is_empty() || sb.cleared.is_some() || run.is_some();
+    if in_dungeon {
+        let time = if !sb.dungeon_time.is_empty() { sb.dungeon_time.clone() } else { run.map_or(String::new(), |r| short_time(r.elapsed().as_secs())) };
+        let mut d = vec![(format!("Time: {time}"), text)];
+        if let Some(c) = sb.cleared {
+            d.push((format!("Cleared: {c}%"), text));
+        }
+        d.push((format!("Deaths: {deaths}"), if deaths > 0 { 0xFF5555 } else { text }));
+        if let Some(sec) = sb.secrets {
+            d.push((format!("Secrets: {sec}"), text));
+        }
+        if let Some(c) = sb.crypts {
+            d.push((format!("Crypts: {c}"), if c >= 5 { 0x55FF55 } else { text }));
+        }
+        card(&mut out, [4.0, h / 2.0 + 20.0], d, "skyblock_dungeon");
+    }
+    if let Some((boss, progress)) = &sb.slayer {
+        card(&mut out, [4.0, h / 2.0 - 40.0], vec![(boss.clone(), 0xFF5555), (progress.clone(), text)], "skyblock_slayer");
+    }
+    out
+}
+
+/// Bazaar and NPC prices as fetched (item id to (buy, sell) and NPC sell), and when.
+#[derive(Default)]
+struct Prices {
+    bazaar: std::collections::HashMap<String, (f64, f64)>,
+    npc: std::collections::HashMap<String, f64>,
+    at: Option<Instant>,
+    asking: bool,
+}
+static PRICES: std::sync::Mutex<Option<Prices>> = std::sync::Mutex::new(None);
+
+/// SkyBlock's price lines for the item `id` (its SkyBlock id) in a tooltip; asks Hypixel's public API now and then.
+pub fn skyblock_price_lines(settings: &Settings, id: &str, count: u32) -> Vec<(String, u32)> {
+    if !settings.on(SKYBLOCK) || !settings.on(SB_PRICES) || STATE.with_borrow(|s| s.more2.skyblock.is_none()) {
+        return Vec::new();
+    }
+    let mut p = PRICES.lock().unwrap_or_else(|e| e.into_inner());
+    let p = p.get_or_insert_with(Prices::default);
+    if !p.asking && p.at.is_none_or(|t| t.elapsed() > Duration::from_secs(300)) {
+        p.asking = true;
+        fetch_prices();
+    }
+    let mut out = Vec::new();
+    let n = count.max(1) as f64;
+    if let Some((buy, sell)) = p.bazaar.get(id) {
+        let mut line = format!("Bazaar: buy {} · sell {}", coins(*buy), coins(*sell));
+        if count > 1 {
+            line.push_str(&format!(" (x{count}: {} / {})", coins(buy * n), coins(sell * n)));
+        }
+        out.push((line, 0xFFAA00));
+    }
+    if let Some(v) = p.npc.get(id).filter(|v| **v > 0.0) {
+        out.push((if count > 1 { format!("NPC sell: {} (x{count}: {})", coins(*v), coins(v * n)) } else { format!("NPC sell: {}", coins(*v)) }, 0xFFFF55));
+    }
+    if let Some(at) = p.at.filter(|_| !out.is_empty()) {
+        out.push((format!("Hypixel public API, {} ago", short_time(at.elapsed().as_secs())), 0x555555));
+    }
+    out
+}
+#[cfg(not(test))]
+fn fetch_prices() {
+    std::thread::spawn(|| {
+        let get = |url: &str| ureq::get(url).timeout(Duration::from_secs(20)).set("User-Agent", "Arsenal (arsenal.monoforge.net)").call().ok()
+            .and_then(|r| r.into_string().ok()).and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()).filter(|v| v["success"] == true);
+        let bazaar = get("https://api.hypixel.net/v2/skyblock/bazaar").map(|v| {
+            v["products"].as_object().map(|o| o.iter().filter_map(|(id, p)| {
+                let q = &p["quick_status"];
+                Some((id.clone(), (q["buyPrice"].as_f64()?, q["sellPrice"].as_f64()?)))
+            }).collect::<std::collections::HashMap<_, _>>()).unwrap_or_default()
+        });
+        let npc = get("https://api.hypixel.net/v2/resources/skyblock/items").map(|v| {
+            v["items"].as_array().map(|a| a.iter().filter_map(|i| Some((i["id"].as_str()?.to_owned(), i["npc_sell_price"].as_f64()?))).collect::<std::collections::HashMap<_, _>>())
+                .unwrap_or_default()
+        });
+        let mut p = PRICES.lock().unwrap_or_else(|e| e.into_inner());
+        let p = p.get_or_insert_with(Prices::default);
+        p.asking = false;
+        p.at = Some(Instant::now());
+        if let Some(b) = bazaar {
+            p.bazaar = b;
+        }
+        if let Some(n) = npc {
+            p.npc = n;
+        }
+    });
+}
+#[cfg(test)]
+fn fetch_prices() {}
+
+// ---- Spotify: the media reader (Windows' media session; macOS osascript; Linux playerctl) and Album Colors ----
+
+/// The Windows helper: every 500 ms, Spotify's media session as one JSON line {title, artist, album, durationMs,
+/// positionMs, playing, art} when something changed (art: the cover shrunk to 16x16, base64 of its RGB bytes).
+/// Exits when the game is gone.
+#[cfg_attr(test, allow(dead_code))]
+const WINDOWS_MEDIA: &str = r###"$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+function Say($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush() }
+try {
+  Add-Type -AssemblyName System.Runtime.WindowsRuntime
+  $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
+  $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime]
+  $asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1
+  function Await($op, [Type]$type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); if (-not $t.Wait(5000)) { throw 'timeout' }; $t.Result }
+  $manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+} catch {
+  Say @{ error = 'winrt' }
+  exit 3
+}
+$canArt = $true
+try {
+  Add-Type -AssemblyName System.Drawing
+  $streamType = [Windows.Storage.Streams.IRandomAccessStreamWithContentType, Windows.Storage.Streams, ContentType = WindowsRuntime]
+  $inputType = [Windows.Storage.Streams.IInputStream, Windows.Storage.Streams, ContentType = WindowsRuntime]
+  $asStream = [System.IO.WindowsRuntimeStreamExtensions].GetMethod('AsStreamForRead', [Type[]]@($inputType))
+} catch { $canArt = $false }
+function Art($props) {
+  if (-not $canArt -or -not $props.Thumbnail) { return '' }
+  $ras = Await ($props.Thumbnail.OpenReadAsync()) $streamType
+  $stream = $asStream.Invoke($null, @($ras))
+  try {
+    $img = [System.Drawing.Image]::FromStream($stream)
+    $bmp = New-Object System.Drawing.Bitmap 16, 16
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
+    $g.DrawImage($img, 0, 0, 16, 16)
+    $g.Dispose(); $img.Dispose()
+    $bytes = New-Object byte[] 768
+    for ($i = 0; $i -lt 256; $i++) { $c = $bmp.GetPixel($i % 16, [Math]::Floor($i / 16)); $bytes[$i * 3] = $c.R; $bytes[$i * 3 + 1] = $c.G; $bytes[$i * 3 + 2] = $c.B }
+    $bmp.Dispose()
+    return [Convert]::ToBase64String($bytes)
+  } finally { $stream.Dispose() }
+}
+$parent = 0
+[void][int]::TryParse([string]$env:ARSENAL_PARENT_PID, [ref]$parent)
+$last = ''
+$lastSent = [DateTime]::MinValue
+$artFor = ''
+$art = ''
+$artTries = 0
+$artAt = [DateTime]::UtcNow
+$loops = 0
+while ($true) {
+  $loops++
+  if ($parent -gt 0 -and $loops % 10 -eq 0 -and -not (Get-Process -Id $parent -ErrorAction SilentlyContinue)) { exit 0 }
+  $state = [ordered]@{ title = ''; artist = ''; album = ''; durationMs = 0; positionMs = 0; playing = $false; art = '' }
+  $key = 'none'
+  try {
+    $session = $manager.GetSessions() | Where-Object { $_.SourceAppUserModelId -like '*spotify*' } | Select-Object -First 1
+    if ($session) {
+      $props = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
+      $timeline = $session.GetTimelineProperties()
+      $playing = $session.GetPlaybackInfo().PlaybackStatus -eq 'Playing'
+      $position = $timeline.Position.TotalMilliseconds
+      $duration = ($timeline.EndTime - $timeline.StartTime).TotalMilliseconds
+      if ($playing -and $timeline.LastUpdatedTime.Year -gt 2000) { $position += ([DateTimeOffset]::Now - $timeline.LastUpdatedTime).TotalMilliseconds }
+      if ($duration -gt 0 -and $position -gt $duration) { $position = $duration }
+      if ($position -lt 0) { $position = 0 }
+      $state.title = [string]$props.Title
+      $state.artist = [string]$props.Artist
+      $state.album = [string]$props.AlbumTitle
+      $state.durationMs = [long]$duration
+      $state.positionMs = [long]$position
+      $state.playing = [bool]$playing
+      $song = '{0}|{1}|{2}' -f $state.title, $state.artist, $state.album
+      if ($song -ne $artFor) { $artFor = $song; $art = ''; $artTries = 0; $artAt = [DateTime]::UtcNow }
+      if ($art -eq '' -and $artTries -lt 4 -and ([DateTime]::UtcNow - $artAt).TotalSeconds -ge 1.5) {
+        $artTries++
+        $artAt = [DateTime]::UtcNow
+        try { $art = [string](Art $props) } catch { $art = '' }
+      }
+      $state.art = $art
+      $key = '{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}' -f $state.title, $state.artist, $state.album, $state.durationMs, $playing, $timeline.Position.Ticks, $timeline.LastUpdatedTime.Ticks, $art.Length
+    }
+  } catch {
+    $key = 'none'
+  }
+  $now = [DateTime]::UtcNow
+  if ($key -ne $last -or ($now - $lastSent).TotalSeconds -ge 5) {
+    Say $state
+    $last = $key
+    $lastSent = $now
+  }
+  Start-Sleep -Milliseconds 500
+}
+"###;
+
+/// A song as the media reader saw it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Media {
+    pub title: String,
+    pub artist: String,
+    pub position_ms: u64,
+    pub playing: bool,
+    /// The cover as 16x16 RGB bytes (768), when known.
+    pub art: Vec<u8>,
+}
+
+fn b64_decode(text: &str) -> Vec<u8> {
+    let val = |c: u8| match c {
+        b'A'..=b'Z' => Some(c - b'A'),
+        b'a'..=b'z' => Some(c - b'a' + 26),
+        b'0'..=b'9' => Some(c - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    };
+    let mut out = Vec::new();
+    let mut acc = 0u32;
+    let mut bits = 0;
+    for c in text.bytes().filter_map(val) {
+        acc = (acc << 6) | u32::from(c);
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+        }
+    }
+    out
+}
+
+/// One line of the Windows helper.
+pub fn parse_media(line: &str) -> Option<Media> {
+    let v: serde_json::Value = serde_json::from_str(line).ok()?;
+    if v.get("error").is_some() {
+        return None;
+    }
+    Some(Media {
+        title: v["title"].as_str().unwrap_or("").to_owned(),
+        artist: v["artist"].as_str().unwrap_or("").to_owned(),
+        position_ms: v["positionMs"].as_u64().unwrap_or(0),
+        playing: v["playing"].as_bool().unwrap_or(false),
+        art: b64_decode(v["art"].as_str().unwrap_or("")),
+    })
+}
+
+/// A song heard: the lyrics' clock follows its position; a new song fetches its lyrics, a new cover its colours.
+#[cfg_attr(test, allow(dead_code))]
+fn media_heard(m: Media) {
+    let song = (!m.title.is_empty()).then(|| format!("{} - {}", m.artist, m.title));
+    let fetch = net_more(|n| {
+        let now = Instant::now();
+        let changed = n.song != song;
+        n.song = song.clone();
+        if song.is_none() {
+            if n.paused_at.is_none() {
+                n.paused_at = Some(now);
+            }
+            return None;
+        }
+        n.song_start = Some(now.checked_sub(Duration::from_millis(m.position_ms)).unwrap_or(now));
+        n.paused_at = (!m.playing).then_some(now);
+        if changed {
+            n.lyrics.clear();
+        }
+        (changed && n.lyrics_for != song).then(|| song.clone().unwrap_or_default())
+    });
+    if m.art.len() == 768 {
+        let colours = album_palette(&m.art);
+        ALBUM_FADE.with_lock(|a| {
+            if a.target != colours {
+                a.from = a.current();
+                a.target = colours;
+                a.at = Some(Instant::now());
+            }
+        });
+    }
+    if let Some(song) = fetch {
+        fetch_lyrics(song);
+    }
+}
+
+#[cfg(not(test))]
+fn fetch_lyrics(song: String) {
+    std::thread::spawn(move || {
+        let (artist, track) = song.split_once(" - ").unwrap_or(("", &song));
+        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}", percent(artist), percent(track));
+        let answer = ureq::get(&url).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
+        let lines = answer.and_then(|a| serde_json::from_str::<serde_json::Value>(&a).ok())
+            .and_then(|v| v["syncedLyrics"].as_str().map(parse_lrc)).unwrap_or_default();
+        net_more(|n| {
+            n.lyrics = lines;
+            n.lyrics_for = Some(song);
+        });
+    });
+}
+#[cfg(test)]
+#[allow(dead_code)]
+fn fetch_lyrics(_song: String) {}
+
+/// Starts the media reader once (Windows: the helper; elsewhere a poll every second), again after it stops.
+#[cfg(not(test))]
+fn media_start() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static RUNNING: AtomicBool = AtomicBool::new(false);
+    if RUNNING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    std::thread::spawn(|| {
+        use std::io::BufRead;
+        loop {
+            if cfg!(windows) {
+                let mut cmd = std::process::Command::new("powershell");
+                cmd.args(["-NoProfile", "-NonInteractive", "-Command", WINDOWS_MEDIA]).env("ARSENAL_PARENT_PID", std::process::id().to_string())
+                    .stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x0800_0000);
+                }
+                if let Ok(mut child) = cmd.spawn() {
+                    if let Some(out) = child.stdout.take() {
+                        for line in std::io::BufReader::new(out).lines().map_while(Result::ok) {
+                            if line.contains("\"error\"") {
+                                break;
+                            }
+                            if let Some(m) = parse_media(&line) {
+                                media_heard(m);
+                            }
+                        }
+                    }
+                    let _ = child.kill();
+                }
+                std::thread::sleep(Duration::from_secs(60));
+            } else {
+                let m = if cfg!(target_os = "macos") {
+                    std::process::Command::new("osascript").args(["-e", "if application \"Spotify\" is running then\ntell application \"Spotify\"\nif player state is stopped then return \"\"\nset t to current track\nreturn (name of t) & linefeed & (artist of t) & linefeed & (player position) & linefeed & (player state as text)\nend tell\nend if\nreturn \"\""])
+                        .output().ok().map(|o| String::from_utf8_lossy(&o.stdout).to_string()).and_then(|t| {
+                            let l: Vec<&str> = t.lines().collect();
+                            (l.len() >= 4).then(|| Media { title: l[0].into(), artist: l[1].into(), position_ms: (l[2].replace(',', ".").parse::<f64>().unwrap_or(0.0) * 1000.0) as u64,
+                                playing: l[3].trim() == "playing", art: Vec::new() })
+                        })
+                } else {
+                    std::process::Command::new("playerctl").args(["-p", "spotify", "metadata", "--format", "{{title}}\t{{artist}}\t{{position}}\t{{status}}"])
+                        .output().ok().map(|o| String::from_utf8_lossy(&o.stdout).to_string()).and_then(|t| {
+                            let l: Vec<&str> = t.trim_end().split('\t').collect();
+                            (l.len() >= 4).then(|| Media { title: l[0].into(), artist: l[1].into(), position_ms: l[2].parse::<u64>().unwrap_or(0) / 1000,
+                                playing: l[3] == "Playing", art: Vec::new() })
+                        })
+                };
+                media_heard(m.unwrap_or_default());
+                std::thread::sleep(Duration::from_secs(1));
+            }
+        }
+    });
+}
+#[cfg(test)]
+fn media_start() {}
+
+/// Album Colors' colours: what they fade from and to, and since when.
+#[derive(Default)]
+struct AlbumFade {
+    from: Option<(u32, u32)>,
+    target: Option<(u32, u32)>,
+    at: Option<Instant>,
+}
+impl AlbumFade {
+    fn current(&self) -> Option<(u32, u32)> {
+        let t = self.at.map_or(1.0, |a| (a.elapsed().as_secs_f32() / 1.5).min(1.0));
+        match (self.from, self.target) {
+            (Some(f), Some(to)) => Some((mix_rgb(f.0, to.0, t), mix_rgb(f.1, to.1, t))),
+            (None, to) => to,
+            (f, None) => if t >= 1.0 { None } else { f },
+        }
+    }
+}
+struct AlbumLock(std::sync::Mutex<AlbumFade>);
+impl AlbumLock {
+    fn with_lock<T>(&self, f: impl FnOnce(&mut AlbumFade) -> T) -> T {
+        f(&mut self.0.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+}
+static ALBUM_FADE: AlbumLock = AlbumLock(std::sync::Mutex::new(AlbumFade { from: None, target: None, at: None }));
+
+/// The album's accent and sky colours now (0xRRGGBB), fading between songs.
+pub fn album_now() -> Option<(u32, u32)> {
+    ALBUM_FADE.with_lock(|a| a.current())
+}
+
+/// Between two 0xRRGGBB colours.
+pub fn mix_rgb(a: u32, b: u32, t: f32) -> u32 {
+    mix_argb(a | 0xFF00_0000, b | 0xFF00_0000, t) & 0xFF_FFFF
+}
+
+fn rgb_hsv(c: [f32; 3]) -> (f32, f32, f32) {
+    let max = c[0].max(c[1]).max(c[2]);
+    let min = c[0].min(c[1]).min(c[2]);
+    let d = max - min;
+    let h = if d == 0.0 { 0.0 } else if max == c[0] { ((c[1] - c[2]) / d).rem_euclid(6.0) } else if max == c[1] { (c[2] - c[0]) / d + 2.0 } else { (c[0] - c[1]) / d + 4.0 } / 6.0;
+    (h.rem_euclid(1.0), if max == 0.0 { 0.0 } else { d / max }, max)
+}
+
+fn hsl_rgb(h: f32, s: f32, l: f32) -> u32 {
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let x = c * (1.0 - ((h * 6.0).rem_euclid(2.0) - 1.0).abs());
+    let m = l - c / 2.0;
+    let (r, g, b) = match (h * 6.0) as u32 % 6 { 0 => (c, x, 0.0), 1 => (x, c, 0.0), 2 => (0.0, c, x), 3 => (0.0, x, c), 4 => (x, 0.0, c), _ => (c, 0.0, x) };
+    let to = |v: f32| (((v + m) * 255.0).round().clamp(0.0, 255.0)) as u32;
+    (to(r) << 16) | (to(g) << 8) | to(b)
+}
+
+fn rgb_hsl(rgb: u32) -> (f32, f32, f32) {
+    let c = [((rgb >> 16) & 255) as f32 / 255.0, ((rgb >> 8) & 255) as f32 / 255.0, (rgb & 255) as f32 / 255.0];
+    let max = c[0].max(c[1]).max(c[2]);
+    let min = c[0].min(c[1]).min(c[2]);
+    let l = (max + min) / 2.0;
+    let d = max - min;
+    let s = if d == 0.0 { 0.0 } else { d / (1.0 - (2.0 * l - 1.0).abs()) };
+    (rgb_hsv(c).0, s, l)
+}
+
+fn clamp_hsl(rgb: u32, s: (f32, f32), l: (f32, f32)) -> u32 {
+    let (h, sat, light) = rgb_hsl(rgb);
+    hsl_rgb(h, sat.clamp(s.0, s.1), light.clamp(l.0, l.1))
+}
+
+/// The album's colours from its 16x16 cover: (accent, sky), from the strongest hue (none for a grey cover).
+pub fn album_palette(rgb: &[u8]) -> Option<(u32, u32)> {
+    let px: Vec<[f32; 3]> = rgb.chunks(3).filter(|c| c.len() == 3).map(|c| [c[0] as f32 / 255.0, c[1] as f32 / 255.0, c[2] as f32 / 255.0]).collect();
+    let mut bins = [0f32; 24];
+    let mut total = 0.0;
+    let info: Vec<(usize, f32)> = px.iter().map(|c| {
+        let (h, s, v) = rgb_hsv(*c);
+        let w = if s < 0.18 || v < 0.16 { 0.0 } else { s * s * v };
+        let b = ((h * 24.0) as usize).min(23);
+        bins[b] += w;
+        total += w;
+        (b, w)
+    }).collect();
+    if px.is_empty() || (total / px.len() as f32) < 0.06 {
+        return None;
+    }
+    let score = |b: usize| bins[b] + 0.5 * (bins[(b + 23) % 24] + bins[(b + 1) % 24]);
+    let best = (0..24).max_by(|a, b| score(*a).total_cmp(&score(*b)))?;
+    let (mut sum, mut wsum) = ([0f32; 3], 0f32);
+    for (c, (b, w)) in px.iter().zip(&info) {
+        let d = (*b as i32 - best as i32).rem_euclid(24);
+        if d <= 1 || d >= 23 {
+            for k in 0..3 {
+                sum[k] += c[k] * w;
+            }
+            wsum += w;
+        }
+    }
+    if wsum <= 0.0 {
+        return None;
+    }
+    let dom = sum.map(|v| ((v / wsum) * 255.0).round().clamp(0.0, 255.0) as u32);
+    let dom = (dom[0] << 16) | (dom[1] << 8) | dom[2];
+    Some((clamp_hsl(dom, (0.45, 0.9), (0.62, 0.78)), clamp_hsl(dom, (0.22, 0.55), (0.56, 0.70))))
+}
+
+// ---- Cloud Backup ----
+
+#[derive(Default)]
+struct Cloud {
+    /// Save (true) or restore (false), waiting for the backup to load.
+    asked: Option<bool>,
+    waiting: bool,
+    last_saved: String,
+    saved_at: Option<Instant>,
+}
+
+/// What a backup answer brought (filled by the network thread).
+#[derive(Default)]
+struct CloudNet {
+    /// The stored config (None: no backup yet), or the reason it failed.
+    loaded: Option<Result<Option<String>, String>>,
+    saved: Option<Result<(), String>>,
+}
+static CLOUD_NET: std::sync::Mutex<CloudNet> = std::sync::Mutex::new(CloudNet { loaded: None, saved: None });
+
+/// Your Horizon setup as it goes into the backup.
+pub fn horizon_section(raw: &Settings) -> serde_json::Value {
+    let settings: serde_json::Map<String, serde_json::Value> = raw.stored().into_iter().map(|(k, v)| (k.to_owned(), v.into())).collect();
+    serde_json::json!({ "version": VERSION, "settings": settings })
+}
+
+/// The backup with your Horizon setup put in (the Java mod's setup stays as it was).
+pub fn merged_backup(existing: Option<&str>, raw: &Settings) -> String {
+    let mut root = existing.and_then(|e| serde_json::from_str::<serde_json::Value>(e).ok()).filter(|v| v.is_object())
+        .unwrap_or_else(|| serde_json::json!({ "configVersion": 1, "modules": {} }));
+    root["horizon"] = horizon_section(raw);
+    serde_json::to_string_pretty(&root).unwrap_or_default()
+}
+
+/// The settings a backup restores: its Horizon setup, else the Java setup's modules switched on or off.
+pub fn restored_from(config: &str) -> Vec<(String, String)> {
+    let Ok(root) = serde_json::from_str::<serde_json::Value>(config) else { return Vec::new() };
+    if let Some(map) = root["horizon"]["settings"].as_object() {
+        return map.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_owned())))
+            .filter(|(k, _)| FIELDS.iter().any(|f| f.key == k) || k == "hud_layout" || k == "favorites" || k == "browse_theme" || k == "browse_crosshair")
+            .collect();
+    }
+    let Some(modules) = root["modules"].as_object() else { return Vec::new() };
+    modules.iter().filter_map(|(id, m)| {
+        let on = m["enabled"].as_bool()?;
+        let (f, _) = on_horizon(id)?;
+        Some((FIELDS[f].key.to_owned(), if on { "true" } else { "false" }.to_owned()))
+    }).collect()
+}
+
+/// `/arsenal cloud save` or `restore`.
+pub fn cloud_ask(save: bool) {
+    STATE.with_borrow_mut(|s| s.more2.cloud.asked = Some(save));
+}
+
+/// What Cloud Backup asks of the game this tick.
+#[derive(Debug, Default, PartialEq)]
+pub struct CloudOut {
+    pub say: Option<String>,
+    /// Settings to restore (key, value).
+    pub restore: Vec<(String, String)>,
+}
+
+/// Each tick: asks (signed with `sign`, as the Java mod does) for the backup, then saves or restores; saves by itself
+/// 5 minutes after the setup changed.
+pub fn cloud_tick(settings: &Settings, raw: &Settings, sign: &dyn Fn(&str, &[String]) -> Option<String>) -> CloudOut {
+    let mut out = CloudOut::default();
+    let net = {
+        let mut n = CLOUD_NET.lock().unwrap_or_else(|e| e.into_inner());
+        (n.loaded.take(), n.saved.take())
+    };
+    let section = horizon_section(raw).to_string();
+    STATE.with_borrow_mut(|s| {
+        let c = &mut s.more2.cloud;
+        if let Some(saved) = net.1 {
+            c.waiting = false;
+            match saved {
+                Ok(()) => {
+                    c.last_saved = section.clone();
+                    if c.asked.take().is_some() {
+                        out.say = Some("Your Horizon setup is in your Arsenal cloud backup.".into());
+                    }
+                }
+                Err(why) => out.say = Some(format!("Cloud backup failed ({why}).")),
+            }
+            c.saved_at = Some(Instant::now());
+        }
+        if let Some(loaded) = net.0 {
+            c.waiting = false;
+            let save = c.asked.unwrap_or(true);
+            match loaded {
+                Err(why) => {
+                    c.asked = None;
+                    out.say = Some(format!("Cloud backup failed ({why})."));
+                    c.saved_at = Some(Instant::now());
+                }
+                Ok(existing) if save => {
+                    let config = merged_backup(existing.as_deref(), raw);
+                    match sign("arsenal-config-save-v1", &[sha256_hex(config.as_bytes())]) {
+                        Some(body) => {
+                            c.waiting = true;
+                            cloud_post("/v1/config/save", body, Some(config), false);
+                        }
+                        None => out.say = Some("Cloud backup needs a Minecraft account (offline accounts can't back up).".into()),
+                    }
+                }
+                Ok(Some(config)) => {
+                    c.asked = None;
+                    out.restore = restored_from(&config);
+                    out.say = Some(if out.restore.is_empty() { "Your cloud backup has nothing Horizon can use.".into() } else { "Restored your setup from the Arsenal cloud.".into() });
+                }
+                Ok(None) => {
+                    c.asked = None;
+                    out.say = Some("There's no cloud backup yet: /arsenal cloud save makes one.".into());
+                }
+            }
+        }
+        if c.waiting {
+            return;
+        }
+        let auto = settings.on(CLOUD) && c.asked.is_none() && !c.last_saved.is_empty() && c.last_saved != section
+            && c.saved_at.is_none_or(|t| t.elapsed() > Duration::from_secs(300));
+        if c.last_saved.is_empty() {
+            c.last_saved = section.clone();
+        }
+        if c.asked.is_some() || auto {
+            if auto {
+                c.asked = None;
+            }
+            match sign("arsenal-config-load-v1", &[]) {
+                Some(body) => {
+                    c.waiting = true;
+                    if auto {
+                        c.asked = None;
+                    }
+                    cloud_post("/v1/config/load", body, None, true);
+                }
+                None => {
+                    if c.asked.take().is_some() {
+                        out.say = Some("Cloud backup needs a Minecraft account (offline accounts can't back up).".into());
+                    }
+                    c.saved_at = Some(Instant::now());
+                }
+            }
+        }
+    });
+    out
+}
+
+#[cfg(not(test))]
+fn cloud_post(path: &'static str, signed: String, config: Option<String>, load: bool) {
+    std::thread::spawn(move || {
+        let mut body: serde_json::Value = serde_json::from_str(&signed).unwrap_or_default();
+        if let Some(c) = config {
+            body["config"] = c.into();
+        }
+        let answer = ureq::post(&format!("{WEBSITE}{path}")).timeout(Duration::from_secs(20)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body.to_string());
+        let mut n = CLOUD_NET.lock().unwrap_or_else(|e| e.into_inner());
+        let reason = |text: Option<String>, code: u16| text.and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+            .and_then(|v| v["reason"].as_str().map(str::to_owned)).unwrap_or_else(|| format!("HTTP {code}"));
+        if load {
+            n.loaded = Some(match answer {
+                Ok(r) => r.into_string().ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+                    .and_then(|v| v["config"].as_str().map(|c| Some(c.to_owned()))).ok_or_else(|| "bad answer".to_owned()),
+                Err(ureq::Error::Status(404, _)) => Ok(None),
+                Err(ureq::Error::Status(code, r)) => Err(reason(r.into_string().ok(), code)),
+                Err(_) => Err("Arsenal API not reachable".into()),
+            });
+        } else {
+            n.saved = Some(match answer {
+                Ok(_) => Ok(()),
+                Err(ureq::Error::Status(code, r)) => Err(reason(r.into_string().ok(), code)),
+                Err(_) => Err("Arsenal API not reachable".into()),
+            });
+        }
+    });
+}
+#[cfg(test)]
+fn cloud_post(_path: &'static str, _signed: String, _config: Option<String>, _load: bool) {}
 
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
 pub const HOTKEY_KEYS: [(&str, &str, &str); 4] = [("hotkey_gg", "Chat Hotkey: gg", "gg"), ("hotkey_glhf", "Chat Hotkey: gl hf", "gl hf"),
@@ -4005,11 +5166,14 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
                 }
             }
         }
+        let mark = out.len();
         if let (true, Some((item, ticks))) = (settings.on(BOW), using) {
             if let Some(c) = bow_charge(item, ticks) {
                 label(&mut out, format!("{}%", (c * 100.0).round() as i32), [cx, cy + 14.0], if c >= 1.0 { 0x5CE08A } else { 0xFFFFFF });
             }
         }
+        place(settings, &mut out, mark, "bow", w, h, width);
+        let mark = out.len();
         if settings.on(RETOTEM) {
             if let Some(d) = x.retotem {
                 label(&mut out, format!("Re-totem {:.2}s", d.as_secs_f32()), [cx, cy + 48.0], if d.as_millis() < 300 { 0x5CE08A } else { 0xFFC83D });
@@ -4017,12 +5181,16 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
                 label(&mut out, "Re-totem!".into(), [cx, cy + 48.0], 0xFF5A5A);
             }
         }
+        place(settings, &mut out, mark, "retotem", w, h, width);
+        let mark = out.len();
         if settings.on(GOAL) {
             let goal: u32 = GOALS[settings.v[GOAL_KILLS]].0.parse().unwrap_or(10);
             let done = s.pvp.kills_total;
             let text = if done >= goal { format!("Goal reached: {done}/{goal} kills") } else { format!("Goal: {done}/{goal} kills") };
             out.push(Shape::Text(text, [4.0, h - 12.0], if done >= goal { 0x5CE08A } else { 0xFFFFFF }, true));
         }
+        place(settings, &mut out, mark, "goal", w, h, width);
+        let mark = out.len();
         if settings.on(INTEL) {
             if let Some(f) = &s.pvp.fight {
                 let gapples = x.gapples.get(&f.with).copied().unwrap_or(0);
@@ -4034,6 +5202,8 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
                 }
             }
         }
+        place(settings, &mut out, mark, "intel", w, h, width);
+        let mark = out.len();
         if let (true, Some(lines)) = (settings.on(SUMMARY), &x.summary) {
             if x.summary_shown.is_none_or(|t| t.elapsed() < Duration::from_secs(8)) {
                 let wide = lines.iter().map(|l| width(l)).fold(0.0, f32::max) + 12.0;
@@ -4044,6 +5214,7 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
                 }
             }
         }
+        place(settings, &mut out, mark, "summary", w, h, width);
     });
     STATE.with_borrow_mut(|s| {
         if s.extra.summary.is_some() && s.extra.summary_shown.is_none() {
@@ -4157,25 +5328,32 @@ pub fn pvp_shapes(settings: &Settings, others: &[Other], target: Option<&Other>,
             }
         }
         // Kill Streaks: big text at the top for two seconds.
+        let mark = out.len();
         if let Some((name, at)) = p.streak.filter(|s| s.1.elapsed() < Duration::from_secs(2)) {
             let _ = at;
             let tw = width(name);
             out.push(Shape::Text(name.to_owned(), [cx - tw / 2.0, h * 0.22], 0xFFC83D, true));
         }
+        place(settings, &mut out, mark, "streak", w, h, width);
         // Combat Tag Timer: under the crosshair's left.
+        let mark = out.len();
         if let Some(until) = p.combat_until.filter(|u| *u > now) {
             let text = format!("Combat {}s", (until - now).as_secs() + 1);
             let tw = width(&text);
             out.push(Shape::Text(text, [cx - tw / 2.0, cy - 22.0], 0xFF5A5A, true));
         }
+        place(settings, &mut out, mark, "combat_tag", w, h, width);
         // Mention Ping: who wrote your name, for three seconds.
+        let mark = out.len();
         if let Some((line, at)) = p.mention.as_ref().filter(|m| m.1.elapsed() < Duration::from_secs(3)) {
             let _ = at;
             let tw = width(line);
             out.push(Shape::Fill([cx - tw / 2.0 - 4.0, 4.0, tw + 8.0, 12.0], BACKGROUND));
             out.push(Shape::Text(line.clone(), [cx - tw / 2.0, 6.0], 0xFFC83D, true));
         }
+        place(settings, &mut out, mark, "mention", w, h, width);
         // Totem Pop Counter: top right.
+        let mark = out.len();
         if settings.on(POPS) && !p.pops.is_empty() {
             let mut rows: Vec<(&String, &u32)> = p.pops.iter().collect();
             rows.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
@@ -4188,7 +5366,9 @@ pub fn pvp_shapes(settings: &Settings, others: &[Other], target: Option<&Other>,
                 y += 12.0;
             }
         }
+        place(settings, &mut out, mark, "pops", w, h, width);
         // Target HUD: right of the crosshair.
+        let mark = out.len();
         if settings.on(TARGET) {
             if let Some(t) = target {
                 let (x, y) = (cx + 24.0, cy - 30.0);
@@ -4217,6 +5397,7 @@ pub fn pvp_shapes(settings: &Settings, others: &[Other], target: Option<&Other>,
                 }
             }
         }
+        place(settings, &mut out, mark, "target", w, h, width);
     });
     out
 }
@@ -4632,6 +5813,8 @@ pub enum Shape {
     Quad([[f32; 2]; 4], u32),
     /// Text with its own opacity (0xAARRGGBB) and size (1 is the game's): the menu's.
     Styled(String, [f32; 2], u32, bool, f32),
+    /// An item's icon at its own size (a resized HUD element's).
+    Icon(String, [f32; 2], f32),
 }
 
 /// The panel's background, as the HUD's own boxes are drawn.
@@ -4816,6 +5999,13 @@ pub enum Action {
     /// Apply card `i` of the current Browse tab.
     Apply(usize),
     Retry,
+    /// Star or unstar module `i` (index in `JAVA_MODULES`).
+    Favorite(usize),
+    /// Typing goes to the search box.
+    Search,
+    /// The HUD editor's buttons.
+    UndoHud,
+    ResetHud,
 }
 
 const MENU_BG: u32 = 0xF412_1219;
@@ -5005,6 +6195,15 @@ fn key(tag: u64, i: usize) -> u64 {
     (tag << 32) | i as u64
 }
 
+/// A five-pointed star of radius `r` at `c`.
+fn star(out: &mut Vec<Shape>, c: [f32; 2], r: f32, color: u32) {
+    let pt = |a: f32, len: f32| [c[0] + a.cos() * len, c[1] + a.sin() * len];
+    for k in 0..5 {
+        let a = -std::f32::consts::FRAC_PI_2 + k as f32 * std::f32::consts::TAU / 5.0;
+        out.push(Shape::Quad([c, pt(a - 0.63, r * 0.42), pt(a, r), pt(a + 0.63, r * 0.42)], color));
+    }
+}
+
 /// An on/off switch: its track and the sliding knob.
 fn switch(out: &mut Vec<Shape>, at: [f32; 2], on: f32, accent: u32) {
     let track = [at[0], at[1], 22.0, 12.0];
@@ -5063,7 +6262,80 @@ fn fade(shape: Shape, k: f32, d: [f32; 2]) -> Shape {
         Shape::Styled(t, at, c, sh, sc) => Shape::Styled(t, [at[0] + d[0], at[1] + d[1]], a(c), sh, sc),
         Shape::Quad(p, c) => Shape::Quad(p.map(|q| [q[0] + d[0], q[1] + d[1]]), a(c)),
         Shape::Item(id, at) => if k < 0.6 { Shape::Fill([0.0; 4], 0) } else { Shape::Item(id, [at[0] + d[0], at[1] + d[1]]) },
+        Shape::Icon(id, at, size) => if k < 0.6 { Shape::Fill([0.0; 4], 0) } else { Shape::Icon(id, [at[0] + d[0], at[1] + d[1]], size) },
     }
+}
+
+
+/// The HUD editor over the game: each element's frame (picked in the accent), snap lines, and the bar of hints and buttons.
+fn hud_editor(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: &dyn Fn(&str) -> f32, animate: bool)
+              -> (Vec<Shape>, Vec<([f32; 4], Action)>, usize) {
+    let accent = s.accent();
+    let solid = 0xFF00_0000 | accent;
+    let (sw, sh) = (screen[0] + screen[2], screen[1] + screen[3]);
+    let mut out = vec![Shape::Fill([0.0, 0.0, sw, sh], 0x3000_0000)];
+    let mut hits = Vec::new();
+    out.push(Shape::Fill([sw / 2.0, 0.0, 1.0, sh], 0x18FF_FFFF));
+    out.push(Shape::Fill([0.0, sh / 2.0, sw, 1.0], 0x18FF_FFFF));
+    let boxes = hud_boxes();
+    let held = m.drag.as_ref().map(|d| d.id);
+    let under = hud_at(&boxes, mouse).map(|b| b.0);
+    for (id, r, _) in &boxes {
+        let k = key(20, HUD_ELEMENTS.iter().position(|e| e.0 == *id).unwrap_or(0));
+        let t = ease(k, if under == Some(*id) || held == Some(*id) { 1.0 } else { 0.0 }, 0.0, animate);
+        let picked = m.picked == Some(*id);
+        let edge = if picked { solid } else { mix_argb(0x50FF_FFFF, 0xC055_AAFF, t) };
+        let fill = if picked { argb(accent, 0.16) } else { argb(0x55AAFF, 0.10 * t) };
+        let rr = [r[0] - 2.0, r[1] - 2.0, r[2] + 4.0, r[3] + 4.0];
+        out.push(Shape::Fill(rr, fill));
+        out.push(Shape::Fill([rr[0], rr[1], rr[2], 1.0], edge));
+        out.push(Shape::Fill([rr[0], rr[1] + rr[3] - 1.0, rr[2], 1.0], edge));
+        out.push(Shape::Fill([rr[0], rr[1] + 1.0, 1.0, rr[3] - 2.0], edge));
+        out.push(Shape::Fill([rr[0] + rr[2] - 1.0, rr[1] + 1.0, 1.0, rr[3] - 2.0], edge));
+        if picked || t > 0.05 {
+            let name = HUD_ELEMENTS.iter().find(|e| e.0 == *id).map_or(*id, |e| e.1);
+            let scale = s.layout.iter().find(|(i, _)| i == id).map_or(1.0, |e| e.1[2]);
+            let text = if scale != 1.0 { format!("{name}  {:.0}%", scale * 100.0) } else { name.to_owned() };
+            let tw = width(&text) + 8.0;
+            let ty = if rr[1] >= 13.0 { rr[1] - 12.0 } else { rr[1] + rr[3] + 1.0 };
+            rounded(&mut out, [rr[0], ty, tw, 11.0], 3.0, if picked { solid } else { 0xD018_1820 });
+            label(&mut out, &text, [rr[0] + 4.0, ty + 2.0], if picked { 0xFF10_1014 } else { 0xFFFF_FFFF }, false, 1.0);
+        }
+    }
+    for g in &m.guides {
+        out.push(Shape::Fill(*g, 0xA055_FFFF));
+    }
+    let content = out.len();
+    // The bar: hints and buttons, top middle (bottom when an element is up there).
+    let hint = if boxes.is_empty() {
+        "Nothing to move: turn on some HUD modules (and F1 hides the HUD)".to_owned()
+    } else {
+        "Drag to move  ·  Scroll to resize  ·  Right-click puts one back  ·  Shift: no snapping".to_owned()
+    };
+    let buttons = [("Undo", Action::UndoHud), ("Reset all", Action::ResetHud), ("Done", Action::Go(Page::Home))];
+    let bw: f32 = buttons.iter().map(|b| width(b.0) + 16.0).sum::<f32>() + 4.0 * buttons.len() as f32;
+    let total = width(&hint) + 20.0 + bw;
+    let mut bar = [(sw - total) / 2.0, 8.0, total, 22.0];
+    if boxes.iter().any(|b| b.1[1] < 34.0 && b.1[0] < bar[0] + bar[2] && b.1[0] + b.1[2] > bar[0]) {
+        bar[1] = sh - 30.0;
+    }
+    rounded(&mut out, [bar[0] - 1.0, bar[1] - 1.0, bar[2] + 2.0, bar[3] + 2.0], 7.0, PANEL_EDGE);
+    rounded(&mut out, bar, 6.0, MENU_BG);
+    label(&mut out, &hint, [bar[0] + 10.0, bar[1] + 7.0], argb(MUTED, 1.0), false, 1.0);
+    let mut bx = bar[0] + bar[2] - bw;
+    for (i, (name, action)) in buttons.iter().enumerate() {
+        let r = [bx, bar[1] + 3.0, width(name) + 16.0, 16.0];
+        let t = ease(key(21, i), if inside(r, mouse) { 1.0 } else { 0.0 }, 0.0, animate);
+        let enabled = match action { Action::UndoHud => !m.undo.is_empty(), Action::ResetHud => !s.layout.is_empty(), _ => true };
+        let base = if i == 2 { argb(accent, 0.55 + 0.3 * t) } else { mix_argb(CARD, CARD_HOVER, t) };
+        rounded(&mut out, r, 4.0, base);
+        label(&mut out, name, [r[0] + 8.0, r[1] + 4.0], if enabled { 0xFFFF_FFFF } else { argb(GREY, 1.0) }, false, 1.0);
+        if enabled {
+            hits.push((r, *action));
+        }
+        bx += r[2] + 4.0;
+    }
+    (out, hits, content)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -5078,6 +6350,9 @@ fn layout(
 ) -> (Vec<Shape>, Vec<([f32; 4], Action)>, usize) {
     let accent = s.accent();
     let solid = 0xFF00_0000 | accent;
+    if m.page == Page::HudEdit {
+        return hud_editor(screen, mouse, m, s, width, animate);
+    }
     let (w, h) = menu_size(screen);
     let x0 = (screen[0] + (screen[2] - w) / 2.0).round();
     let y0 = (screen[1] + (screen[3] - h) / 2.0).round();
@@ -5115,6 +6390,7 @@ fn layout(
         (Page::Modules, None) => format!("/  Modules  /  {}", CATEGORIES.get(m.category).copied().unwrap_or("")),
         (Page::Browse, _) => "/  Browse".into(),
         (Page::Cosmetics, _) => "/  Cosmetics".into(),
+        (Page::HudEdit, _) => "/  Edit HUD".into(),
     };
     label(&mut out, &fit(&crumb, w - title_w - 60.0, width), [x0 + 22.0 + title_w, y0 + 14.0], argb(MUTED, 1.0), false, 1.0);
     let close = [x0 + w - 24.0, y0 + 9.0, 15.0, 15.0];
@@ -5127,6 +6403,7 @@ fn layout(
     let mut content = out.len();
 
     match m.page {
+        Page::HudEdit => {}
         Page::Home => {
             label(&mut out, "Welcome back", [x0 + 18.0, top + 10.0], 0xFFFF_FFFF, true, 1.25);
             let on = modules_on(s);
@@ -5136,12 +6413,13 @@ fn layout(
             rounded(&mut out, bar, 2.0, 0x20FF_FFFF);
             let part = ease(key(3, 0), ON_HORIZON.len() as f32 / JAVA_MODULES.len() as f32, 0.0, animate);
             rounded(&mut out, [bar[0], bar[1], (bar[2] * part).max(4.0), bar[3]], 2.0, solid);
-            let tiles: [(&str, String, Page, u8); 3] = [
-                ("Modules", format!("{on} on. Switch them, set them, see what runs here."), Page::Modules, 0),
+            let tiles: [(&str, String, Page, u8); 4] = [
+                ("Modules", format!("{on} on. Switch them, set them, search, star favourites."), Page::Modules, 0),
+                ("Edit HUD", "Drag, resize and line up your HUD over the game.".into(), Page::HudEdit, 3),
                 ("Browse", "Crosshairs and HUD themes from the website, one click to use.".into(), Page::Browse, 1),
                 ("Cosmetics", "Capes, hats and more: shown to players on the Java version.".into(), Page::Cosmetics, 2),
             ];
-            let tw = ((w - 36.0 - 16.0) / 3.0).floor();
+            let tw = ((w - 36.0 - 24.0) / 4.0).floor();
             let ty = top + 54.0;
             let th = (h - HEADER - 54.0 - 36.0).max(60.0);
             for (i, (name, text, page, icon)) in tiles.iter().enumerate() {
@@ -5163,6 +6441,11 @@ fn layout(
                         for (dx, dy) in [(0.0, 0.0), (8.0, 0.0), (0.0, 8.0), (8.0, 8.0)] {
                             rounded(&mut out, [ix + dx, iy + dy, 6.0, 6.0], 1.0, ic);
                         }
+                    }
+                    3 => {
+                        rounded(&mut out, [ix, iy + 2.0, 14.0, 10.0], 2.0, argb(accent, 0.35));
+                        rounded(&mut out, [ix + 2.0, iy + 4.0, 5.0, 3.0], 1.0, ic);
+                        rounded(&mut out, [ix + 8.0, iy + 8.0, 4.0, 2.0], 1.0, ic);
                     }
                     1 => {
                         out.push(Shape::Fill([ix + 6.0, iy, 2.0, 14.0], ic));
@@ -5297,13 +6580,58 @@ fn layout(
         Page::Modules => {
             let side = [x0 + 6.0, top + 2.0, SIDE - 4.0, h - HEADER - 8.0];
             rounded(&mut out, side, 4.0, SIDEBAR_BG);
-            let selected = m.detail.and_then(|d| JAVA_MODULES.get(d)).map_or(m.category, |j| j.category);
-            let cat_r = |i: usize| [side[0] + 4.0, side[1] + 5.0 + i as f32 * 19.0, side[2] - 8.0, 17.0];
+            // The search box.
+            let sr = [side[0] + 4.0, side[1] + 5.0, side[2] - 8.0, 16.0];
+            let t = hover(key(22, 0), sr);
+            let focus = m.search_focus || !m.search.is_empty();
+            rounded(&mut out, sr, 4.0, if focus { argb(accent, 0.16) } else { mix_argb(0x10FF_FFFF, 0x1CFF_FFFF, t) });
+            if focus {
+                out.push(Shape::Fill([sr[0] + 3.0, sr[1] + sr[3] - 1.0, sr[2] - 6.0, 1.0], solid));
+            }
+            // A magnifier.
+            rounded(&mut out, [sr[0] + 5.0, sr[1] + 4.0, 6.0, 6.0], 3.0, argb(MUTED, 0.9));
+            rounded(&mut out, [sr[0] + 6.0, sr[1] + 5.0, 4.0, 4.0], 2.0, 0xFF16_161C);
+            out.push(Shape::Quad([[sr[0] + 10.0, sr[1] + 9.0], [sr[0] + 11.0, sr[1] + 9.0], [sr[0] + 13.0, sr[1] + 12.0], [sr[0] + 12.0, sr[1] + 12.0]], argb(MUTED, 0.9)));
+            if m.search.is_empty() {
+                label(&mut out, "Search...", [sr[0] + 16.0, sr[1] + 4.5], argb(GREY, 1.0), false, 1.0);
+            } else {
+                let text = fit(&m.search, sr[2] - 24.0, width);
+                label(&mut out, &text, [sr[0] + 16.0, sr[1] + 4.5], 0xFFFF_FFFF, false, 1.0);
+            }
+            if m.search_focus {
+                let blink = cfg!(test) || std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis()) / 500 % 2 == 0;
+                if blink {
+                    let cx = sr[0] + 16.0 + width(&fit(&m.search, sr[2] - 24.0, width)) + 1.0;
+                    out.push(Shape::Fill([cx, sr[1] + 4.0, 1.0, 9.0], 0xFFFF_FFFF));
+                }
+            }
+            hits.push((sr, Action::Search));
+            let selected = if !m.search.is_empty() { usize::MAX } else { m.detail.and_then(|d| JAVA_MODULES.get(d)).map_or(m.category, |j| j.category) };
+            // Favorites first, then the categories.
+            let row_of = |i: usize| if i == FAVORITES { 0 } else { i + 1 };
+            let cat_r = |i: usize| [side[0] + 4.0, side[1] + 26.0 + row_of(i) as f32 * 18.0, side[2] - 8.0, 16.0];
             // The marker slides to the chosen category.
-            let target = cat_r(selected);
-            let y = ease(key(11, 0), target[1], target[1], animate);
-            rounded(&mut out, [target[0], y, target[2], target[3]], 4.0, CARD_HOVER);
-            rounded(&mut out, [target[0], y + 4.0, 2.0, target[3] - 8.0], 1.0, solid);
+            if selected != usize::MAX {
+                let target = cat_r(selected);
+                let y = ease(key(11, 0), target[1], target[1], animate);
+                rounded(&mut out, [target[0], y, target[2], target[3]], 4.0, CARD_HOVER);
+                rounded(&mut out, [target[0], y + 4.0, 2.0, target[3] - 8.0], 1.0, solid);
+            }
+            {
+                let r = cat_r(FAVORITES);
+                let t = hover(key(12, FAVORITES), r);
+                if selected != FAVORITES && t > 0.01 {
+                    rounded(&mut out, r, 4.0, argb(0xFFFFFF, 0.06 * t));
+                }
+                star(&mut out, [r[0] + 11.0, r[1] + 8.0], 4.5, if selected == FAVORITES { solid } else { argb(0xF5B83D, 0.9) });
+                let c = if selected == FAVORITES { 0xFFFF_FFFF } else { mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, t) };
+                label(&mut out, "Favorites", [r[0] + 19.0, r[1] + 4.5], c, false, 1.0);
+                if !s.favorites.is_empty() {
+                    let n = s.favorites.len().to_string();
+                    label(&mut out, &n, [r[0] + r[2] - width(&n) - 6.0, r[1] + 4.5], argb(GREY, 1.0), false, 1.0);
+                }
+                hits.push((r, Action::Category(FAVORITES)));
+            }
             for (i, name) in CATEGORIES.iter().enumerate() {
                 let r = cat_r(i);
                 let t = hover(key(12, i), r);
@@ -5314,9 +6642,9 @@ fn layout(
                 let on = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some_and(|(f, _)| s.v[f] == 1)).count();
                 let count = if on > 0 { on.to_string() } else { String::new() };
                 let c = if i == selected { 0xFFFF_FFFF } else { mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, t) };
-                label(&mut out, &fit(name, r[2] - 26.0, width), [r[0] + 8.0, r[1] + 5.0], c, false, 1.0);
+                label(&mut out, &fit(name, r[2] - 26.0, width), [r[0] + 8.0, r[1] + 4.5], c, false, 1.0);
                 if !count.is_empty() {
-                    label(&mut out, &count, [r[0] + r[2] - width(&count) - 6.0, r[1] + 5.0], if i == selected { solid } else { argb(GREY, 1.0) }, false, 1.0);
+                    label(&mut out, &count, [r[0] + r[2] - width(&count) - 6.0, r[1] + 4.5], if i == selected { solid } else { argb(GREY, 1.0) }, false, 1.0);
                 }
                 hits.push((r, Action::Category(i)));
             }
@@ -5388,11 +6716,24 @@ fn layout(
                     }
                 }
                 None => {
-                    let list = category_modules(m.category);
+                    let list = shown_modules(m, s);
                     let on = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some_and(|(f, _)| s.v[f] == 1)).count();
                     let here = list.iter().filter(|&&j| on_horizon(JAVA_MODULES[j].id).is_some()).count();
-                    label(&mut out, CATEGORIES.get(m.category).copied().unwrap_or(""), [cx + 2.0, top + 7.0], 0xFFFF_FFFF, true, 1.25);
+                    let title = if !m.search.trim().is_empty() {
+                        format!("Results for \"{}\"", fit(m.search.trim(), cw / 2.0, width))
+                    } else if m.category == FAVORITES {
+                        "Favorites".to_owned()
+                    } else {
+                        CATEGORIES.get(m.category).copied().unwrap_or("").to_owned()
+                    };
+                    label(&mut out, &title, [cx + 2.0, top + 7.0], 0xFFFF_FFFF, true, 1.25);
                     let info = format!("{on} on  ·  {here} of {} on Horizon", list.len());
+                    if list.is_empty() {
+                        let empty = if !m.search.trim().is_empty() { "No module matches. Try fewer words." } else if m.category == FAVORITES { "Star a module with its star to keep it here (and in Quick Menu, V)." } else { "" };
+                        for (n, l) in wrap(empty, cw - 8.0, 2, width).iter().enumerate() {
+                            label(&mut out, l, [cx + 4.0, top + LIST_TOP + 6.0 + n as f32 * 10.0], argb(MUTED, 1.0), false, 1.0);
+                        }
+                    }
                     label(&mut out, &info, [cx + cw - width(&info) - 2.0, top + 9.0], argb(GREY, 1.0), false, 1.0);
                     let shown = rows_shown(screen);
                     let first = m.scroll.min(list.len().saturating_sub(shown));
@@ -5406,11 +6747,20 @@ fn layout(
                         if t > 0.01 && here.is_some() {
                             out.push(Shape::Fill([r[0], r[1] + 5.0, 2.0, (r[3] - 10.0) * t], solid));
                         }
-                        let right = 46.0;
+                        let right = 62.0;
+                        // The favourite star.
+                        let fav = s.favorites.iter().any(|f| f == module.id);
+                        let sr = [r[0] + r[2] - 52.0, r[1] + 5.0, 14.0, 14.0];
+                        let st = hover(key(23, i), sr);
+                        if fav || t > 0.05 {
+                            let c = if fav { 0xFFF5_B83D } else { mix_argb(argb(GREY, 0.5 * t), argb(0xF5B83D, 0.8), st) };
+                            star(&mut out, [sr[0] + 7.0, sr[1] + 7.0], 5.0 + st * 0.8, c);
+                        }
                         let (name_c, desc_c) = if here.is_some() { (0xFFFF_FFFF, argb(MUTED, 1.0)) } else { (argb(GREY, 1.0), argb(GREY, 0.8)) };
                         label(&mut out, &fit(module.name, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 3.5], name_c, false, 1.0);
                         label(&mut out, &fit(module.description, cw - right - 14.0, width), [r[0] + 9.0, r[1] + 13.5], desc_c, false, 1.0);
                         hits.push((r, Action::Open(i)));
+                        hits.push((sr, Action::Favorite(i)));
                         match here {
                             Some((toggle, _)) => {
                                 let on = ease(key(18, i), s.v[toggle] as f32, s.v[toggle] as f32, animate);
@@ -5439,6 +6789,237 @@ fn layout(
     (out, hits, content)
 }
 
+
+/// Edits between `a` and `b` (Levenshtein).
+fn edits(a: &[char], b: &[char]) -> usize {
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut prev = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cur = row[j + 1];
+            row[j + 1] = (prev + usize::from(ca != cb)).min(row[j] + 1).min(row[j + 1] + 1);
+            prev = cur;
+        }
+    }
+    row[b.len()]
+}
+
+/// How well `query` matches `text` (as the Java mod's search): 2 every word is in it, 1 with typos, 0 no match.
+pub fn text_match(query: &str, text: &str) -> u8 {
+    let text = text.to_lowercase();
+    let tokens: Vec<Vec<char>> = text.split(|c: char| !c.is_alphanumeric()).filter(|t| !t.is_empty()).map(|t| t.chars().collect()).collect();
+    let mut best = 2;
+    for word in query.to_lowercase().split_whitespace() {
+        if text.contains(word) {
+            continue;
+        }
+        let w: Vec<char> = word.chars().collect();
+        let allowed = match w.len() { 0..3 => 0, 3..8 => 1, _ => 2 };
+        let close = allowed > 0 && tokens.iter().any(|t| {
+            (w.len().saturating_sub(1)..=w.len() + 1).any(|n| n <= t.len() && n > 0 && edits(&w, &t[..n]) <= allowed)
+        });
+        if !close {
+            return 0;
+        }
+        best = 1;
+    }
+    best
+}
+
+/// What a module is found by: its name, description, category, id and its settings' names.
+fn haystack(i: usize) -> String {
+    let j = &JAVA_MODULES[i];
+    let mut out = format!("{} {} {} {}", j.name, j.description, CATEGORIES.get(j.category).copied().unwrap_or(""), j.id.replace('_', " "));
+    if let Some((f, fields)) = on_horizon(j.id) {
+        for x in std::iter::once(&f).chain(fields.iter()) {
+            out.push(' ');
+            out.push_str(FIELDS[*x].label);
+        }
+    }
+    out
+}
+
+/// The modules `query` finds in every category: names first, then other matches, then typos.
+pub fn search_modules(query: &str) -> Vec<usize> {
+    let mut found: Vec<(u8, bool, String, usize)> = (0..JAVA_MODULES.len()).filter_map(|i| {
+        let quality = text_match(query, &haystack(i));
+        (quality > 0).then(|| {
+            let rank = if text_match(query, JAVA_MODULES[i].name) == 2 { 0 } else if quality == 2 { 1 } else { 2 };
+            (rank, on_horizon(JAVA_MODULES[i].id).is_none(), JAVA_MODULES[i].name.to_ascii_lowercase(), i)
+        })
+    }).collect();
+    found.sort();
+    found.into_iter().map(|f| f.3).collect()
+}
+
+/// The modules the list shows: the search's results, the favourites, or a category's.
+pub fn shown_modules(m: &Menu, s: &Settings) -> Vec<usize> {
+    if !m.search.trim().is_empty() {
+        search_modules(m.search.trim())
+    } else if m.category == FAVORITES {
+        s.favorites.iter().filter_map(|f| JAVA_MODULES.iter().position(|j| j.id == f)).collect()
+    } else {
+        category_modules(m.category)
+    }
+}
+
+/// A character typed on the menu: into the search box (any letter on the Modules page starts a search).
+pub fn menu_typed(m: &mut Menu, c: char) -> bool {
+    if m.page != Page::Modules || m.detail.is_some() || c.is_control() {
+        return false;
+    }
+    if m.search.chars().count() < 40 {
+        m.search.push(c);
+    }
+    m.search_focus = true;
+    m.scroll = 0;
+    true
+}
+
+/// A key on the menu: Backspace and Escape in the search, Escape and Ctrl+Z in the HUD editor. True when it was the
+/// menu's (Escape then doesn't close it). `s` changes on Undo (to be stored).
+pub fn menu_key(m: &mut Menu, s: &mut Settings, key: &str, ctrl: bool) -> (bool, bool) {
+    match (m.page, key) {
+        (Page::HudEdit, "key.keyboard.escape") => {
+            *m = Menu { page: Page::Home, tab: m.tab, ..Menu::default() };
+            (true, false)
+        }
+        (Page::HudEdit, "key.keyboard.z") if ctrl => (true, hud_undo(m, s)),
+        (Page::Modules, "key.keyboard.backspace") if m.search_focus || !m.search.is_empty() => {
+            if ctrl {
+                m.search.clear();
+            } else {
+                m.search.pop();
+            }
+            m.scroll = 0;
+            (true, false)
+        }
+        (Page::Modules, "key.keyboard.escape") if m.search_focus || !m.search.is_empty() => {
+            m.search.clear();
+            m.search_focus = false;
+            (true, false)
+        }
+        (Page::Modules, "key.keyboard.escape") if m.detail.is_some() => {
+            m.detail = None;
+            (true, false)
+        }
+        _ => (false, false),
+    }
+}
+
+// ---- The HUD editor ----
+
+fn set_layout(s: &mut Settings, id: &str, v: [f32; 3]) {
+    s.layout.retain(|(i, _)| i != id);
+    if v != [0.0, 0.0, 1.0] {
+        s.layout.push((id.to_owned(), v));
+    }
+}
+
+fn push_undo(m: &mut Menu, before: String) {
+    if m.undo.last() != Some(&before) {
+        m.undo.push(before);
+        if m.undo.len() > 50 {
+            m.undo.remove(0);
+        }
+    }
+}
+
+/// Ctrl+Z or Undo: the layout before the last change.
+pub fn hud_undo(m: &mut Menu, s: &mut Settings) -> bool {
+    match m.undo.pop() {
+        Some(before) => {
+            s.layout = parse_layout(&before);
+            true
+        }
+        None => false,
+    }
+}
+
+/// The HUD element under the pointer (the last drawn wins).
+fn hud_at(boxes: &[(&'static str, [f32; 4], [f32; 4])], p: [f32; 2]) -> Option<(&'static str, [f32; 4], [f32; 4])> {
+    boxes.iter().rev().find(|b| inside([b.1[0] - 2.0, b.1[1] - 2.0, b.1[2] + 4.0, b.1[3] + 4.0], p)).copied()
+}
+
+/// A press in the HUD editor: left picks up an element, right puts it back where it started. True when the layout changed.
+pub fn hud_press(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4], [f32; 4])], mouse: [f32; 2], button: i32) -> bool {
+    let Some((id, rect, _)) = hud_at(boxes, mouse) else {
+        m.picked = None;
+        return false;
+    };
+    m.picked = Some(id);
+    if button == 1 {
+        push_undo(m, layout_text(&s.layout));
+        set_layout(s, id, [0.0, 0.0, 1.0]);
+        return true;
+    }
+    m.drag = Some(Drag { id, grab: [mouse[0] - rect[0], mouse[1] - rect[1]], before: layout_text(&s.layout), moved: false });
+    false
+}
+
+/// The pointer moved while holding an element: it follows, snapping (within 4 pixels) to the screen's edges and middle
+/// and to the other elements' edges unless Shift is held. True when the layout changed.
+pub fn hud_drag(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4], [f32; 4])], mouse: [f32; 2], screen: [f32; 2], shift: bool) -> bool {
+    let Some(drag) = m.drag.clone() else { return false };
+    let Some(&(_, rect, home)) = boxes.iter().find(|b| b.0 == drag.id) else { return false };
+    let mut x = mouse[0] - drag.grab[0];
+    let mut y = mouse[1] - drag.grab[1];
+    let mut guides = Vec::new();
+    if !shift {
+        let others: Vec<[f32; 4]> = boxes.iter().filter(|b| b.0 != drag.id).map(|b| b.1).collect();
+        let snap = |v: f32, size: f32, full: f32, edges: Vec<f32>| -> (f32, Option<f32>) {
+            let mut cands = vec![(0.0, 0.0), (full - size, full), (full / 2.0 - size / 2.0, full / 2.0)];
+            for e in edges {
+                cands.push((e, e));
+                cands.push((e - size, e));
+            }
+            cands.into_iter().map(|(c, line)| ((c - v).abs(), c, line)).filter(|c| c.0 <= 4.0)
+                .min_by(|a, b| a.0.total_cmp(&b.0)).map_or((v, None), |c| (c.1, Some(c.2)))
+        };
+        let (nx, gx) = snap(x, rect[2], screen[0], others.iter().flat_map(|o| [o[0], o[0] + o[2]]).collect());
+        let (ny, gy) = snap(y, rect[3], screen[1], others.iter().flat_map(|o| [o[1], o[1] + o[3]]).collect());
+        x = nx;
+        y = ny;
+        if let Some(g) = gx {
+            guides.push([g, 0.0, 1.0, screen[1]]);
+        }
+        if let Some(g) = gy {
+            guides.push([0.0, g, screen[0], 1.0]);
+        }
+    }
+    let x = x.clamp(0.0, (screen[0] - rect[2]).max(0.0));
+    let y = y.clamp(0.0, (screen[1] - rect[3]).max(0.0));
+    if !drag.moved {
+        push_undo(m, drag.before.clone());
+    }
+    m.drag = Some(Drag { moved: true, ..drag });
+    m.guides = guides;
+    let scale = s.layout.iter().find(|(i, _)| i == drag.id).map_or(1.0, |e| e.1[2]);
+    set_layout(s, drag.id, [(x - home[0]).round(), (y - home[1]).round(), scale]);
+    true
+}
+
+/// The button let go: the element stays.
+pub fn hud_release(m: &mut Menu) {
+    m.drag = None;
+    m.guides.clear();
+}
+
+/// The wheel over an element sizes it (0.5 to 3, from its top left). True when the layout changed.
+pub fn hud_scroll(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4], [f32; 4])], mouse: [f32; 2], steps: f64) -> bool {
+    let Some((id, rect, home)) = hud_at(boxes, mouse) else { return false };
+    let now = s.layout.iter().find(|(i, _)| i == id).map_or([0.0, 0.0, 1.0], |e| e.1);
+    let scale = (((now[2] + steps.signum() as f32 * 0.1) * 10.0).round() / 10.0).clamp(0.5, 3.0);
+    if scale == now[2] {
+        return false;
+    }
+    push_undo(m, layout_text(&s.layout));
+    m.picked = Some(id);
+    set_layout(s, id, [rect[0] - home[0], rect[1] - home[1], scale]);
+    true
+}
+
 /// What a click at `mouse` does, from the same layout as the drawing.
 pub fn menu_click(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, browse: &Fetch, width: &dyn Fn(&str) -> f32) -> Option<Action> {
     let (_, hits) = menu_layout(screen, mouse, m, s, browse, width);
@@ -5454,7 +7035,7 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             false
         }
         Action::Go(page) => {
-            *m = Menu { page, tab: m.tab, ..Menu::default() };
+            *m = Menu { page, tab: m.tab, undo: std::mem::take(&mut m.undo), ..Menu::default() };
             false
         }
         Action::Category(c) => {
@@ -5490,6 +7071,28 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             retry(m.tab);
             false
         }
+        Action::Favorite(i) => {
+            let id = JAVA_MODULES[i].id;
+            if let Some(at) = s.favorites.iter().position(|f| f == id) {
+                s.favorites.remove(at);
+            } else {
+                s.favorites.push(id.to_owned());
+            }
+            true
+        }
+        Action::Search => {
+            m.search_focus = true;
+            false
+        }
+        Action::UndoHud => hud_undo(m, s),
+        Action::ResetHud => {
+            if s.layout.is_empty() {
+                return false;
+            }
+            push_undo(m, layout_text(&s.layout));
+            s.layout.clear();
+            true
+        }
         Action::Apply(i) => match browse {
             Fetch::Ready(items) => match items.get(i) {
                 Some(item) if apply_item(item, s) => {
@@ -5504,11 +7107,11 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
 }
 
 /// The wheel over the menu: `steps` up (positive) or down moves the list.
-pub fn menu_scroll(m: &mut Menu, steps: f64, screen: [f32; 4], browse: &Fetch) {
+pub fn menu_scroll(m: &mut Menu, s: &Settings, steps: f64, screen: [f32; 4], browse: &Fetch) {
     let step = -(steps.signum() as i64);
     match m.page {
         Page::Modules if m.detail.is_none() => {
-            let max = category_modules(m.category).len().saturating_sub(rows_shown(screen));
+            let max = shown_modules(m, s).len().saturating_sub(rows_shown(screen));
             m.scroll = (m.scroll.min(max) as i64 + step).clamp(0, max as i64) as usize;
         }
         Page::Browse => {
@@ -5602,11 +7205,18 @@ mod tests {
         // Quick Menu: hold, scroll, let go.
         let mut q = Settings::default();
         q.v[QUICK_MENU] = 1;
-        assert_eq!(more_key(&q, "key_quick_menu", true, true), None);
+        assert_eq!(more_key(&q, "key_quick_menu", true, true, None), None);
         assert!(quick_wheel(-1.0));
-        assert_eq!(more_key(&q, "key_quick_menu", false, true), Some(QUICK[1]));
+        assert_eq!(more_key(&q, "key_quick_menu", false, true, None), Some(QUICK[1]));
         assert!(!quick_wheel(1.0));
-        assert_eq!(more_key(&q, "key_performance", true, true), Some(PERF));
+        assert_eq!(more_key(&q, "key_performance", true, true, None), Some(PERF));
+        // Starred modules make the wheel, and the mouse points at one (up is the first, right the next quarter).
+        q.favorites = vec!["zoom".into(), "fullbright".into(), "java_only_nope".into()];
+        let list = quick_list(&q);
+        assert!(!list.is_empty() && list.len() <= 2);
+        assert_eq!(quick_pick(4, Some((0.0, -30.0)), 2), 0);
+        assert_eq!(quick_pick(4, Some((30.0, 0.0)), 2), 1);
+        assert_eq!(quick_pick(4, Some((1.0, 1.0)), 2), 2, "a small pull keeps the wheel's pick");
 
         // Notes and profiles.
         let mut n = Settings::default();
@@ -5658,12 +7268,135 @@ mod tests {
         // A frame of every page has the same clicks as its layout, and fades nothing out once settled.
         let screen = [0.0, 0.0, 640.0, 360.0];
         let s = Settings::default();
-        for page in [Page::Home, Page::Modules, Page::Browse, Page::Cosmetics] {
+        for page in [Page::Home, Page::Modules, Page::Browse, Page::Cosmetics, Page::HudEdit] {
             let m = Menu { page, ..Menu::default() };
             let frame = menu_frame(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
             let (layout, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
             assert_eq!(frame.len(), layout.len());
         }
+    }
+
+    #[test]
+    fn search_favorites_and_the_hud_editor() {
+        assert_eq!(text_match("zoom", "Zoom: hold a key"), 2);
+        assert_eq!(text_match("zom", "Zoom: hold a key"), 1, "a typo");
+        assert_eq!(text_match("totem pop", "Totem Pop Counter"), 2);
+        assert_eq!(text_match("lightning", "Zoom"), 0);
+        let found = search_modules("totem");
+        assert!(!found.is_empty() && JAVA_MODULES[found[0]].name.to_lowercase().contains("totem"));
+        let mut m = Menu { page: Page::Modules, ..Menu::default() };
+        let mut s = Settings::default();
+        assert!(menu_typed(&mut m, 'z') && menu_typed(&mut m, 'o'));
+        assert_eq!(m.search, "zo");
+        assert_eq!(menu_key(&mut m, &mut s, "key.keyboard.backspace", false), (true, false));
+        assert_eq!(m.search, "z");
+        assert_eq!(menu_key(&mut m, &mut s, "key.keyboard.escape", false), (true, false));
+        assert!(m.search.is_empty() && !m.search_focus);
+        assert_eq!(menu_key(&mut m, &mut s, "key.keyboard.escape", false), (false, false), "then Escape closes the menu");
+        // Starring: the Favorites row lists it.
+        let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();
+        assert!(apply(Action::Favorite(zoom), &mut m, &mut s, &Fetch::Loading));
+        m.category = FAVORITES;
+        assert_eq!(shown_modules(&m, &s), vec![zoom]);
+        assert!(apply(Action::Favorite(zoom), &mut m, &mut s, &Fetch::Loading));
+        assert!(shown_modules(&m, &s).is_empty());
+        let screen = [0.0, 0.0, 640.0, 360.0];
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &Menu { page: Page::Modules, ..Menu::default() }, &s, &Fetch::Loading, &width);
+        assert!(hits.iter().any(|(_, a)| matches!(a, Action::Favorite(_))) && hits.iter().any(|(_, a)| *a == Action::Search));
+        // The editor: drag snaps to the middle, right-click puts it back, Undo brings the move back.
+        let boxes = vec![("armor", [100.0, 50.0, 20.0, 20.0], [100.0, 50.0, 20.0, 20.0])];
+        let mut e = Menu { page: Page::HudEdit, ..Menu::default() };
+        assert!(!hud_press(&mut e, &mut s, &boxes, [105.0, 55.0], 0));
+        assert!(hud_drag(&mut e, &mut s, &boxes, [312.0, 55.0], [640.0, 360.0], false));
+        assert_eq!(s.layout, vec![("armor".to_string(), [210.0, 0.0, 1.0])], "snapped to the middle (310 = 320 - 10)");
+        assert_eq!(e.guides.len(), 1);
+        hud_release(&mut e);
+        let moved = vec![("armor", [310.0, 50.0, 20.0, 20.0], [100.0, 50.0, 20.0, 20.0])];
+        assert!(hud_scroll(&mut e, &mut s, &moved, [315.0, 55.0], 1.0));
+        assert_eq!(s.layout[0].1[2], 1.1);
+        assert!(hud_press(&mut e, &mut s, &moved, [315.0, 55.0], 1));
+        assert!(s.layout.is_empty());
+        assert!(hud_undo(&mut e, &mut s));
+        assert_eq!(s.layout[0].1[2], 1.1);
+        let (shapes, hits) = menu_layout(screen, [0.0, 0.0], &e, &s, &Fetch::Loading, &width);
+        assert!(hits.iter().any(|(_, a)| *a == Action::Go(Page::Home)) && !shapes.is_empty());
+        assert_eq!(menu_key(&mut e, &mut s, "key.keyboard.escape", false), (true, false));
+        assert_eq!(e.page, Page::Home);
+    }
+
+    #[test]
+    fn hud_elements_move_and_stay_on_screen() {
+        let mut s = Settings::default();
+        assert_eq!(parse_layout("armor=10,-5,1.5;nope=1,1,1;potions=a,b,c"), vec![("armor".to_string(), [10.0, -5.0, 1.5])]);
+        assert_eq!(layout_text(&parse_layout("armor=10,-5,1.5")), "armor=10,-5,1.5");
+        s.layout = vec![("armor".into(), [-1000.0, 0.0, 2.0])];
+        let mut out = vec![Shape::Fill([0.0; 4], 0), Shape::Fill([100.0, 50.0, 10.0, 10.0], 0xFF00_0000), Shape::Item("x".into(), [100.0, 50.0])];
+        hud_begin();
+        place(&s, &mut out, 1, "armor", 320.0, 200.0, &width);
+        assert_eq!(out[1], Shape::Fill([0.0, 50.0, 20.0, 20.0], 0xFF00_0000), "scaled from its corner and kept on screen");
+        assert_eq!(out[2], Shape::Icon("x".into(), [0.0, 50.0], 32.0));
+        assert_eq!(hud_boxes(), vec![("armor", [0.0, 50.0, 32.0, 32.0], [100.0, 50.0, 16.0, 16.0])]);
+        let mut raw = Settings::default();
+        raw.favorites = vec!["zoom".into()];
+        raw.layout = vec![("clock".into(), [3.0, 4.0, 1.0])];
+        let stored = raw.stored();
+        let back = Settings::read(|k| stored.iter().find(|(key, _)| *key == k).map(|(_, v)| v.clone()));
+        assert_eq!((back.favorites, back.layout), (raw.favorites, raw.layout));
+    }
+
+    #[test]
+    fn skyblock_album_and_cloud() {
+        let sidebar: Vec<String> = ["§e§lSKYBLOCK §b§lCO-OP", "Early Spring 3rd", "10:20pm ☽", " ⏣ §bVillage", "", "Purse: §61,234,567.8", "Bits: §b2,500",
+            "Objective", "Talk to Jerry", "Slayer Quest", "Revenant Horror IV", "(1,234/2,400) Combat XP"].iter().map(|s| s.to_string()).collect();
+        let tab: Vec<String> = ["Pet:\n[Lvl 100] Golden Dragon", "Crypts: 6", "Cookie Buff\n3d 4h 5m", "God Potion: 1h 30m"].iter().map(|s| s.to_string()).collect();
+        let sb = read_skyblock(&sidebar, &tab).unwrap();
+        assert_eq!(sb.area, "Village");
+        assert_eq!(sb.purse, Some(("Purse".into(), 1_234_567.8)));
+        assert_eq!(sb.bits, Some(2500.0));
+        assert_eq!((sb.date.as_str(), sb.time.as_str()), ("Early Spring 3rd", "10:20pm"));
+        assert_eq!(sb.objective, "Talk to Jerry");
+        assert_eq!(sb.slayer, Some(("Revenant Horror IV".into(), "(1,234/2,400) Combat XP".into())));
+        assert_eq!(sb.pet, "[Lvl 100] Golden Dragon");
+        assert_eq!(sb.crypts, Some(6));
+        assert_eq!(buff_times(&tab), (Some(3 * 86400 + 4 * 3600 + 5 * 60), Some(5400)));
+        assert!(read_skyblock(&["Bedwars".to_string()], &[]).is_none());
+        assert!(on_hypixel(Some("mc.hypixel.net:25565")) && on_hypixel(Some("hypixel.net")) && !on_hypixel(Some("nothypixel.net")));
+        assert_eq!((coins(1.25e9), coins(4_560_000.0), coins(12_345.0), coins(1234.0), coins(12.5)), ("1.2B".into(), "4.56M".into(), "12.3k".into(), "1,234".into(), "12.5".into()));
+        assert_eq!(sb_duration("12:34"), Some(754));
+        assert_eq!(sb_clean("§aHi  §bthere ⚽"), "Hi there");
+        let mut s = Settings::default();
+        s.v[SKYBLOCK] = 1;
+        assert!(skyblock_tick(&s, Some("mc.hypixel.net"), &sidebar, &tab).is_none());
+        skyblock_chat(&["This ability is on cooldown for 3.5s.".to_string()]);
+        let shapes = skyblock_shapes(&s, 640.0, 360.0, &width);
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Text(t, ..) if t.starts_with("Purse: 1.23M"))));
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Text(t, ..) if t.starts_with("Ability: "))));
+        assert!(chat_hidden(&s).iter().any(|w| w == "kill combo"), "the spam filter in SkyBlock");
+        // Album Colors: a red cover makes a red accent; a grey one none.
+        let red: Vec<u8> = (0..256).flat_map(|_| [220u8, 30, 40]).collect();
+        let (accent, sky) = album_palette(&red).unwrap();
+        assert!((accent >> 16) & 255 > 200 && (accent & 255) < 160, "{accent:06X}");
+        assert!(sky != 0);
+        let grey: Vec<u8> = (0..256).flat_map(|_| [128u8, 128, 128]).collect();
+        assert!(album_palette(&grey).is_none());
+        let m = parse_media(r#"{"title":"One","artist":"Daft Punk","album":"x","durationMs":1,"positionMs":5000,"playing":true,"art":"AAAA"}"#).unwrap();
+        assert_eq!((m.title.as_str(), m.position_ms, m.playing, m.art.len()), ("One", 5000, true, 3));
+        assert!(parse_media(r#"{"error":"winrt"}"#).is_none());
+        // Cloud Backup: the Java setup stays, Horizon's goes next to it; a restore prefers Horizon's, else the Java modules.
+        let java = r#"{"configVersion":1,"modules":{"zoom":{"enabled":true},"nope":{"enabled":true}},"friends":{"a":1}}"#;
+        let mut raw = Settings::default();
+        raw.v[BLOOM] = 1;
+        let merged = merged_backup(Some(java), &raw);
+        let v: serde_json::Value = serde_json::from_str(&merged).unwrap();
+        assert_eq!(v["friends"]["a"], 1);
+        assert_eq!(v["horizon"]["settings"]["bloom"], "true");
+        assert!(restored_from(&merged).contains(&("bloom".to_string(), "true".to_string())));
+        assert_eq!(restored_from(java), vec![(FIELDS[on_horizon("zoom").unwrap().0].key.to_string(), "true".to_string())]);
+        let none = |_: &str, _: &[String]| None;
+        cloud_ask(true);
+        let out = cloud_tick(&raw, &raw, &none);
+        assert!(out.say.unwrap().contains("Minecraft account"));
+        assert_eq!(command(&raw, &raw, "cloud save", None, &|_| None), Command::Cloud(true));
     }
 
     #[test]
@@ -6245,13 +7978,14 @@ mod tests {
     #[test]
     fn the_wheel_scrolls_within_the_list() {
         let screen = [0.0, 0.0, 400.0, 200.0];
+        let s = Settings::default();
         let mut m = Menu { page: Page::Modules, ..Menu::default() };
         let len = category_modules(0).len();
         let max = len.saturating_sub(rows_shown(screen));
-        menu_scroll(&mut m, 1.0, screen, &Fetch::Loading);
+        menu_scroll(&mut m, &s, 1.0, screen, &Fetch::Loading);
         assert_eq!(m.scroll, 0);
         for _ in 0..200 {
-            menu_scroll(&mut m, -1.0, screen, &Fetch::Loading);
+            menu_scroll(&mut m, &s, -1.0, screen, &Fetch::Loading);
         }
         assert_eq!(m.scroll, max);
         assert_eq!(fit("A long description", 60.0, &width), "A long...");

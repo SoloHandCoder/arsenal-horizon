@@ -21,6 +21,9 @@ fn arsenal_screen(
             }
             m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
             m::Shape::Styled(text, at, argb, shadow, scale) => game.arsenal_text(batch, &text, at, argb, shadow, scale),
+            m::Shape::Icon(id, at, size) => {
+                game.native_item(batch, &id, at, size);
+            }
         }
     }
 }

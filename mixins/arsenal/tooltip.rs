@@ -12,4 +12,14 @@ fn arsenal_tooltip(
     for (text, rgb) in m::tooltip_lines(&settings, &stack.item, stack.damage) {
         lines.push((horizon_client::text::Text::literal(&text), rgb));
     }
+    // Hypixel SkyBlock's prices: by the item's SkyBlock id (its custom data's "id").
+    let skyblock_id = stack.custom_data().and_then(|c| match c.get(&horizon_world::nbt::JavaString::from("id")) {
+        Some(horizon_world::nbt::Tag::String(id)) => id.to_string().ok(),
+        _ => None,
+    });
+    if let Some(id) = skyblock_id {
+        for (text, rgb) in m::skyblock_price_lines(&settings, &id, stack.count) {
+            lines.push((horizon_client::text::Text::literal(&text), rgb));
+        }
+    }
 }
