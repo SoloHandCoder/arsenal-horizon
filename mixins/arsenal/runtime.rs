@@ -5164,7 +5164,7 @@ pub fn risky(id: &str) -> bool {
 
 /// The modules new on Horizon (the version they came in): the New row lists the last two versions'.
 pub const ADDED: &[(&str, &str)] = &[
-    ("hypixel_skyblock", "1.14"), ("album_colors", "1.14"), ("cloud_backup", "1.14"), ("inventory_cursor_speed", "1.14"),
+    ("blade_settings", "1.15"), ("hypixel_skyblock", "1.14"), ("album_colors", "1.14"), ("cloud_backup", "1.14"), ("inventory_cursor_speed", "1.14"),
     ("hotbar_style", "1.13"), ("smooth_hotbar", "1.13"), ("inventory_style", "1.13"), ("smooth_inventory", "1.13"), ("old_animations", "1.13"),
     ("swing_animation", "1.13"), ("hand_tint", "1.13"), ("small_crystals", "1.13"), ("big_items", "1.13"), ("armor_color", "1.13"),
     ("nametag_style", "1.13"), ("free_look", "1.13"), ("block_break_animation", "1.13"), ("place_animation", "1.13"), ("slick_floors", "1.13"),
