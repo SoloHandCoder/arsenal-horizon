@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.10.0";
+pub const VERSION: &str = "1.11.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -226,6 +226,10 @@ pub const VIEW_WEATHERS: &[(&str, &str)] = &[("clear", "Clear"), ("world", "The 
 pub const SIZES: &[(&str, &str)] = &[("80", "80%"), ("90", "90%"), ("70", "70%"), ("60", "60%"), ("50", "50%"), ("100", "100%")];
 pub const GLINTS: &[(&str, &str)] = &[("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("yellow", "Gold"), ("white", "White"), ("cyan", "Cyan"), ("magenta", "Magenta"), ("orange", "Orange"), ("black", "Black")];
 pub const HIT_COLORS: &[(&str, &str)] = &[("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("yellow", "Gold"), ("white", "White"), ("magenta", "Magenta"), ("cyan", "Cyan")];
+pub const CRIT_SHAPES: &[(&str, &str)] = &[("star", "Star"), ("heart", "Heart"), ("diamond", "Diamond"), ("circle", "Circle")];
+pub const FX_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("accent", "HUD accent"), ("red", "Red"), ("white", "White"), ("rainbow", "Rainbow")];
+pub const FLASH_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("green", "Green"), ("red", "Red"), ("blue", "Blue"), ("none", "No flash")];
+pub const KILL_STYLES: &[(&str, &str)] = &[("burst", "Burst"), ("ring", "Ring"), ("lightning", "Lightning")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -335,7 +339,22 @@ pub const SHIELD_SIZE: usize = 101;
 pub const TOTEM_SIZE: usize = 102;
 pub const GLINT: usize = 103;
 pub const GLINT_COLOR: usize = 104;
-const N: usize = 105;
+pub const DISCORD: usize = 105;
+pub const TIERS: usize = 106;
+pub const USERS: usize = 107;
+pub const CRITS: usize = 108;
+pub const CRIT_SHAPE: usize = 109;
+pub const CRIT_COLOR: usize = 110;
+pub const SWEEP: usize = 111;
+pub const SWEEP_COLOR: usize = 112;
+pub const SWING: usize = 113;
+pub const TOTEM_STYLE: usize = 114;
+pub const TOTEM_FLASH: usize = 115;
+pub const TOTEM_HIDE: usize = 116;
+pub const KILL_FX: usize = 117;
+pub const KILL_STYLE: usize = 118;
+pub const HIDE_OWN_FX: usize = 119;
+const N: usize = 120;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -443,6 +462,21 @@ pub const FIELDS: [Field; N] = [
     Field { key: "totem_size", label: "Totem animation size", options: SIZES, default: 0 },
     Field { key: "enchant_glint", label: "Enchant Glint", options: ONOFF, default: 0 },
     Field { key: "glint_color", label: "Glint colour", options: GLINTS, default: 0 },
+    Field { key: "discord_presence", label: "Discord Rich Presence", options: ONOFF, default: 1 },
+    Field { key: "pvp_tiers", label: "PvP Tiers", options: ONOFF, default: 0 },
+    Field { key: "arsenal_users", label: "Arsenal Users", options: ONOFF, default: 1 },
+    Field { key: "crit_particles", label: "Crit Particles", options: ONOFF, default: 0 },
+    Field { key: "crit_shape", label: "Shape", options: CRIT_SHAPES, default: 0 },
+    Field { key: "crit_color", label: "Colour", options: FX_COLORS, default: 0 },
+    Field { key: "sweep_effect", label: "Sweep Effect", options: ONOFF, default: 0 },
+    Field { key: "sweep_color", label: "Colour", options: FX_COLORS, default: 3 },
+    Field { key: "swing_trails", label: "Swing Trails", options: ONOFF, default: 0 },
+    Field { key: "totem_pop_style", label: "Totem Pop Style", options: ONOFF, default: 0 },
+    Field { key: "totem_flash", label: "Flash", options: FLASH_COLORS, default: 0 },
+    Field { key: "totem_particles", label: "Hide totem particles", options: ONOFF, default: 0 },
+    Field { key: "kill_effects", label: "Kill Effects", options: ONOFF, default: 0 },
+    Field { key: "kill_style", label: "Effect", options: KILL_STYLES, default: 0 },
+    Field { key: "hide_own_particles", label: "Hide Own Effect Particles", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -521,6 +555,15 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("no_pumpkin_overlay", NO_PUMPKIN, &[]),
     ("smaller_pvp", SMALLER, &[SHIELD_SIZE, TOTEM_SIZE]),
     ("enchant_glint", GLINT, &[GLINT_COLOR]),
+    ("discord_presence", DISCORD, &[]),
+    ("pvp_tiers", TIERS, &[]),
+    ("arsenal_users", USERS, &[]),
+    ("crit_particles", CRITS, &[CRIT_SHAPE, CRIT_COLOR]),
+    ("sweep_effect", SWEEP, &[SWEEP_COLOR]),
+    ("swing_trails", SWING, &[]),
+    ("totem_pop_style", TOTEM_STYLE, &[TOTEM_FLASH, TOTEM_HIDE]),
+    ("kill_effects", KILL_FX, &[KILL_STYLE]),
+    ("hide_own_particles", HIDE_OWN_FX, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -585,6 +628,15 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "no_pumpkin_overlay" => "On Horizon: no pumpkin blur when you wear a carved pumpkin.",
         "smaller_pvp" => "On Horizon: a smaller shield in your hand and a smaller totem animation.",
         "enchant_glint" => "On Horizon: the enchantment glint in your colour.",
+        "discord_presence" => "On Horizon: your Discord profile shows you play Horizon with Arsenal (through the Arsenal Launcher, so apps like Medal don't take its place).",
+        "pvp_tiers" => "On Horizon: each player's best PvP tier (pvptiers.com) above their head.",
+        "arsenal_users" => "On Horizon: a gold A above players who use Arsenal too.",
+        "crit_particles" => "On Horizon: critical hits as stars, hearts, diamonds or circles in your colour, instead of vanilla's.",
+        "sweep_effect" => "On Horizon: the sweeping edge slash as a coloured arc instead of vanilla's.",
+        "swing_trails" => "On Horizon: a short streak follows each swing of your weapon.",
+        "totem_pop_style" => "On Horizon: a coloured flash when your totem pops, and totem particles hidden if you like (the animation size is in Smaller PvP).",
+        "kill_effects" => "On Horizon: a burst, ring or lightning where the player you killed was.",
+        "hide_own_particles" => "On Horizon: your own potion effect particles are hidden (other players' still show).",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -895,6 +947,11 @@ struct State {
     saved_gamma: Option<f32>,
     /// The block aimed at this frame.
     aimed: Option<[i32; 3]>,
+    /// Arsenal's own particles: where, which (1 crit, 2 sweep), since when, which way.
+    fx: Vec<([f64; 3], u8, Instant, [f64; 3])>,
+    kill_fx: Vec<([f64; 3], Instant)>,
+    totem_flash: Option<Instant>,
+    presence_at: Option<Instant>,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -1197,6 +1254,8 @@ pub fn fill_name(text: &str, name: Option<&str>) -> String {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Other {
     pub id: u32,
+    /// The account id (0 when unknown).
+    pub uuid: u128,
     pub name: String,
     pub pos: [f64; 3],
     pub health: f32,
@@ -1281,6 +1340,8 @@ struct Pvp {
     low_alerted: Option<u32>,
     /// Fall Damage Preview: how far you've fallen since you last stood.
     fallen: f64,
+    /// Kills chat told of since Kill Effects last looked.
+    new_kills: Vec<String>,
 }
 
 /// The fight going on: who with, since when, your hits, the damage you dealt, their pops.
@@ -1373,6 +1434,7 @@ pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
                     p.kills.retain(|t| now.duration_since(*t) < Duration::from_secs(10));
                     p.kills.push(now);
                     p.kills_total += 1;
+                    p.new_kills.push(d.victim.clone());
                     p.feed.push((format!("You killed {}", d.victim), now));
                     if settings.on(STREAKS) {
                         if let Some(name) = streak_name(p.kills.len()) {
@@ -1696,6 +1758,8 @@ pub struct Visuals {
     pub no_pumpkin: bool,
     pub particles: u32,
     pub chat_hide: Vec<String>,
+    pub hide_particles: u32,
+    pub capture: bool,
 }
 
 /// The lines Chat Filter hides (lower case pieces of them).
@@ -1719,7 +1783,8 @@ fn chat_hidden(settings: &Settings) -> Vec<String> {
 pub fn visuals(settings: &Settings, gamma: f32) -> Visuals {
     STATE.with_borrow_mut(|s| {
         let a = &mut s.applied;
-        let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), ..Default::default() };
+        let (hide_particles, capture) = particle_rules(settings);
+        let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), hide_particles, capture, ..Default::default() };
         let mut pick = |on: bool, slot: usize, value: Option<String>, off: String| -> Option<String> {
             if on {
                 a[slot] = true;
@@ -1870,6 +1935,451 @@ pub fn world_shapes(settings: &Settings, world: &World, me: Option<[f64; 3]>, my
         let tw = width(&text);
         out.push(Shape::Text(text, [cx - tw / 2.0, cy - 34.0], if n == 0 { 0xAAAAAA } else { 0xFFC83D }, true));
     }
+    out
+}
+
+/// SHA-256 of `data` as lower-case hex (Arsenal Users' account hashes).
+pub fn sha256_hex(data: &[u8]) -> String {
+    const K: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    ];
+    let mut h: [u32; 8] = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    let mut msg = data.to_vec();
+    let bits = (data.len() as u64).wrapping_mul(8);
+    msg.push(0x80);
+    while msg.len() % 64 != 56 {
+        msg.push(0);
+    }
+    msg.extend_from_slice(&bits.to_be_bytes());
+    for chunk in msg.chunks(64) {
+        let mut w = [0u32; 64];
+        for i in 0..16 {
+            w[i] = u32::from_be_bytes([chunk[i * 4], chunk[i * 4 + 1], chunk[i * 4 + 2], chunk[i * 4 + 3]]);
+        }
+        for i in 16..64 {
+            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
+            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16].wrapping_add(s0).wrapping_add(w[i - 7]).wrapping_add(s1);
+        }
+        let mut v = h;
+        for i in 0..64 {
+            let s1 = v[4].rotate_right(6) ^ v[4].rotate_right(11) ^ v[4].rotate_right(25);
+            let ch = (v[4] & v[5]) ^ (!v[4] & v[6]);
+            let t1 = v[7].wrapping_add(s1).wrapping_add(ch).wrapping_add(K[i]).wrapping_add(w[i]);
+            let s0 = v[0].rotate_right(2) ^ v[0].rotate_right(13) ^ v[0].rotate_right(22);
+            let maj = (v[0] & v[1]) ^ (v[0] & v[2]) ^ (v[1] & v[2]);
+            let t2 = s0.wrapping_add(maj);
+            v = [t1.wrapping_add(t2), v[0], v[1], v[2], v[3].wrapping_add(t1), v[4], v[5], v[6]];
+        }
+        for i in 0..8 {
+            h[i] = h[i].wrapping_add(v[i]);
+        }
+    }
+    h.iter().map(|x| format!("{x:08x}")).collect()
+}
+
+/// A uuid as Minecraft writes it ("069a79f4-44e9-4726-a5be-fca90e38aaf5").
+pub fn dashed(uuid: u128) -> String {
+    let h = format!("{uuid:032x}");
+    format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
+}
+
+/// Arsenal Users' hash of an account: SHA-256 of "arsenal-users-v1:" and its uuid.
+pub fn user_hash(uuid: u128) -> String {
+    sha256_hex(format!("arsenal-users-v1:{}", dashed(uuid)).as_bytes())
+}
+
+/// A player's best PvP tier from pvptiers.com's profile answer: ("HT1", colour), none without a current one.
+pub fn best_tier(json: &str) -> Option<(String, u32)> {
+    let v: serde_json::Value = serde_json::from_str(json).ok()?;
+    let rankings = v.get("rankings")?.as_object()?;
+    let mut best: Option<(u64, u64)> = None;
+    for r in rankings.values() {
+        let tier = r.get("tier")?.as_u64()?;
+        let pos = r.get("pos").and_then(|p| p.as_u64()).unwrap_or(0);
+        if r.get("retired").and_then(|x| x.as_bool()).unwrap_or(false) || !(1..=5).contains(&tier) || pos > 1 {
+            continue;
+        }
+        if best.is_none_or(|b| tier * 2 + pos < b.0 * 2 + b.1) {
+            best = Some((tier, pos));
+        }
+    }
+    let (tier, pos) = best?;
+    let rgb = match (tier, pos == 0) {
+        (1, true) => 0xFFC93C, (1, false) => 0xFFE08A, (2, true) => 0xD4DCE8, (2, false) => 0xAEB8C6,
+        (3, true) => 0xE08A4A, (3, false) => 0xC49270, (4, _) => 0xA8A8A8, _ => 0x868686,
+    };
+    Some((format!("{}T{tier}", if pos == 0 { "H" } else { "L" }), rgb))
+}
+
+/// What the network told about players (filled off the game's thread): their tiers and who uses Arsenal.
+#[derive(Default)]
+struct Net {
+    tiers: std::collections::HashMap<u128, Option<(String, u32)>>,
+    users: std::collections::HashSet<u128>,
+    asked_users: std::collections::HashSet<u128>,
+    asking: usize,
+    last_lookup: Option<Instant>,
+}
+
+static NET: Mutex<Option<Net>> = Mutex::new(None);
+
+fn net<R>(f: impl FnOnce(&mut Net) -> R) -> R {
+    let mut guard = NET.lock().unwrap_or_else(|e| e.into_inner());
+    f(guard.get_or_insert_with(Net::default))
+}
+
+/// Asks pvptiers.com about players not asked yet (one at a time) and Arsenal's website which ones use Arsenal (in
+/// batches, at most every 20 seconds). Only the uuid is sent: pvptiers.com gets it for its public profile, Arsenal a
+/// one-way hash.
+pub fn ask_network(settings: &Settings, others: &[Other]) {
+    if settings.on(TIERS) {
+        let next = net(|n| {
+            if n.asking > 0 {
+                return None;
+            }
+            let id = others.iter().map(|o| o.uuid).find(|u| *u != 0 && !n.tiers.contains_key(u))?;
+            n.asking += 1;
+            Some(id)
+        });
+        if let Some(id) = next {
+            fetch_tier(id);
+        }
+    }
+    if settings.on(USERS) {
+        let batch: Vec<u128> = net(|n| {
+            if n.last_lookup.is_some_and(|t| t.elapsed() < Duration::from_secs(20)) {
+                return Vec::new();
+            }
+            let ids: Vec<u128> = others.iter().map(|o| o.uuid).filter(|u| *u != 0 && !n.asked_users.contains(u)).take(50).collect();
+            if !ids.is_empty() {
+                n.last_lookup = Some(Instant::now());
+                n.asked_users.extend(ids.iter().copied());
+            }
+            ids
+        });
+        if !batch.is_empty() {
+            lookup_users(batch);
+        }
+    }
+}
+
+#[cfg(not(test))]
+fn fetch_tier(id: u128) {
+    std::thread::spawn(move || {
+        let url = format!("https://pvptiers.com/api/profile/{id:032x}");
+        let answer = ureq::get(&url).timeout(Duration::from_secs(10)).set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
+        net(|n| {
+            n.tiers.insert(id, answer.as_deref().and_then(best_tier));
+            n.asking = n.asking.saturating_sub(1);
+        });
+    });
+}
+
+#[cfg(test)]
+fn fetch_tier(id: u128) {
+    net(|n| {
+        n.tiers.insert(id, None);
+        n.asking = 0;
+    });
+}
+
+#[cfg(not(test))]
+fn lookup_users(ids: Vec<u128>) {
+    std::thread::spawn(move || {
+        let hashes: Vec<String> = ids.iter().map(|id| user_hash(*id)).collect();
+        let body = serde_json::json!({ "hashes": hashes }).to_string();
+        let answer = ureq::post(&format!("{WEBSITE}/v1/lookup")).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body).ok().and_then(|r| r.into_string().ok());
+        let Some(answer) = answer else { return };
+        let found = users_in(&answer);
+        net(|n| {
+            for (id, hash) in ids.iter().zip(&hashes) {
+                if found.contains(hash) {
+                    n.users.insert(*id);
+                }
+            }
+        });
+    });
+}
+
+#[cfg(test)]
+fn lookup_users(_ids: Vec<u128>) {}
+
+/// The hashes the website's lookup answer names (as plain strings or entries with a hash).
+pub fn users_in(json: &str) -> Vec<String> {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return Vec::new() };
+    v.get("users").and_then(|u| u.as_array()).map_or_else(Vec::new, |list| {
+        list.iter().filter_map(|e| e.as_str().map(str::to_owned).or_else(|| ["hash", "id", "user"].iter().find_map(|k| e.get(*k)?.as_str().map(str::to_owned)))).collect()
+    })
+}
+
+/// Discord Rich Presence: the status Arsenal hands the launcher (`ARSENAL_PRESENCE_RELAY`), as the Java mod's
+/// PresenceRelay writes it: {pid, at, activity}.
+pub fn presence_json(settings: &Settings, playing: bool, at_ms: u64, pid: u32) -> String {
+    if !settings.on(DISCORD) {
+        return serde_json::json!({ "pid": pid, "at": at_ms }).to_string();
+    }
+    let (kills, deaths, fight) = STATE.with_borrow(|s| (s.pvp.kills_total, s.pvp.deaths_total, s.pvp.fight.as_ref().map(|f| f.with.clone())));
+    let details = if playing { "Playing Horizon with Arsenal" } else { "In the menus" };
+    let state = match fight {
+        Some(with) => format!("Fighting {with}"),
+        None if kills + deaths > 0 => format!("{kills} kills, {deaths} deaths"),
+        None => "Minecraft 26.3, in Rust".to_owned(),
+    };
+    serde_json::json!({
+        "pid": pid,
+        "at": at_ms,
+        "activity": {
+            "details": details,
+            "state": state,
+            "assets": { "large_image": "logo", "large_text": "Arsenal" },
+            "buttons": [{ "label": "Get Arsenal", "url": WEBSITE }],
+        },
+    }).to_string()
+}
+
+/// Where the launcher wants the status written (none when Horizon wasn't started by it or Show on Discord is off).
+pub fn presence_file() -> Option<std::path::PathBuf> {
+    std::env::var_os("ARSENAL_PRESENCE_RELAY").map(std::path::PathBuf::from)
+}
+
+/// Writes the status for the launcher every few seconds (whole files only, never half of one).
+pub fn write_presence(settings: &Settings, playing: bool) {
+    let Some(path) = presence_file() else { return };
+    let due = STATE.with_borrow_mut(|s| {
+        let due = s.presence_at.is_none_or(|t| t.elapsed() >= Duration::from_secs(5));
+        if due {
+            s.presence_at = Some(Instant::now());
+        }
+        due
+    });
+    if !due {
+        return;
+    }
+    let at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
+    let text = presence_json(settings, playing, at, std::process::id());
+    let tmp = path.with_extension("tmp");
+    if std::fs::write(&tmp, text).is_ok() {
+        let _ = std::fs::rename(&tmp, &path);
+    }
+}
+
+fn fx_rgb(settings: &Settings, choice: usize, t: f32) -> u32 {
+    match FX_COLORS[choice].0 {
+        "accent" => settings.accent(),
+        "red" => 0xFF5A5A,
+        "white" => 0xFFFFFF,
+        "rainbow" => {
+            let h = (t.rem_euclid(1.0)) * 6.0;
+            let x = 1.0 - ((h % 2.0) - 1.0).abs();
+            let (r, g, b) = match h as u32 { 0 => (1.0, x, 0.0), 1 => (x, 1.0, 0.0), 2 => (0.0, 1.0, x), 3 => (0.0, x, 1.0), 4 => (x, 0.0, 1.0), _ => (1.0, 0.0, x) };
+            ((r * 255.0) as u32) << 16 | ((g * 255.0) as u32) << 8 | (b * 255.0) as u32
+        }
+        _ => 0xFFC83D,
+    }
+}
+
+/// Particles Arsenal draws itself (captured where the game made them): crits and sweeps, then they fade.
+pub fn particles_tick(settings: &Settings, caught: &[(&str, [f64; 3])], own_pop: bool) {
+    STATE.with_borrow_mut(|s| {
+        let now = Instant::now();
+        for (name, at) in caught {
+            match *name {
+                "crit" | "enchanted_hit" if settings.on(CRITS) => {
+                    if s.fx.iter().filter(|f| f.1 == 1).count() < 120 {
+                        let n = s.fx.len() as f64;
+                        // A little burst out from where the vanilla particle would have been.
+                        let dir = [(n * 2.3).sin() * 0.6, 0.3 + (n * 1.7).cos().abs() * 0.5, (n * 3.1).cos() * 0.6];
+                        s.fx.push(([at[0], at[1], at[2]], 1, now, dir));
+                    }
+                }
+                "sweep_attack" if settings.on(SWEEP) => s.fx.push(([at[0], at[1], at[2]], 2, now, [0.0; 3])),
+                _ => {}
+            }
+        }
+        if own_pop && settings.on(TOTEM_STYLE) {
+            s.totem_flash = Some(now);
+        }
+        s.fx.retain(|f| f.2.elapsed() < Duration::from_millis(700));
+        s.kill_fx.retain(|f| f.1.elapsed() < Duration::from_millis(1200));
+    });
+}
+
+/// Kill Effects: where a player you killed was (their last place), from Kill Message's chat check.
+pub fn killed_at(settings: &Settings, others: &[Other], victim: &str) {
+    if !settings.on(KILL_FX) {
+        return;
+    }
+    if let Some(o) = others.iter().find(|o| o.name.eq_ignore_ascii_case(victim)) {
+        STATE.with_borrow_mut(|s| s.kill_fx.push((o.pos, Instant::now())));
+    }
+}
+
+/// The names of the kills chat told of since the last call (Kill Effects reads them).
+pub fn take_kills() -> Vec<String> {
+    STATE.with_borrow_mut(|s| std::mem::take(&mut s.pvp.new_kills))
+}
+
+/// Which particles to hide (`ARSENAL_HIDE`'s bits) and whether to keep crit and sweep places.
+pub fn particle_rules(settings: &Settings) -> (u32, bool) {
+    let mut hide = 0;
+    if settings.on(CRITS) { hide |= 1; }
+    if settings.on(SWEEP) { hide |= 2; }
+    if settings.on(TOTEM_STYLE) && settings.on(TOTEM_HIDE) { hide |= 4; }
+    if settings.on(HIDE_OWN_FX) { hide |= 8; }
+    (hide, settings.on(CRITS) || settings.on(SWEEP))
+}
+
+fn shape_points(shape: usize, c: [f32; 2], r: f32, turn: f32) -> Vec<[[f32; 2]; 4]> {
+    let at = |a: f32, d: f32| [c[0] + (a + turn).cos() * d, c[1] + (a + turn).sin() * d];
+    match CRIT_SHAPES[shape].0 {
+        "heart" => {
+            let mut out = Vec::new();
+            for side in [-1.0f32, 1.0] {
+                let lobe = [c[0] + side * r * 0.5, c[1] - r * 0.25];
+                let p = |a: f32| [lobe[0] + a.cos() * r * 0.5, lobe[1] + a.sin() * r * 0.5];
+                for i in 0..6 {
+                    let (a0, a1) = (i as f32 / 6.0 * std::f32::consts::TAU, (i + 1) as f32 / 6.0 * std::f32::consts::TAU);
+                    out.push([lobe, p(a0), p(a1), lobe]);
+                }
+            }
+            out.push([[c[0] - r, c[1] - r * 0.1], [c[0] + r, c[1] - r * 0.1], [c[0], c[1] + r], [c[0], c[1] + r]]);
+            out
+        }
+        "diamond" => vec![[at(0.0, r), at(1.5708, r * 0.7), at(3.1416, r), at(4.7124, r * 0.7)]],
+        "circle" => (0..8).map(|i| {
+            let (a0, a1) = (i as f32 / 8.0 * std::f32::consts::TAU, (i + 1) as f32 / 8.0 * std::f32::consts::TAU);
+            [c, at(a0, r), at(a1, r), c]
+        }).collect(),
+        _ => (0..4).map(|i| {
+            let a = i as f32 * 1.5708;
+            [c, at(a - 0.35, r * 0.35), at(a, r), at(a + 0.35, r * 0.35)]
+        }).collect(),
+    }
+}
+
+/// The effects Arsenal draws: Crit Particles, Sweep Effect, Swing Trails, Totem Pop Style's flash, Kill Effects,
+/// and PvP Tiers and Arsenal Users above heads.
+pub fn effect_shapes(settings: &Settings, others: &[Other], cam: Option<&Cam>, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let now = Instant::now();
+    STATE.with_borrow(|s| {
+        if let Some(cam) = cam {
+            for (i, (at, kind, start, dir)) in s.fx.iter().enumerate() {
+                let t = start.elapsed().as_secs_f32();
+                let alpha = (((1.0 - t / 0.7).max(0.0)) * 255.0) as u32;
+                if *kind == 1 {
+                    let p = [at[0] + dir[0] * t as f64, at[1] + dir[1] * t as f64 - 0.3 * (t * t) as f64, at[2] + dir[2] * t as f64];
+                    if let Some(c) = project(cam, p, w, h) {
+                        let rgb = fx_rgb(settings, settings.v[CRIT_COLOR], i as f32 * 0.07 + t);
+                        for q in shape_points(settings.v[CRIT_SHAPE], c, 5.0, t * 3.0) {
+                            out.push(Shape::Quad(q, alpha << 24 | rgb));
+                        }
+                    }
+                } else {
+                    // Sweep: a flat arc round the place, opening as it fades.
+                    let n = 12;
+                    let radius = 0.9 + t as f64 * 0.6;
+                    for k in 0..n {
+                        let a0 = -1.2 + 2.4 * k as f64 / n as f64;
+                        let a1 = -1.2 + 2.4 * (k + 1) as f64 / n as f64;
+                        let pt = |a: f64, r: f64| [at[0] + a.sin() * r, at[1], at[2] + a.cos() * r];
+                        let rgb = fx_rgb(settings, settings.v[SWEEP_COLOR], k as f32 / n as f32);
+                        let quad = [pt(a0, radius), pt(a1, radius), pt(a1, radius - 0.18), pt(a0, radius - 0.18)].map(|p| project(cam, p, w, h));
+                        if let [Some(a), Some(b), Some(c), Some(d)] = quad {
+                            out.push(Shape::Quad([a, b, c, d], (alpha * 3 / 4) << 24 | rgb));
+                        }
+                    }
+                }
+            }
+            for (at, start) in &s.kill_fx {
+                let t = start.elapsed().as_secs_f32();
+                let alpha = (((1.0 - t / 1.2).max(0.0)) * 255.0) as u32;
+                let Some(c) = project(cam, [at[0], at[1] + 1.0, at[2]], w, h) else { continue };
+                match KILL_STYLES[settings.v[KILL_STYLE]].0 {
+                    "ring" => {
+                        let r = 6.0 + t * 60.0;
+                        for i in 0..16 {
+                            let (a0, a1) = (i as f32 / 16.0 * std::f32::consts::TAU, (i + 1) as f32 / 16.0 * std::f32::consts::TAU);
+                            let p = |a: f32, d: f32| [c[0] + a.cos() * d, c[1] + a.sin() * d * 0.4];
+                            out.push(Shape::Quad([p(a0, r), p(a1, r), p(a1, r - 3.0), p(a0, r - 3.0)], alpha << 24 | settings.accent()));
+                        }
+                    }
+                    "lightning" => {
+                        if let Some(top) = project(cam, [at[0], at[1] + 30.0, at[2]], w, h) {
+                            let mut prev = top;
+                            for k in 1..=6 {
+                                let f = k as f32 / 6.0;
+                                let next = [top[0] + (c[0] - top[0]) * f + if k % 2 == 0 { 6.0 } else { -6.0 } * (1.0 - f), top[1] + (c[1] - top[1]) * f];
+                                out.push(Shape::Quad([[prev[0] - 1.5, prev[1]], [prev[0] + 1.5, prev[1]], [next[0] + 1.5, next[1]], [next[0] - 1.5, next[1]]], alpha << 24 | 0xDDE8FF));
+                                prev = next;
+                            }
+                        }
+                    }
+                    _ => {
+                        for i in 0..12 {
+                            let a = i as f32 / 12.0 * std::f32::consts::TAU;
+                            let (d0, d1) = (6.0 + t * 30.0, 14.0 + t * 50.0);
+                            let n = [-a.sin() * 1.2, a.cos() * 1.2];
+                            let p0 = [c[0] + a.cos() * d0, c[1] + a.sin() * d0];
+                            let p1 = [c[0] + a.cos() * d1, c[1] + a.sin() * d1];
+                            out.push(Shape::Quad([[p0[0] - n[0], p0[1] - n[1]], [p1[0] - n[0], p1[1] - n[1]], [p1[0] + n[0], p1[1] + n[1]], [p0[0] + n[0], p0[1] + n[1]]], alpha << 24 | 0xFFC83D));
+                        }
+                    }
+                }
+            }
+            // PvP Tiers and Arsenal Users above heads (higher than Nametag Health).
+            if settings.on(TIERS) || settings.on(USERS) {
+                net(|n| {
+                    for o in others {
+                        let tier = if settings.on(TIERS) { n.tiers.get(&o.uuid).cloned().flatten() } else { None };
+                        let user = settings.on(USERS) && n.users.contains(&o.uuid);
+                        if tier.is_none() && !user {
+                            continue;
+                        }
+                        let Some([x, y]) = project(cam, [o.pos[0], o.pos[1] + 3.05, o.pos[2]], w, h) else { continue };
+                        let label = match (&tier, user) {
+                            (Some((t, _)), true) => format!("A {t}"),
+                            (Some((t, _)), false) => t.clone(),
+                            (None, _) => "A".to_owned(),
+                        };
+                        let tw = width(&label);
+                        out.push(Shape::Fill([x - tw / 2.0 - 2.0, y - 1.0, tw + 4.0, 10.0], 0x9000_0000));
+                        out.push(Shape::Text(label, [x - tw / 2.0, y], tier.map_or(0xFFC83D, |t| t.1), false));
+                    }
+                });
+            }
+        }
+        // Swing Trails: an arc sweeping across the lower right for a fifth of a second after each swing.
+        if settings.on(SWING) {
+            if let Some(c) = s.pvp.clicked.filter(|c| c.elapsed() < Duration::from_millis(220)) {
+                let t = c.elapsed().as_secs_f32() / 0.22;
+                let (cx, cy) = (w * 0.62, h * 0.62);
+                for k in 0..10 {
+                    let f0 = k as f32 / 10.0 * t;
+                    let f1 = (k + 1) as f32 / 10.0 * t;
+                    let p = |f: f32, r: f32| [cx + (2.6 - f * 2.2).cos() * r, cy - (2.6 - f * 2.2).sin() * r];
+                    let alpha = (((k as f32 / 10.0) * 180.0) as u32) << 24;
+                    out.push(Shape::Quad([p(f0, 70.0), p(f1, 70.0), p(f1, 62.0), p(f0, 62.0)], alpha | settings.accent()));
+                }
+            }
+        }
+        // Totem Pop Style: the screen flashes your colour when your totem pops.
+        if let Some(at) = s.totem_flash.filter(|t| t.elapsed() < Duration::from_millis(500)) {
+            let rgb = match FLASH_COLORS[settings.v[TOTEM_FLASH]].0 { "green" => Some(0x5CE08A), "red" => Some(0xFF5A5A), "blue" => Some(0x5AA9FF), "none" => None, _ => Some(0xFFC83D) };
+            if let Some(rgb) = rgb {
+                let alpha = ((1.0 - at.elapsed().as_secs_f32() / 0.5) * 90.0) as u32;
+                out.push(Shape::Fill([0.0, 0.0, w, h], alpha << 24 | rgb));
+            }
+        }
+    });
+    let _ = now;
     out
 }
 
@@ -3005,6 +3515,39 @@ mod tests {
     }
 
     #[test]
+    fn hashes_tiers_presence_and_effects() {
+        assert_eq!(sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert_eq!(sha256_hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(dashed(0x069a79f444e94726a5befca90e38aaf5), "069a79f4-44e9-4726-a5be-fca90e38aaf5");
+        assert_eq!(user_hash(1).len(), 64);
+        let json = r#"{"rankings": {"sword": {"tier": 3, "pos": 0}, "crystal": {"tier": 2, "pos": 1}, "mace": {"tier": 1, "pos": 0, "retired": true}}}"#;
+        assert_eq!(best_tier(json), Some(("LT2".into(), 0xAEB8C6)));
+        assert_eq!(best_tier("{}"), None);
+        assert_eq!(users_in(r#"{"users": ["aa", {"hash": "bb", "vip": true}]}"#), vec!["aa".to_string(), "bb".to_string()]);
+        let mut s = Settings::default();
+        let p: serde_json::Value = serde_json::from_str(&presence_json(&s, true, 5, 9)).unwrap();
+        assert_eq!(p["activity"]["details"], "Playing Horizon with Arsenal", "on by default");
+        s.v[DISCORD] = 0;
+        let off: serde_json::Value = serde_json::from_str(&presence_json(&s, true, 5, 9)).unwrap();
+        assert!(off.get("activity").is_none() && off["pid"] == 9);
+        s.v[CRITS] = 1;
+        s.v[SWEEP] = 1;
+        s.v[TOTEM_STYLE] = 1;
+        assert_eq!(particle_rules(&s), (3, true));
+        particles_tick(&s, &[("crit", [0.0, 0.0, 5.0]), ("sweep_attack", [0.0, 0.0, 5.0])], true);
+        let mut proj = [0.0f32; 16];
+        proj[0] = 1.0;
+        proj[5] = 1.0;
+        proj[11] = 1.0;
+        let mut view = [0.0f32; 16];
+        for i in 0..4 { view[i * 5] = 1.0; }
+        let cam = Cam { pos: [0.0, 0.0, 0.0], view, projection: proj };
+        let shapes = effect_shapes(&s, &[], Some(&cam), 400.0, 300.0, &width);
+        assert!(shapes.iter().filter(|x| matches!(x, Shape::Quad(..))).count() >= 4, "a star and the sweep arc");
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Fill([0.0, 0.0, ..], _))), "the totem flash");
+    }
+
+    #[test]
     fn visuals_go_on_and_give_back_once() {
         let mut s = Settings::default();
         assert_eq!(visuals(&s, 0.5), Visuals { particles: 100, ..Default::default() }, "nothing touched");
@@ -3080,7 +3623,7 @@ mod tests {
         s.v[FIGHT_SUMMARY] = 1;
         s.v[DEATH_RECAP] = 1;
         s.v[ENEMY_ARMOR] = 1;
-        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0,
+        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0,
             equipment: vec![None, None, None, None, None, st("minecraft:diamond_helmet", 1, 350)] };
         players_tick(&s, std::slice::from_ref(&alex), &[]);
         clicked();
@@ -3144,7 +3687,7 @@ mod tests {
         s.v[POP_ALERTS] = 1;
         s.v[DAMAGE_NUMS] = 1;
         s.v[HITMARKER] = 1;
-        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![st("minecraft:diamond_sword", 1, 0)] };
+        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![st("minecraft:diamond_sword", 1, 0)] };
         players_tick(&s, std::slice::from_ref(&alex), &[]);
         clicked();
         let hit = Other { health: 14.0, hurt_time: 10, ..alex.clone() };

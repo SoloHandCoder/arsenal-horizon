@@ -80,6 +80,7 @@ fn arsenal_hud(
         let game = &*game;
         let others: Vec<m::Other> = game.arsenal_others().into_iter().map(|o| m::Other {
             id: o.id,
+            uuid: o.uuid,
             name: o.name,
             pos: [o.x, o.y, o.z],
             health: o.health,
@@ -117,6 +118,7 @@ fn arsenal_hud(
             m::armor_of(&pieces)
         });
         let block = m::take_aimed().map(|pos| game.native_block(pos));
+        shapes.extend(m::effect_shapes(&settings, &others, cam.as_ref(), batch.width, batch.height, &width));
         shapes.extend(m::world_shapes(&settings, &world, me, armor, target, block.as_deref(), cam.as_ref(), batch.width, batch.height, &width));
         for shape in shapes {
             match shape {

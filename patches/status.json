@@ -15,11 +15,11 @@
       "inserts": [
         {
           "before": "/// The player as a native mod reads it.\n",
-          "text": "/// The window's player's status as a native mod reads it (Arsenal's patch).\n#[allow(dead_code)]\n#[derive(Clone, Debug)]\npub(crate) struct NativeStatus {\n    /// The attack charge, 0..1 (1 is a full hit).\n    pub(crate) attack: f32,\n    /// Each effect: its id, level (0 is I) and ticks left.\n    pub(crate) effects: Vec<(String, i32, i32)>,\n    /// The own ping the player list gives, in milliseconds.\n    pub(crate) ping: Option<i32>,\n    /// Every player list entry's name and ping.\n    pub(crate) latencies: Vec<(String, i32)>,\n}\n\n"
+          "text": "/// The window's player's status as a native mod reads it (Arsenal's patch).\n#[allow(dead_code)]\n#[derive(Clone, Debug)]\npub(crate) struct NativeStatus {\n    /// The attack charge, 0..1 (1 is a full hit).\n    pub(crate) attack: f32,\n    /// Each effect: its id, level (0 is I) and ticks left.\n    pub(crate) effects: Vec<(String, i32, i32)>,\n    /// The own ping the player list gives, in milliseconds.\n    pub(crate) ping: Option<i32>,\n    /// Every player list entry's name and ping.\n    pub(crate) latencies: Vec<(String, i32)>,\n    /// The window's player's entity id (0 on the title screen).\n    pub(crate) own_id: u32,\n}\n\n"
         },
         {
           "before": "    /// The clock of the world this window shows, for client mods: its game\n",
-          "text": "    /// The window's player's attack charge, effects and pings (Arsenal's patch).\n    pub(super) fn arsenal_status(&self) -> NativeStatus {\n        NativeStatus {\n            attack: self.attack_strength_scale(),\n            effects: self.potions.effects.list.iter().map(|e| (e.id.to_string(), e.amplifier, e.duration)).collect(),\n            ping: self.own_latency(),\n            latencies: self.arsenal_latencies(),\n        }\n    }\n"
+          "text": "    /// The window's player's attack charge, effects and pings (Arsenal's patch).\n    pub(super) fn arsenal_status(&self) -> NativeStatus {\n        NativeStatus {\n            attack: self.attack_strength_scale(),\n            effects: self.potions.effects.list.iter().map(|e| (e.id.to_string(), e.amplifier, e.duration)).collect(),\n            ping: self.own_latency(),\n            latencies: self.arsenal_latencies(),\n            own_id: self.player.as_ref().map_or(0, |p| p.entity_id as u32),\n        }\n    }\n"
         }
       ]
     }
