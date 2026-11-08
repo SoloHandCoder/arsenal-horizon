@@ -104,10 +104,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Arsenal's cosmetics pack (the Wardrobe blades' models, from cosmetics/pack)
+        run: |
+          set -euo pipefail
+          (cd cosmetics/pack && zip -q -r -X -9 ../../dist/arsenal-cosmetics.zip .)
       - name: Checksums, the build's record and Horizon's licences
         env:
           COMMIT: ${{ needs.plan.outputs.commit }}
@@ -119,7 +124,7 @@ jobs:
           cat > build.json <<EOF
           {"build": "${{ needs.plan.outputs.build }}", "commit": "$COMMIT", "official_tag": "${{ needs.plan.outputs.official_tag }}", "arsenal": "${{ needs.plan.outputs.arsenal }}"}
           EOF
-          sha256sum arsenal-horizon-* build.json > SHA256SUMS
+          sha256sum arsenal-horizon-* arsenal-cosmetics.zip build.json > SHA256SUMS
           cat SHA256SUMS
       - name: Publish
         env:

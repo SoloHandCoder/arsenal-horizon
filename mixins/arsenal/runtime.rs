@@ -246,6 +246,7 @@ pub const HIDE_AS: &[(&str, &str)] = &[("You", "You"), ("Player", "Player"), ("A
 pub const VOLUME_STEPS: &[(&str, &str)] = &[("50", "50%"), ("25", "25%"), ("0", "Muted"), ("75", "75%"), ("100", "100%"), ("150", "150%")];
 pub const MESSAGE_WHERE: &[(&str, &str)] = &[("chat", "Chat"), ("toast", "Small toasts")];
 pub const CURSOR_SPEEDS: &[(&str, &str)] = &[("50", "50%"), ("75", "75%"), ("125", "125%"), ("150", "150%"), ("200", "200%")];
+pub const BLADE_SIZES: &[(&str, &str)] = &[("100", "100%"), ("75", "75%"), ("125", "125%"), ("50", "50%"), ("150", "150%")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -461,7 +462,10 @@ pub const ALBUM_SKY: usize = 207;
 pub const CLOUD: usize = 208;
 pub const CURSOR: usize = 209;
 pub const CURSOR_SPEED: usize = 210;
-const N: usize = 211;
+pub const COSMETICS: usize = 211;
+pub const BLADES: usize = 212;
+pub const BLADE_SIZE: usize = 213;
+const N: usize = 214;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -675,6 +679,9 @@ pub const FIELDS: [Field; N] = [
     Field { key: "cloud_backup", label: "Cloud Backup", options: ONOFF, default: 0 },
     Field { key: "inventory_cursor_speed", label: "Inventory Cursor Speed", options: ONOFF, default: 0 },
     Field { key: "cursor_speed", label: "Speed", options: CURSOR_SPEEDS, default: 0 },
+    Field { key: "arsenal_cosmetics", label: "Arsenal Cosmetics", options: ONOFF, default: 1 },
+    Field { key: "blade_settings", label: "Blade Settings", options: ONOFF, default: 1 },
+    Field { key: "blade_size", label: "Size", options: BLADE_SIZES, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -827,6 +834,7 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("album_colors", ALBUM, &[ALBUM_SKY]),
     ("cloud_backup", CLOUD, &[]),
     ("inventory_cursor_speed", CURSOR, &[CURSOR_SPEED]),
+    ("blade_settings", BLADES, &[BLADE_SIZE]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -960,6 +968,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "hypixel_skyblock" => "On Horizon: your area, purse, bits and the SkyBlock date, Booster Cookie and God Potion timers, dungeon and slayer cards, Bazaar and NPC prices in tooltips and a spam filter. Only reads what the game shows.",
         "album_colors" => "On Horizon (Windows): the HUD and menu accent, and the sky with Arsenal's shader pack, take the colours of the album playing in Spotify.",
         "cloud_backup" => "On Horizon: /arsenal cloud save keeps your Horizon setup in your Arsenal cloud backup (next to the Java one, which stays as it is) and every 5 minutes after a change; /arsenal cloud restore brings it back on any PC (or your Java setup's modules when there's no Horizon one).",
+        "blade_settings" => "On Horizon: your Wardrobe blade in your hand, its size, and the inspect key (Y) that spins it. Other Arsenal users' blades and capes show too (Arsenal Cosmetics).",
         "inventory_cursor_speed" => "On Horizon: a separate mouse speed in inventories. Your real cursor is never moved: Arsenal draws its own. F8 turns it off at once.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
@@ -975,7 +984,6 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
     match id {
-        "blade_settings" => return "Horizon doesn't draw Wardrobe blades yet (they're models the Java mod adds), so there's nothing to set.",
         _ => {}
     }
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
@@ -3306,7 +3314,8 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
 }
 
 /// The keys this version adds (id, label, default).
-pub const MORE_KEYS: [(&str, &str, &str); 3] = [("key_free_look", "Free Look (hold)", "key.keyboard.left.alt"), ("key_quick_menu", "Quick Menu (hold)", "key.keyboard.v"),
+pub const MORE_KEYS: [(&str, &str, &str); 4] = [("key_free_look", "Free Look (hold)", "key.keyboard.left.alt"), ("key_quick_menu", "Quick Menu (hold)", "key.keyboard.v"),
+    ("key_inspect", "Inspect blade", "key.keyboard.y"),
     ("key_performance", "Performance Mode", "key.keyboard.unknown")];
 
 /// The features on Quick Menu's wheel when nothing is starred.
@@ -3348,6 +3357,10 @@ pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool, aim
                 }
             }
             "key_performance" if pressed => Some(PERF),
+            "key_inspect" if pressed && playing => {
+                blade_inspect();
+                None
+            }
             _ => None,
         }
     })
@@ -5276,6 +5289,231 @@ pub fn load_profile(raw: &Settings, name: &str) -> Option<Settings> {
 /// The setup as a profile keeps it (without the profiles themselves).
 pub fn profile_now(raw: &Settings) -> Vec<(String, String)> {
     raw.stored().into_iter().filter(|(k, _)| !["profiles", "auto_profiles", "server_huds"].contains(k)).map(|(k, v)| (k.to_owned(), v)).collect()
+}
+
+
+// ---- 1.15: Arsenal capes and Wardrobe blades on players ----
+
+/// The Wardrobe's blades (their models are `arsenal:blade_<id>` in Arsenal's cosmetics pack).
+pub const BLADE_IDS: &[&str] = &["karambit", "butterfly_knife", "bayonet", "talon", "katana", "kunai", "scythe_knife", "tanto", "shiv", "crystal_shard",
+    "sickle", "storm_blade", "bowie_knife", "reapers_edge", "untouchable_blade", "cleaver", "machete", "dagger", "cutlass", "falchion", "kris",
+    "bone_knife", "obsidian_dagger", "stiletto", "ice_blade", "ember_blade", "gut_hook", "champions_sabre", "veterans_knife", "shatterfang",
+    "viper_fang", "moonlight_saber", "glacier_edge", "bloodmoon_cleaver", "comet_dagger", "golden_katana"];
+
+/// The capes Arsenal has (their pictures are in this repository's cosmetics/capes).
+pub const CAPE_IDS: &[&str] = &["arsenal", "owner", "ember", "frost", "emerald", "crystal", "void", "mace", "totem", "sakura", "tester", "dragon",
+    "netherite", "galaxy", "lava", "rainbow", "aurora", "champion", "kingslayer", "bug_hunter", "ocean", "phoenix", "blood_moon", "thunder",
+    "enderman", "creeper", "warden", "cherry_grove", "diamond", "veteran", "crystal_king", "fresh_start", "silver_skull", "clock", "comeback",
+    "streak_flame", "monthly_regular", "grinder", "duelist", "totem_breaker", "clutch", "globetrotter", "collector", "haunted", "winter_lights",
+    "sunset", "love_letter", "obsidian", "amethyst", "pulse", "warlord", "ironclad", "vip_cape", "supporter_cape"];
+
+/// A blade's item model.
+pub fn blade_model(id: &str) -> Option<String> {
+    BLADE_IDS.contains(&id).then(|| format!("arsenal:blade_{}", if id == "butterfly_knife" { "butterfly" } else { id }))
+}
+
+/// What a player wears that Horizon draws: (cape, blade).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Wear {
+    pub cape: Option<String>,
+    pub blade: Option<String>,
+}
+
+#[derive(Default)]
+struct Wardrobe {
+    worn: std::collections::HashMap<u128, Wear>,
+    own_asked: Option<Instant>,
+    others_asked: Option<Instant>,
+    capes_asked: std::collections::HashMap<String, Instant>,
+    pack_asked: Option<Instant>,
+    pack_ready: bool,
+    inspect: Option<Instant>,
+}
+static WARDROBE: std::sync::Mutex<Option<Wardrobe>> = std::sync::Mutex::new(None);
+fn wardrobe<T>(f: impl FnOnce(&mut Wardrobe) -> T) -> T {
+    f(WARDROBE.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(Wardrobe::default))
+}
+
+/// The website's answer for your own cosmetics: what you wear.
+pub fn own_wear(json: &str) -> Wear {
+    let v: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
+    let pick = |k: &str, known: &dyn Fn(&str) -> bool| v[k].as_str().filter(|id| known(id)).map(str::to_owned);
+    Wear { cape: pick("equipped", &|id| CAPE_IDS.contains(&id)), blade: pick("equippedBlade", &|id| BLADE_IDS.contains(&id)) }
+}
+
+/// The lookup's answer for other players (by account hash).
+pub fn others_wear(json: &str, hashes: &[(u128, String)]) -> Vec<(u128, Wear)> {
+    let v: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
+    hashes.iter().map(|(uuid, h)| {
+        let cape = v["capes"][h].as_str().filter(|id| CAPE_IDS.contains(id)).map(str::to_owned);
+        let blade = v["blades"][h].as_str().filter(|id| BLADE_IDS.contains(id)).map(str::to_owned);
+        (*uuid, Wear { cape, blade })
+    }).collect()
+}
+
+/// What tick.rs puts into Horizon for cosmetics.
+#[derive(Debug, Default, PartialEq)]
+pub struct Dressing {
+    /// Each player's cape picture (a file here) and blade model.
+    pub capes: Vec<(u128, std::path::PathBuf)>,
+    pub blades: Vec<(u128, String)>,
+    /// Arsenal's cosmetics pack is downloaded and should be on.
+    pub pack: bool,
+}
+
+/// Each tick: asks the website what you (every 5 minutes) and the Arsenal users around (every 20 seconds) wear,
+/// fetches the cape pictures worn and Arsenal's cosmetics pack once, and says what to draw.
+pub fn dressing(settings: &Settings, own: Option<u128>, data: &std::path::Path, packs: &std::path::Path) -> Dressing {
+    let mut out = Dressing::default();
+    if !settings.on(COSMETICS) && !settings.on(BLADES) {
+        return out;
+    }
+    let users: Vec<u128> = if settings.on(COSMETICS) && settings.on(USERS) { net(|n| n.users.iter().copied().collect()) } else { Vec::new() };
+    wardrobe(|w| {
+        let now = Instant::now();
+        if let Some(own) = own {
+            if w.own_asked.is_none_or(|t| t.elapsed() > Duration::from_secs(300)) {
+                w.own_asked = Some(now);
+                ask_own(own);
+            }
+        }
+        let others: Vec<u128> = users.into_iter().filter(|u| Some(*u) != own).take(100).collect();
+        if !others.is_empty() && w.others_asked.is_none_or(|t| t.elapsed() > Duration::from_secs(20)) {
+            w.others_asked = Some(now);
+            ask_others(others);
+        }
+        let pack = packs.join("arsenal.zip");
+        let marker = data.join("cosmetics-pack.txt");
+        let current = std::fs::read_to_string(&marker).ok().is_some_and(|v| v.trim() == VERSION) && pack.is_file();
+        if current {
+            w.pack_ready = true;
+        } else if w.pack_asked.is_none_or(|t| t.elapsed() > Duration::from_secs(600)) {
+            w.pack_asked = Some(now);
+            fetch_pack(pack, marker);
+        }
+        out.pack = w.pack_ready;
+        for (uuid, wear) in &w.worn {
+            if settings.on(BLADES) || settings.on(COSMETICS) {
+                if let Some(model) = wear.blade.as_deref().and_then(blade_model) {
+                    if Some(*uuid) == own || settings.on(COSMETICS) {
+                        out.blades.push((*uuid, model));
+                    }
+                }
+            }
+            if let (true, Some(cape)) = (settings.on(COSMETICS), &wear.cape) {
+                let file = data.join("capes").join(format!("{cape}.png"));
+                if file.is_file() {
+                    out.capes.push((*uuid, file));
+                } else if w.capes_asked.get(cape).is_none_or(|t| t.elapsed() > Duration::from_secs(120)) {
+                    w.capes_asked.insert(cape.clone(), now);
+                    fetch_cape(cape.clone(), file);
+                }
+            }
+        }
+    });
+    out.capes.sort();
+    out.blades.sort();
+    out
+}
+
+#[cfg(not(test))]
+fn ask_own(own: u128) {
+    std::thread::spawn(move || {
+        let url = format!("{WEBSITE}/v1/cosmetics?user={}", user_hash(own));
+        let answer = ureq::get(&url).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon").call().ok().and_then(|r| r.into_string().ok());
+        if let Some(a) = answer {
+            let wear = own_wear(&a);
+            wardrobe(|w| {
+                w.worn.insert(own, wear);
+            });
+        }
+    });
+}
+#[cfg(test)]
+fn ask_own(_own: u128) {}
+
+#[cfg(not(test))]
+fn ask_others(others: Vec<u128>) {
+    std::thread::spawn(move || {
+        let hashes: Vec<(u128, String)> = others.iter().map(|u| (*u, user_hash(*u))).collect();
+        let body = serde_json::json!({ "hashes": hashes.iter().map(|h| h.1.clone()).collect::<Vec<_>>() }).to_string();
+        let answer = ureq::post(&format!("{WEBSITE}/v1/cosmetics/lookup")).timeout(Duration::from_secs(15)).set("User-Agent", "Arsenal-Horizon")
+            .set("Content-Type", "application/json").send_string(&body).ok().and_then(|r| r.into_string().ok());
+        if let Some(a) = answer {
+            let found = others_wear(&a, &hashes);
+            wardrobe(|w| {
+                for (uuid, wear) in found {
+                    w.worn.insert(uuid, wear);
+                }
+            });
+        }
+    });
+}
+#[cfg(test)]
+fn ask_others(_others: Vec<u128>) {}
+
+/// Downloads `url` to `file` (through a part file, so a half download is never used).
+#[cfg(not(test))]
+fn download_to(url: &str, file: &std::path::Path, max: u64) -> bool {
+    use std::io::Read;
+    let Ok(r) = ureq::get(url).timeout(Duration::from_secs(60)).set("User-Agent", "Arsenal-Horizon").call() else { return false };
+    let mut bytes = Vec::new();
+    if r.into_reader().take(max).read_to_end(&mut bytes).is_err() || bytes.is_empty() {
+        return false;
+    }
+    let part = file.with_extension("part");
+    if let Some(dir) = file.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    std::fs::write(&part, &bytes).is_ok() && std::fs::rename(&part, file).is_ok()
+}
+
+#[cfg(not(test))]
+fn fetch_cape(id: String, file: std::path::PathBuf) {
+    std::thread::spawn(move || {
+        download_to(&format!("https://raw.githubusercontent.com/SoloHandCoder/arsenal-horizon/main/cosmetics/capes/{id}.png"), &file, 2 << 20);
+    });
+}
+#[cfg(test)]
+fn fetch_cape(_id: String, _file: std::path::PathBuf) {}
+
+#[cfg(not(test))]
+fn fetch_pack(pack: std::path::PathBuf, marker: std::path::PathBuf) {
+    std::thread::spawn(move || {
+        if download_to("https://github.com/SoloHandCoder/arsenal-horizon/releases/latest/download/arsenal-cosmetics.zip", &pack, 64 << 20) {
+            if let Some(dir) = marker.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let _ = std::fs::write(&marker, VERSION);
+            wardrobe(|w| w.pack_ready = true);
+        }
+    });
+}
+#[cfg(test)]
+fn fetch_pack(_pack: std::path::PathBuf, _marker: std::path::PathBuf) {}
+
+/// Blade Settings' inspect key: the blade spins once.
+pub fn blade_inspect() {
+    wardrobe(|w| w.inspect = Some(Instant::now()));
+}
+
+/// The held blade's pose: (size, extra turn in degrees) when you hold a sword with a Wardrobe blade.
+pub fn blade_pose(settings: &Settings, holding_sword: bool, has_blade: bool) -> Option<(f32, f32)> {
+    if !settings.on(BLADES) || !holding_sword || !has_blade {
+        return None;
+    }
+    let size = option_num(settings, BLADE_SIZE) as f32 / 100.0;
+    let turn = wardrobe(|w| {
+        let t = w.inspect.map_or(1.0, |i| i.elapsed().as_secs_f32() / 1.2);
+        if t >= 1.0 {
+            w.inspect = None;
+            0.0
+        } else {
+            let e = t * t * (3.0 - 2.0 * t);
+            e * 360.0
+        }
+    });
+    Some((size, turn))
 }
 
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
@@ -8150,6 +8388,26 @@ mod tests {
     }
 
     #[test]
+    fn cosmetics_on_players() {
+        assert_eq!(blade_model("butterfly_knife").as_deref(), Some("arsenal:blade_butterfly"));
+        assert_eq!(blade_model("katana").as_deref(), Some("arsenal:blade_katana"));
+        assert!(blade_model("nope").is_none());
+        let own = own_wear(r#"{"equipped":"galaxy","equippedBlade":"katana","equippedHat":"crown"}"#);
+        assert_eq!(own, Wear { cape: Some("galaxy".into()), blade: Some("katana".into()) });
+        assert_eq!(own_wear(r#"{"equipped":"made_up"}"#), Wear::default());
+        let h = vec![(7u128, "aa".to_string()), (8, "bb".to_string())];
+        let others = others_wear(r#"{"capes":{"aa":"lava"},"blades":{"bb":"kunai"}}"#, &h);
+        assert_eq!(others[0].1.cape.as_deref(), Some("lava"));
+        assert_eq!(others[1].1.blade.as_deref(), Some("kunai"));
+        let s = Settings::default();
+        assert_eq!(blade_pose(&s, true, true), Some((1.0, 0.0)));
+        assert_eq!(blade_pose(&s, false, true), None);
+        let d = dressing(&s, Some(1), std::path::Path::new("nowhere"), std::path::Path::new("nowhere"));
+        assert!(d.capes.is_empty() && !d.pack);
+        assert!(CAPE_IDS.len() >= 54 && BLADE_IDS.len() == 36);
+    }
+
+    #[test]
     fn the_last_group() {
         let s0 = Settings::default();
         assert_eq!(shader_params(&s0)[0], [0.0, 0.0, 0.0, 1.0], "the pack passes the picture through");
@@ -8682,13 +8940,9 @@ mod tests {
         let action = menu_click(screen, [toggle[0] + 2.0, toggle[1] + 2.0], &m, &s, &none, &width).unwrap();
         assert!(apply(action, &mut m, &mut s, &none));
         assert_ne!(s.v[field], before);
-        // A greyed-out module switches nothing but says why.
-        let java_only = (0..JAVA_MODULES.len()).find(|&i| on_horizon(JAVA_MODULES[i].id).is_none()).unwrap();
-        assert!(!hits.iter().any(|(_, a)| *a == Action::Toggle(java_only)));
-        apply(Action::Open(java_only), &mut m, &mut s, &none);
-        let (shapes, _) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
-        assert!(shapes.iter().any(|sh| matches!(sh, Shape::Styled(t, ..) if t.starts_with("Only in the Java version"))));
-        apply(Action::Back, &mut m, &mut s, &none);
+        // Every Java module runs on Horizon now; one that didn't would switch nothing but say why.
+        assert!((0..JAVA_MODULES.len()).all(|i| on_horizon(JAVA_MODULES[i].id).is_some()), "all 149 modules on Horizon");
+        let _ = &hits;
         // Settings view.
         let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();
         apply(Action::Open(zoom), &mut m, &mut s, &none);

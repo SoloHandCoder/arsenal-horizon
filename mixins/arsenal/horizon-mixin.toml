@@ -95,6 +95,8 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_render_hand_pose"
 helper = "hand.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" },
+  { name = "yaw", ty = "&mut f32", value = "&mut *yaw" },
   { name = "scale", ty = "&mut f32", value = "&mut *scale" },
 ]
 

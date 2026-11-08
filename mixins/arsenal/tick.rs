@@ -136,6 +136,14 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         }
         // Inventory Cursor Speed (its own cursor is drawn by gui_post.rs).
         a::CURSOR_SPEED.store(if settings.on(m::CURSOR) { m::FIELDS[m::CURSOR_SPEED].options[settings.v[m::CURSOR_SPEED]].0.parse().unwrap_or(100) } else { 100 }, Relaxed);
+        // Arsenal capes and Wardrobe blades (yours and other Arsenal users'), and Arsenal's cosmetics pack.
+        let dressing = m::dressing(&settings, game.arsenal_uuid(), &game.native_data_dir(m::ID), &game.native_instance_dir().join("resourcepacks"));
+        if dressing.pack {
+            game.arsenal_enable_pack();
+        }
+        if horizon_client::camera::arsenal::set_blades(dressing.blades) | horizon_client::camera::arsenal::set_capes(dressing.capes) {
+            game.arsenal_capes_changed();
+        }
         let server = game.arsenal_server();
         m::set_server(server.as_deref());
         // Share codes: the clipboard (copy, or read a code to paste).
