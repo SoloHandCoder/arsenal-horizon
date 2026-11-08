@@ -16,6 +16,9 @@ fn arsenal_screen(
         match shape {
             m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
             m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+            m::Shape::Item(id, at) => {
+                game.native_item(batch, &id, at, 16.0);
+            }
         }
     }
 }

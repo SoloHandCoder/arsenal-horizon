@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.6.0";
+pub const VERSION: &str = "1.7.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -215,6 +215,8 @@ const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A]
 pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
 pub const HEALTH_SHOWS: &[(&str, &str)] = &[("both", "Number and bar"), ("number", "Number only"), ("bar", "Bar only")];
 pub const HEALTH_UNITS: &[(&str, &str)] = &[("hearts", "Hearts (10 is full)"), ("points", "Health points (20 is full)")];
+pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
+pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
 
 pub const INFO: usize = 0;
@@ -257,7 +259,14 @@ pub const TOOLTIPS: usize = 36;
 pub const SHULKER: usize = 37;
 pub const SATURATION: usize = 38;
 pub const THEME_TOOLTIPS: usize = 39;
-const N: usize = 40;
+pub const ARMOR: usize = 40;
+pub const ARMOR_SHOW: usize = 41;
+pub const COUNTER: usize = 42;
+pub const OFFHAND_WARN: usize = 43;
+pub const DURA_WARN: usize = 44;
+pub const DURA_WARN_AT: usize = 45;
+pub const READY: usize = 46;
+const N: usize = 47;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -300,6 +309,13 @@ pub const FIELDS: [Field; N] = [
     Field { key: "shulker_preview", label: "Shulker Preview", options: ONOFF, default: 0 },
     Field { key: "saturation", label: "Food Preview", options: ONOFF, default: 0 },
     Field { key: "theme_tooltips", label: "Tooltips in the theme's colours", options: ONOFF, default: 1 },
+    Field { key: "armor_hud", label: "Armor HUD", options: ONOFF, default: 0 },
+    Field { key: "armor_show", label: "Durability", options: ARMOR_SHOWS, default: 0 },
+    Field { key: "item_counter", label: "Item Counter", options: ONOFF, default: 0 },
+    Field { key: "offhand_warning", label: "Offhand Totem Warning", options: ONOFF, default: 0 },
+    Field { key: "durability_warning", label: "Durability Warning", options: ONOFF, default: 0 },
+    Field { key: "durability_at", label: "Warn at", options: DURA_AT, default: 0 },
+    Field { key: "ready_check", label: "Ready Check", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -327,6 +343,11 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("better_tooltips", TOOLTIPS, &[]),
     ("shulker_preview", SHULKER, &[]),
     ("food_preview", SATURATION, &[]),
+    ("armor_hud", ARMOR, &[ARMOR_SHOW]),
+    ("item_counter", COUNTER, &[]),
+    ("offhand_totem_warning", OFFHAND_WARN, &[]),
+    ("durability_warning", DURA_WARN, &[DURA_WARN_AT]),
+    ("ready_check", READY, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -344,6 +365,11 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "hide_nametags" => "On Horizon: hides name tags above players (or mobs too).",
         "health_hud" => "On Horizon: your health under the crosshair as a number, a bar or both, green to red, absorption in gold.",
         "low_health_warning" => "On Horizon: red pulsing screen edges and a heartbeat when your health is low.",
+        "armor_hud" => "On Horizon: your armour and what's in your hands right of the hotbar, with their durability.",
+        "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
+        "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
+        "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
+        "ready_check" => "On Horizon: offhand totem, full armour with durability left, golden apples and pearls; green when you're ready.",
         "better_tooltips" => "On Horizon: durability as numbers (green/yellow/red) and what food restores, in item tooltips.",
         "shulker_preview" => "On Horizon: hovering a shulker box shows its contents as a grid in the shulker's colour.",
         "food_preview" => "On Horizon: your saturation as a gold number next to the hunger bar (Horizon doesn't show mods the food in your hand yet).",
@@ -354,8 +380,8 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
-    const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "ready_check", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
-    const SELF: &[&str] = &["armor_hud", "potion_timers", "cooldown_hud", "inventory_totem", "item_counter", "durability_warning", "offhand_totem_warning", "potion_warning", "retotem_timer",  "bow_charge", "attack_bar", "crit_indicator", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
+    const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
+    const SELF: &[&str] = &["potion_timers", "cooldown_hud", "inventory_totem", "potion_warning", "retotem_timer",  "bow_charge", "attack_bar", "crit_indicator", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
     const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard", "kill_message", "death_message"];
     if ACCOUNT.contains(&id) {
         "Needs your Arsenal account or another app, which Horizon doesn't pass to mods yet."
@@ -641,6 +667,8 @@ struct State {
     health: Option<(Health, Instant)>,
     /// Low Health Warning: when the heartbeat last played.
     heartbeat: Option<Instant>,
+    /// Durability Warning: the pieces already warned about (the sound plays once for each).
+    warned: Vec<&'static str>,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -681,6 +709,174 @@ pub fn health_text(value: f32, max: f32, units_points: bool) -> String {
         if (r - r.round()).abs() < 1e-3 { format!("{}", r.round() as i32) } else { format!("{r:.1}") }
     };
     tidy(v)
+}
+
+/// A stack as the inventory modules read it: its id, count and damage taken.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Stack {
+    pub id: String,
+    pub count: u32,
+    pub damage: u32,
+}
+
+/// The player's inventory (Arsenal's inventory hook): 36 slots (hotbar first), armour head first, the offhand.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Inventory {
+    pub slots: Vec<Option<Stack>>,
+    pub armor: [Option<Stack>; 4],
+    pub offhand: Option<Stack>,
+    pub selected: usize,
+}
+
+impl Inventory {
+    pub fn main_hand(&self) -> Option<&Stack> {
+        self.slots.get(self.selected).and_then(Option::as_ref)
+    }
+
+    /// How many of `id` ("minecraft:totem_of_undying") the player carries, the offhand included.
+    pub fn count(&self, id: &str) -> u32 {
+        self.slots.iter().chain(std::iter::once(&self.offhand)).flatten().filter(|s| s.id == id).map(|s| s.count).sum()
+    }
+}
+
+/// How much of a stack's durability is left (0..1), or None for an item without durability.
+pub fn durability_left(stack: &Stack) -> Option<f32> {
+    let max = max_durability(&stack.id)?;
+    Some(max.saturating_sub(stack.damage) as f32 / max as f32)
+}
+
+const TOTEM: &str = "minecraft:totem_of_undying";
+/// Item Counter's items, in the Java mod's order.
+pub const COUNTED: [&str; 7] = [TOTEM, "minecraft:golden_apple", "minecraft:enchanted_golden_apple", "minecraft:ender_pearl",
+    "minecraft:end_crystal", "minecraft:obsidian", "minecraft:respawn_anchor"];
+
+/// Armor HUD: armour (head first) and the hands' items with durability, in a column right of the hotbar.
+pub fn armor_shapes(settings: &Settings, inv: &Inventory, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    if !settings.on(ARMOR) {
+        return out;
+    }
+    let pieces: Vec<&Stack> = inv.armor.iter().flatten().chain(inv.main_hand().filter(|s| max_durability(&s.id).is_some()))
+        .chain(inv.offhand.as_ref().filter(|s| max_durability(&s.id).is_some())).collect();
+    let x = (w / 2.0).floor() + 98.0;
+    let mut y = h - 18.0 - 17.0 * (pieces.len() as f32 - 1.0);
+    for stack in pieces {
+        out.push(Shape::Item(stack.id.clone(), [x, y]));
+        if let Some(left) = durability_left(stack) {
+            let text = match settings.v[ARMOR_SHOW] {
+                0 => format!("{}%", (left * 100.0).round() as i32),
+                1 => format!("{}", max_durability(&stack.id).unwrap_or(0).saturating_sub(stack.damage)),
+                _ => String::new(),
+            };
+            if !text.is_empty() {
+                let _ = width(&text);
+                out.push(Shape::Text(text, [x + 18.0, y + 4.0], health_rgb(left), true));
+            }
+        }
+        y += 17.0;
+    }
+    out
+}
+
+/// Item Counter: each counted item the player has, with how many, in a column left of the hotbar.
+pub fn counter_shapes(settings: &Settings, inv: &Inventory, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    if !settings.on(COUNTER) {
+        return out;
+    }
+    let found: Vec<(&str, u32)> = COUNTED.iter().map(|id| (*id, inv.count(id))).filter(|(_, n)| *n > 0).collect();
+    let right = (w / 2.0).floor() - 98.0;
+    let mut y = h - 18.0 - 17.0 * (found.len() as f32 - 1.0);
+    for (id, n) in found {
+        let text = n.to_string();
+        let tw = width(&text);
+        out.push(Shape::Item(id.to_owned(), [right - 16.0, y]));
+        out.push(Shape::Text(text, [right - 18.0 - tw, y + 4.0], 0xFFFFFF, true));
+        y += 17.0;
+    }
+    out
+}
+
+/// Offhand Totem Warning: no totem in the offhand while there are some in the inventory.
+pub fn offhand_warning(settings: &Settings, inv: &Inventory) -> Option<String> {
+    let carried = inv.count(TOTEM);
+    let held = inv.offhand.as_ref().is_some_and(|s| s.id == TOTEM);
+    (settings.on(OFFHAND_WARN) && !held && carried > 0).then(|| format!("No totem in your offhand! ({carried} left)"))
+}
+
+/// Durability Warning: the armour pieces (names) at or under the setting's durability left.
+pub fn worn_out(settings: &Settings, inv: &Inventory) -> Vec<&'static str> {
+    if !settings.on(DURA_WARN) {
+        return Vec::new();
+    }
+    let at: f32 = DURA_AT[settings.v[DURA_WARN_AT]].0.parse::<f32>().unwrap_or(10.0) / 100.0;
+    ["helmet", "chestplate", "leggings", "boots"].iter().zip(&inv.armor)
+        .filter(|(_, s)| s.as_ref().and_then(durability_left).is_some_and(|left| left <= at))
+        .map(|(name, _)| *name).collect()
+}
+
+/// Whether the durability warning's sound is due: once for each piece that newly wore out.
+pub fn durability_sound_due(worn: &[&'static str]) -> bool {
+    STATE.with_borrow_mut(|s| {
+        let new = worn.iter().any(|p| !s.warned.contains(p));
+        s.warned = worn.to_vec();
+        new
+    })
+}
+
+/// The warnings above the hotbar (offhand totem, durability), flashing, centred.
+pub fn warning_shapes(settings: &Settings, inv: &Inventory, w: f32, h: f32, millis: u64, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut lines: Vec<(String, u32)> = Vec::new();
+    if let Some(text) = offhand_warning(settings, inv) {
+        lines.push((text, 0xFF5A5A));
+    }
+    let worn = worn_out(settings, inv);
+    if !worn.is_empty() {
+        let flash = (millis / 400) % 2 == 0;
+        lines.push((format!("Your {} {} about to break!", worn.join(" and "), if worn.len() == 1 { "is" } else { "are" }),
+                    if flash { 0xFFC83D } else { 0xFF5A5A }));
+    }
+    let mut y = h - 72.0;
+    let mut out = Vec::new();
+    for (text, rgb) in lines.into_iter().rev() {
+        let tw = width(&text);
+        out.push(Shape::Text(text, [((w - tw) / 2.0).floor(), y], rgb, true));
+        y -= 11.0;
+    }
+    out
+}
+
+/// Ready Check: (what, ready) for each check, in the Java mod's order.
+pub fn ready_checks(inv: &Inventory) -> Vec<(&'static str, bool)> {
+    let armor_ok = inv.armor.iter().all(|s| s.as_ref().is_some_and(|s| durability_left(s).is_none_or(|l| l > 0.25)));
+    vec![
+        ("Offhand totem", inv.offhand.as_ref().is_some_and(|s| s.id == TOTEM)),
+        ("Full armour", armor_ok),
+        ("Golden apples", inv.count("minecraft:golden_apple") + inv.count("minecraft:enchanted_golden_apple") > 0),
+        ("Ender pearls", inv.count("minecraft:ender_pearl") > 0),
+    ]
+}
+
+/// Ready Check's panel, at the left edge in the middle: a tick or cross per check, green when all are ready.
+pub fn ready_shapes(settings: &Settings, inv: &Inventory, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    if !settings.on(READY) {
+        return out;
+    }
+    let checks = ready_checks(inv);
+    let all = checks.iter().all(|c| c.1);
+    let title = if all { "Ready!" } else { "Not ready" };
+    let rows: Vec<String> = checks.iter().map(|(what, ok)| format!("{} {what}", if *ok { "+" } else { "-" })).collect();
+    let wide = rows.iter().map(|r| width(r)).fold(width(title), f32::max) + 10.0;
+    let tall = 14.0 + 10.0 * rows.len() as f32 + 4.0;
+    let (x, y) = (4.0, (h / 2.0 - tall / 2.0).floor());
+    out.push(Shape::Fill([x, y, wide, tall], BACKGROUND));
+    out.push(Shape::Fill([x, y, 2.0, tall], if all { 0xFF5C_E08A } else { 0xFFFF_5A5A }));
+    out.push(Shape::Text(title.to_owned(), [x + 6.0, y + 4.0], if all { 0x5CE08A } else { 0xFF5A5A }, true));
+    for (i, (row, (_, ok))) in rows.into_iter().zip(&checks).enumerate() {
+        out.push(Shape::Text(row, [x + 6.0, y + 16.0 + 10.0 * i as f32], if *ok { 0xCFE8D4 } else { 0x9A9A9A }, false));
+    }
+    out
 }
 
 /// Low Health Warning: red edges round the screen, pulsing about once a second, when health is at or under the
@@ -1061,6 +1257,8 @@ pub fn lines(s: &Settings, r: &Readings) -> Vec<(&'static str, String)> {
 pub enum Shape {
     Fill([f32; 4], u32),
     Text(String, [f32; 2], u32, bool),
+    /// An item's icon (its id), 16 pixels square, top left at the point.
+    Item(String, [f32; 2]),
 }
 
 /// The panel's background, as the HUD's own boxes are drawn.
@@ -1640,6 +1838,51 @@ mod tests {
 
     fn cross() -> Crosshair {
         Crosshair { rows: vec!["..#..".into(), "..#..".into(), "#####".into(), "..#..".into(), "..#..".into()], rgb: 0xD277B0, size: 2 }
+    }
+
+    fn st(id: &str, count: u32, damage: u32) -> Option<Stack> {
+        Some(Stack { id: id.into(), count, damage })
+    }
+
+    #[test]
+    fn inventory_modules() {
+        let mut s = Settings::default();
+        let mut inv = Inventory { slots: vec![None; 36], selected: 0, ..Default::default() };
+        inv.slots[0] = st("minecraft:diamond_sword", 1, 0);
+        inv.slots[5] = st("minecraft:totem_of_undying", 1, 0);
+        inv.slots[20] = st("minecraft:totem_of_undying", 1, 0);
+        inv.slots[7] = st("minecraft:ender_pearl", 16, 0);
+        inv.armor = [st("minecraft:diamond_helmet", 1, 330), st("minecraft:diamond_chestplate", 1, 0), st("minecraft:diamond_leggings", 1, 0), st("minecraft:diamond_boots", 1, 0)];
+        assert_eq!(inv.count("minecraft:totem_of_undying"), 2);
+        for f in [armor_shapes(&s, &inv, 400.0, 300.0, &width), counter_shapes(&s, &inv, 400.0, 300.0, &width), ready_shapes(&s, &inv, 300.0, &width)] {
+            assert!(f.is_empty(), "everything is off by default");
+        }
+        assert_eq!(offhand_warning(&s, &inv), None);
+        s.v[ARMOR] = 1;
+        let armor = armor_shapes(&s, &inv, 400.0, 300.0, &width);
+        assert_eq!(armor.iter().filter(|x| matches!(x, Shape::Item(..))).count(), 5, "4 armour pieces and the sword");
+        assert!(armor.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "9%")), "the helmet: 33 of 363 left");
+        s.v[COUNTER] = 1;
+        let counted = counter_shapes(&s, &inv, 400.0, 300.0, &width);
+        assert!(counted.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "2")) && counted.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "16")));
+        s.v[OFFHAND_WARN] = 1;
+        assert_eq!(offhand_warning(&s, &inv).as_deref(), Some("No totem in your offhand! (2 left)"));
+        s.v[DURA_WARN] = 1;
+        assert_eq!(worn_out(&s, &inv), vec!["helmet"]);
+        assert!(durability_sound_due(&worn_out(&s, &inv)) && !durability_sound_due(&worn_out(&s, &inv)), "once per piece");
+        let warnings = warning_shapes(&s, &inv, 400.0, 300.0, 0, &width);
+        assert_eq!(warnings.len(), 2);
+        assert!(!ready_checks(&inv)[0].1 && !ready_checks(&inv)[1].1, "no offhand totem, a worn helmet");
+        inv.offhand = st("minecraft:totem_of_undying", 1, 0);
+        inv.armor[0] = st("minecraft:diamond_helmet", 1, 0);
+        inv.slots[9] = st("minecraft:golden_apple", 8, 0);
+        assert!(ready_checks(&inv).iter().all(|c| c.1));
+        s.v[READY] = 1;
+        assert!(matches!(&ready_shapes(&s, &inv, 300.0, &width)[2], Shape::Text(t, ..) if t == "Ready!"));
+        assert_eq!(offhand_warning(&s, &inv), None);
+        for id in ["armor_hud", "item_counter", "offhand_totem_warning", "durability_warning", "ready_check"] {
+            assert!(on_horizon(id).is_some(), "{id}");
+        }
     }
 
     #[test]

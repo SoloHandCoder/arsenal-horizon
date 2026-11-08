@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds Horizon's game with Arsenal in it, the way Horizon's launcher builds native mods (its docs/native-mods.md):
-Horizon's source at a commit (GitHub's archive of it), horizon-mixins at a pinned commit, the bundle in
-mixins/arsenal applied, and horizon-client compiled the way Horizon's own release is (game-build.yml).
+Horizon's source at a commit (GitHub's archive of it) with Arsenal's own hooks from patches/ put in, horizon-mixins at a
+pinned commit, the bundle in mixins/arsenal applied, and horizon-client compiled the way Horizon's own release is (game-build.yml).
 
     python scripts/build.py --commit <sha> --version nightly-2026-11-03 --nightly "2026-11-03 2944480" \
         --asset arsenal-horizon-windows-x64.zip
@@ -63,6 +63,24 @@ def source(commit):
     return out
 
 
+def apply_patches(tree):
+    """Arsenal's own hooks (patches/*.json): code put into Horizon's source right before an exact line. Applied once per
+    source tree (already-applied inserts are skipped); an anchor that isn't there stops the build, so a Horizon change
+    never ships with a hook half in."""
+    for path in sorted((ROOT / "patches").glob("*.json")):
+        patch = json.loads(path.read_text(encoding="utf-8"))
+        target = tree / patch["file"]
+        text = target.read_text(encoding="utf-8")
+        for insert in patch["inserts"]:
+            if insert["text"] in text:
+                continue
+            if text.count(insert["before"]) != 1:
+                sys.exit(f"{path.name}: its anchor isn't in {patch['file']} exactly once: {insert['before'].strip()!r}")
+            text = text.replace(insert["before"], insert["text"] + insert["before"], 1)
+        target.write_text(text, encoding="utf-8")
+        log(f"Patched {patch['file']} ({path.name})")
+
+
 def mixins_tool():
     rev = COMPAT["horizon_mixins_revision"]
     root = WORK / "horizon-mixins" / rev
@@ -91,6 +109,7 @@ def main():
         sys.exit("--commit must be a full commit SHA")
 
     tree = source(a.commit)
+    apply_patches(tree)
     bundles = WORK / "mods"
     shutil.rmtree(bundles, ignore_errors=True)
     shutil.copytree(ROOT / "mixins" / "arsenal", bundles / "arsenal")

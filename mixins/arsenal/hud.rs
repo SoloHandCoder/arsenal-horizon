@@ -31,6 +31,45 @@ fn arsenal_hud(
             match shape {
                 m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
                 m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+                m::Shape::Item(id, at) => {
+                    game.native_item(batch, &id, at, 16.0);
+                }
+            }
+        }
+    }
+    // The inventory modules (Arsenal's inventory hook, patches/inventory.json): Armor HUD, Item Counter, the
+    // offhand totem and durability warnings and Ready Check.
+    if let Some(view) = game.native_inventory_view() {
+        let stack = |s: &Option<horizon_client::items::ItemStack>| {
+            s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })
+        };
+        let inv = m::Inventory {
+            slots: view.slots.iter().map(stack).collect(),
+            armor: [0, 1, 2, 3].map(|i| view.armor.get(i).and_then(stack)),
+            offhand: stack(&view.offhand),
+            selected: view.selected,
+        };
+        let worn = m::worn_out(&settings, &inv);
+        if m::durability_sound_due(&worn) && !worn.is_empty() {
+            if let Some(p) = game.native_player() {
+                game.native_play_local_sound("minecraft:block.anvil.land", [p.x, p.y, p.z], 0.5, 1.6, 0);
+            }
+        }
+        let game = &*game;
+        let (w, h) = (batch.width, batch.height);
+        let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
+        let width = |text: &str| game.native_text_width(text);
+        let mut shapes = m::armor_shapes(&settings, &inv, w, h, &width);
+        shapes.extend(m::counter_shapes(&settings, &inv, w, h, &width));
+        shapes.extend(m::warning_shapes(&settings, &inv, w, h, millis, &width));
+        shapes.extend(m::ready_shapes(&settings, &inv, h, &width));
+        for shape in shapes {
+            match shape {
+                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
+                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+                m::Shape::Item(id, at) => {
+                    game.native_item(batch, &id, at, 16.0);
+                }
             }
         }
     }
@@ -66,6 +105,9 @@ fn arsenal_hud(
             match shape {
                 m::Shape::Fill([dx, dy, w, h], argb) => game.native_fill(batch, [x + dx, y + dy, w, h], argb),
                 m::Shape::Text(text, [dx, dy], rgb, shadow) => game.native_text(batch, &text, [x + dx, y + dy], rgb, shadow),
+                m::Shape::Item(id, [dx, dy]) => {
+                    game.native_item(batch, &id, [x + dx, y + dy], 16.0);
+                }
             }
         }
     }

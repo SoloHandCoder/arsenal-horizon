@@ -1,0 +1,14 @@
+{
+  "about": "Lets native mods read the window's player's inventory: the 36 slots (hotbar first), armour (head first), the offhand and the selected hotbar slot. Horizon's Game already keeps them; this only hands a copy to mods, like native_player does for the position.",
+  "file": "crates/horizon-client/src/game/native_hooks.rs",
+  "inserts": [
+    {
+      "before": "/// The player as a native mod reads it.\n",
+      "text": "/// The window's player's inventory as a native mod reads it (Arsenal's patch).\n#[allow(dead_code)]\n#[derive(Clone, Debug)]\npub(crate) struct NativeInventory {\n    /// The 36 slots: the hotbar (0..9), then the rest.\n    pub(crate) slots: Vec<Option<ItemStack>>,\n    /// Head, chest, legs, feet.\n    pub(crate) armor: Vec<Option<ItemStack>>,\n    pub(crate) offhand: Option<ItemStack>,\n    /// The hotbar slot in the main hand (0..9).\n    pub(crate) selected: usize,\n}\n\n"
+    },
+    {
+      "before": "    /// The clock of the world this window shows, for client mods: its game\n",
+      "text": "    /// The window's player's inventory, for client mods (Arsenal's patch): none on the title screen.\n    pub(super) fn native_inventory_view(&self) -> Option<NativeInventory> {\n        self.player.as_ref()?;\n        Some(NativeInventory {\n            slots: self.inventory.clone(),\n            armor: self.armor.iter().cloned().collect(),\n            offhand: self.offhand.clone(),\n            selected: self.selected,\n        })\n    }\n"
+    }
+  ]
+}
