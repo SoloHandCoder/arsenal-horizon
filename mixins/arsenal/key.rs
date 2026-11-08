@@ -5,6 +5,10 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
     if !game.native_on(m::ID) {
         return;
     }
+    // Hitmarker: a hit may land after the attack button.
+    if pressed && key == "key.mouse.left" && game.native_playing() {
+        m::clicked();
+    }
     if pressed && key == game.native_mod_key(m::ID, m::MENU_KEY, m::DEFAULT_MENU_KEY) {
         if game.native_mod_screen() == Some(m::ID) {
             game.native_mod_screen_close(m::ID);

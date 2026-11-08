@@ -14,6 +14,7 @@ own copy of the game.
 | `mixins/arsenal/horizon-mixin.toml` | The bundle: one module and its hooks |
 | `mixins/arsenal/runtime.rs` | The mod's logic, added to the game as `game::arsenal_native`; also this crate's library, for its tests |
 | `mixins/arsenal/*.rs` | One small helper per hook |
+| `patches/*.json` | Arsenal's own hooks, put into Horizon's source before it's compiled: your inventory, chat (send and read) and the other players around. The build stops if Horizon moved the code a patch goes into |
 | `scripts/plan.py` | Which Horizon build to put Arsenal into, and whether it is built already |
 | `scripts/build.py` | Applies the bundle to Horizon's source and compiles the game |
 | `.github/workflows/build.yml` | Builds every platform and publishes the release |

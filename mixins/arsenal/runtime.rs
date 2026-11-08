@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.7.0";
+pub const VERSION: &str = "1.8.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -215,6 +215,9 @@ const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A]
 pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
 pub const HEALTH_SHOWS: &[(&str, &str)] = &[("both", "Number and bar"), ("number", "Number only"), ("bar", "Bar only")];
 pub const HEALTH_UNITS: &[(&str, &str)] = &[("hearts", "Hearts (10 is full)"), ("points", "Health points (20 is full)")];
+pub const KILL_TEXTS: &[(&str, &str)] = &[("GG", "GG"), ("gg wp", "gg wp"), ("Good fight!", "Good fight!"), ("gg {name}", "gg {name}"), ("ez", "ez")];
+pub const DEATH_TEXTS: &[(&str, &str)] = &[("GG", "GG"), ("gg wp", "gg wp"), ("nice one {name}", "nice one {name}"), ("ff", "ff")];
+pub const RING_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("rainbow", "Rainbow")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -266,7 +269,22 @@ pub const OFFHAND_WARN: usize = 43;
 pub const DURA_WARN: usize = 44;
 pub const DURA_WARN_AT: usize = 45;
 pub const READY: usize = 46;
-const N: usize = 47;
+pub const KILL_MSG: usize = 47;
+pub const KILL_TEXT: usize = 48;
+pub const DEATH_MSG: usize = 49;
+pub const DEATH_TEXT: usize = 50;
+pub const MENTION: usize = 51;
+pub const COMBAT_TAG: usize = 52;
+pub const POPS: usize = 53;
+pub const POP_ALERTS: usize = 54;
+pub const TARGET: usize = 55;
+pub const HITMARKER: usize = 56;
+pub const STREAKS: usize = 57;
+pub const NAMETAG_HP: usize = 58;
+pub const DAMAGE_NUMS: usize = 59;
+pub const JUMP_RINGS: usize = 60;
+pub const JUMP_COLOR: usize = 61;
+const N: usize = 62;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -316,6 +334,21 @@ pub const FIELDS: [Field; N] = [
     Field { key: "durability_warning", label: "Durability Warning", options: ONOFF, default: 0 },
     Field { key: "durability_at", label: "Warn at", options: DURA_AT, default: 0 },
     Field { key: "ready_check", label: "Ready Check", options: ONOFF, default: 0 },
+    Field { key: "kill_message", label: "Kill Message", options: ONOFF, default: 0 },
+    Field { key: "kill_text", label: "Message", options: KILL_TEXTS, default: 0 },
+    Field { key: "death_message", label: "Death Message", options: ONOFF, default: 0 },
+    Field { key: "death_text", label: "Message", options: DEATH_TEXTS, default: 0 },
+    Field { key: "mention_ping", label: "Mention Ping", options: ONOFF, default: 0 },
+    Field { key: "combat_tag", label: "Combat Tag Timer", options: ONOFF, default: 0 },
+    Field { key: "pop_counter", label: "Totem Pop Counter", options: ONOFF, default: 0 },
+    Field { key: "pop_alerts", label: "Totem Pop Alerts", options: ONOFF, default: 0 },
+    Field { key: "target_hud", label: "Target HUD", options: ONOFF, default: 0 },
+    Field { key: "hitmarker", label: "Hitmarker", options: ONOFF, default: 0 },
+    Field { key: "kill_streaks", label: "Kill Streaks", options: ONOFF, default: 0 },
+    Field { key: "nametag_health", label: "Nametag Health", options: ONOFF, default: 0 },
+    Field { key: "damage_numbers", label: "Damage Numbers", options: ONOFF, default: 0 },
+    Field { key: "jump_circles", label: "Jump Circles", options: ONOFF, default: 0 },
+    Field { key: "jump_color", label: "Colour", options: RING_COLORS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -348,6 +381,18 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("offhand_totem_warning", OFFHAND_WARN, &[]),
     ("durability_warning", DURA_WARN, &[DURA_WARN_AT]),
     ("ready_check", READY, &[]),
+    ("kill_message", KILL_MSG, &[KILL_TEXT]),
+    ("death_message", DEATH_MSG, &[DEATH_TEXT]),
+    ("mention_ping", MENTION, &[]),
+    ("combat_tag_timer", COMBAT_TAG, &[]),
+    ("totem_pop_counter", POPS, &[]),
+    ("totem_pop_alerts", POP_ALERTS, &[]),
+    ("target_hud", TARGET, &[]),
+    ("hitmarker", HITMARKER, &[]),
+    ("kill_streaks", STREAKS, &[]),
+    ("nametag_health", NAMETAG_HP, &[]),
+    ("damage_numbers", DAMAGE_NUMS, &[]),
+    ("jump_circles", JUMP_RINGS, &[JUMP_COLOR]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -366,6 +411,18 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "health_hud" => "On Horizon: your health under the crosshair as a number, a bar or both, green to red, absorption in gold.",
         "low_health_warning" => "On Horizon: red pulsing screen edges and a heartbeat when your health is low.",
         "armor_hud" => "On Horizon: your armour and what's in your hands right of the hotbar, with their durability.",
+        "kill_message" => "On Horizon: sends your message after a kill the server's death message credits to you. Pick it from the list ({name} is who you killed).",
+        "death_message" => "On Horizon: sends your message when you die ({name} is who killed you, when the death message says).",
+        "mention_ping" => "On Horizon: a sound and a note on screen when someone writes your name in chat.",
+        "combat_tag_timer" => "On Horizon: a countdown when the server says you're in combat, gone when it says you're out.",
+        "totem_pop_counter" => "On Horizon: how many totems each player near you popped, top right.",
+        "totem_pop_alerts" => "On Horizon: a chat line and a sound when a player near you pops a totem.",
+        "target_hud" => "On Horizon: the player you look at: health, absorption, armour, held item and totem pops.",
+        "hitmarker" => "On Horizon: an X round the crosshair when your hit lands on a player.",
+        "kill_streaks" => "On Horizon: Double Kill, Triple Kill... with a sound, for kills within 10 seconds.",
+        "nametag_health" => "On Horizon: each player's health above their head, green to red.",
+        "damage_numbers" => "On Horizon: the damage a player takes floats up from them.",
+        "jump_circles" => "On Horizon: a ring spreads out at your feet when you jump.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -380,9 +437,9 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
 /// Why a Java module doesn't run on Horizon yet: what Horizon's mod hooks lack for it.
 pub fn why_not(id: &str) -> &'static str {
     const ACCOUNT: &[&str] = &["arsenal_messages", "arsenal_users", "friends", "party_hud", "pvp_tiers", "cloud_backup", "wardrobe_kill_effects", "kill_effects", "album_colors", "spotify_lyrics", "discord_presence", "session_goals", "quests", "usage_stats", "crash_reports", "update_notice", "server_profiles", "server_notes", "blade_settings", "duel_record"];
-    const PLAYERS: &[&str] = &["nametag_health", "nametag_ping", "target_hud", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "totem_pop_alerts", "totem_pop_counter", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "kill_streaks", "shield_break_sound", "combo_pop", "hitmarker", "damage_numbers", "sprint_indicator", "session_summary"];
+    const PLAYERS: &[&str] = &["nametag_ping", "enemy_armor_alert", "eating_warning", "pearl_timer", "target_low_hp", "opponent_intel", "tab_ping", "nametag_style", "combo_reach", "fight_timer", "fight_summary", "death_recap", "session_stats", "shield_break_sound", "combo_pop", "sprint_indicator", "session_summary"];
     const SELF: &[&str] = &["potion_timers", "cooldown_hud", "inventory_totem", "potion_warning", "retotem_timer",  "bow_charge", "attack_bar", "crit_indicator", "hotbar_style", "inventory_style", "inventory_cursor_speed", "quick_menu", "lag_meter", "clock_info", "notification_feed", "fall_preview"];
-    const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "mention_ping", "name_hider", "combat_tag_timer", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard", "kill_message", "death_message"];
+    const CHAT: &[&str] = &["chat_filter", "chat_hotkeys", "chat_mentions", "chat_tweaks", "chat_copy", "name_hider", "auto_reconnect", "hypixel_skyblock", "screenshot_clipboard"];
     if ACCOUNT.contains(&id) {
         "Needs your Arsenal account or another app, which Horizon doesn't pass to mods yet."
     } else if PLAYERS.contains(&id) {
@@ -669,6 +726,8 @@ struct State {
     heartbeat: Option<Instant>,
     /// Durability Warning: the pieces already warned about (the sound plays once for each).
     warned: Vec<&'static str>,
+    /// The combat modules' state (chat, other players, the world).
+    pvp: Pvp,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -876,6 +935,443 @@ pub fn ready_shapes(settings: &Settings, inv: &Inventory, h: f32, width: &dyn Fn
     for (i, (row, (_, ok))) in rows.into_iter().zip(&checks).enumerate() {
         out.push(Shape::Text(row, [x + 6.0, y + 16.0 + 10.0 * i as f32], if *ok { 0xCFE8D4 } else { 0x9A9A9A }, false));
     }
+    out
+}
+
+/// A death the server's chat told of: who died and, when it says, who killed them.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Death {
+    pub victim: String,
+    pub killer: Option<String>,
+}
+
+/// The vanilla death messages' wordings (death.attack.*), after the victim's name.
+const DEATH_VERBS: &[&str] = &["was slain by", "was shot by", "was blown up by", "was killed", "was pummeled by", "was fireballed by",
+    "was impaled by", "was obliterated by", "was skewered by", "was speared by", "was squashed", "was struck by lightning", "was frozen",
+    "was stung", "was poked", "was doomed to fall", "was burnt", "burned to death", "went up in flames", "walked into fire", "tried to swim in lava",
+    "drowned", "died", "fell", "hit the ground too hard", "experienced kinetic energy", "suffocated", "starved", "blew up", "withered away",
+    "was roasted", "was squished", "discovered the floor was lava", "went off with a bang", "left the confines", "didn't want to live"];
+
+fn name_token(word: &str) -> Option<String> {
+    let w: String = word.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
+    (2..=16).contains(&w.len()).then_some(w)
+}
+
+/// A vanilla death message ("Steve was slain by Alex using Sword"), also with a server's prefix before the name.
+pub fn parse_death(line: &str) -> Option<Death> {
+    let (at, verb) = DEATH_VERBS.iter().filter_map(|v| line.find(&format!(" {v}")).map(|i| (i, *v))).min_by_key(|(i, _)| *i)?;
+    // A player's chat line ("<Alex> I died lol", "Alex: I fell") is no death message.
+    let before = &line[..at];
+    if before.contains(['<', '>', ':', '\u{bb}']) || before.split_whitespace().count() > 3 {
+        return None;
+    }
+    let victim = name_token(before.split_whitespace().last()?)?;
+    let rest = &line[at + 1 + verb.len()..];
+    let killer = if verb.ends_with(" by") {
+        rest.split_whitespace().next().and_then(name_token)
+    } else {
+        rest.find(" by ").and_then(|i| rest[i + 4..].split_whitespace().next()).and_then(name_token)
+    };
+    Some(Death { killer: killer.filter(|k| *k != victim), victim })
+}
+
+/// A chat line someone else wrote that names you (case does not matter, the whole name only).
+pub fn mentions(line: &str, own: &str) -> bool {
+    if own.len() < 3 || parse_death(line).is_some() {
+        return false;
+    }
+    let lower = line.to_ascii_lowercase();
+    let own = own.to_ascii_lowercase();
+    // Your own message ("<Name> hi", "[VIP] Name: hi", "Name » hi") isn't a mention: your name is before the
+    // first ">", ":" or "»".
+    if let Some(cut) = lower.find(['>', ':', '\u{bb}']) {
+        if lower[..cut].contains(&own) {
+            return false;
+        }
+    }
+    lower.match_indices(&own).any(|(i, _)| {
+        let before = lower[..i].chars().last().is_none_or(|c| !c.is_ascii_alphanumeric() && c != '_');
+        let after = lower[i + own.len()..].chars().next().is_none_or(|c| !c.is_ascii_alphanumeric() && c != '_');
+        before && after
+    })
+}
+
+/// Combat Tag Timer: a server line that starts (Some(seconds)) or ends (Some(0)) a combat tag.
+pub fn combat_line(line: &str) -> Option<u32> {
+    let l = line.to_ascii_lowercase();
+    if ["no longer in combat", "out of combat", "combat has ended", "you are now safe", "combat tag expired"].iter().any(|p| l.contains(p)) {
+        return Some(0);
+    }
+    if ["now in combat", "you are in combat", "combat tagged", "you have been tagged", "entered combat"].iter().any(|p| l.contains(p)) {
+        let seconds = l.split(|c: char| !c.is_ascii_digit()).filter_map(|d| d.parse::<u32>().ok()).find(|n| (3..=120).contains(n));
+        return Some(seconds.unwrap_or(15));
+    }
+    None
+}
+
+/// "Double Kill", "Triple Kill"... for the `count`th kill in a row (none for the first).
+pub fn streak_name(count: usize) -> Option<&'static str> {
+    Some(match count {
+        0 | 1 => return None,
+        2 => "Double Kill",
+        3 => "Triple Kill",
+        4 => "Quadra Kill",
+        5 => "Penta Kill",
+        _ => "Rampage",
+    })
+}
+
+/// The message a kill or death sends, `{name}` filled in (an empty name drops it and its spaces).
+pub fn fill_name(text: &str, name: Option<&str>) -> String {
+    text.replace("{name}", name.unwrap_or("")).split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Another player as the combat modules read them (Arsenal's players hook).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Other {
+    pub id: u32,
+    pub name: String,
+    pub pos: [f64; 3],
+    pub health: f32,
+    pub absorption: f32,
+    pub hurt_time: i32,
+    /// Main hand, off hand, feet, legs, chest, head (item ids).
+    pub equipment: Vec<Option<String>>,
+}
+
+/// The world camera of this frame, for drawing at places in the world.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Cam {
+    pub pos: [f64; 3],
+    pub view: [f32; 16],
+    pub projection: [f32; 16],
+}
+
+fn mul(m: &[f32; 16], v: [f32; 4]) -> [f32; 4] {
+    let mut out = [0.0; 4];
+    for (row, o) in out.iter_mut().enumerate() {
+        *o = (0..4).map(|col| m[col * 4 + row] * v[col]).sum();
+    }
+    out
+}
+
+/// Where a world point is on the screen (GUI pixels), or none behind the camera.
+pub fn project(cam: &Cam, p: [f64; 3], w: f32, h: f32) -> Option<[f32; 2]> {
+    let rel = [(p[0] - cam.pos[0]) as f32, (p[1] - cam.pos[1]) as f32, (p[2] - cam.pos[2]) as f32, 1.0];
+    let clip = mul(&cam.projection, mul(&cam.view, rel));
+    if clip[3] <= 0.01 {
+        return None;
+    }
+    let (x, y) = (clip[0] / clip[3], clip[1] / clip[3]);
+    if !(-1.5..=1.5).contains(&x) || !(-1.5..=1.5).contains(&y) {
+        return None;
+    }
+    Some([(x + 1.0) / 2.0 * w, (1.0 - y) / 2.0 * h])
+}
+
+/// The combat modules' state: kept between frames and ticks.
+#[derive(Default)]
+struct Pvp {
+    own_name: Option<String>,
+    /// Messages to send (Kill / Death Message) and when.
+    outbox: Vec<(Instant, String)>,
+    last_sent: Option<Instant>,
+    combat_until: Option<Instant>,
+    mention: Option<(String, Instant)>,
+    pops: std::collections::HashMap<String, u32>,
+    health: std::collections::HashMap<u32, f32>,
+    hurt: std::collections::HashMap<u32, i32>,
+    damage: Vec<([f64; 3], f32, Instant)>,
+    clicked: Option<Instant>,
+    hitmarker: Option<Instant>,
+    kills: Vec<Instant>,
+    streak: Option<(&'static str, Instant)>,
+    target: Option<(u32, Instant)>,
+    rings: Vec<([f64; 3], Instant)>,
+    last_y: Option<f64>,
+    last_dy: f64,
+    /// Sounds to play (the hooks with a mutable game play them): (sound, volume, pitch).
+    sounds: Vec<(&'static str, f32, f32)>,
+    /// Lines to show in your own chat only.
+    notes: Vec<String>,
+}
+
+/// The left mouse button went down: a hit may land (Hitmarker).
+pub fn clicked() {
+    STATE.with_borrow_mut(|s| s.pvp.clicked = Some(Instant::now()));
+}
+
+/// Takes the sounds and own-chat lines the combat modules asked for.
+pub fn take_effects() -> (Vec<(&'static str, f32, f32)>, Vec<String>) {
+    STATE.with_borrow_mut(|s| (std::mem::take(&mut s.pvp.sounds), std::mem::take(&mut s.pvp.notes)))
+}
+
+/// Takes the chat messages due to be sent now (at most one every 2 seconds).
+pub fn take_outbox() -> Vec<String> {
+    STATE.with_borrow_mut(|s| {
+        let now = Instant::now();
+        if s.pvp.last_sent.is_some_and(|t| now.duration_since(t) < Duration::from_secs(2)) {
+            return Vec::new();
+        }
+        let Some(i) = s.pvp.outbox.iter().position(|(due, _)| *due <= now) else { return Vec::new() };
+        s.pvp.last_sent = Some(now);
+        vec![s.pvp.outbox.remove(i).1]
+    })
+}
+
+/// New chat lines (Arsenal's chat hook): kills and deaths (Kill / Death Message, Kill Streaks), mentions, combat tags.
+pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
+    STATE.with_borrow_mut(|s| {
+        let p = &mut s.pvp;
+        if let Some(own) = own {
+            p.own_name = Some(own.to_owned());
+        }
+        let Some(own) = p.own_name.clone() else { return };
+        let now = Instant::now();
+        for line in lines {
+            if let Some(d) = parse_death(line) {
+                if d.killer.as_deref().is_some_and(|k| k.eq_ignore_ascii_case(&own)) && !d.victim.eq_ignore_ascii_case(&own) {
+                    if settings.on(KILL_MSG) {
+                        p.outbox.push((now + Duration::from_millis(800), fill_name(KILL_TEXTS[settings.v[KILL_TEXT]].0, Some(&d.victim))));
+                    }
+                    p.kills.retain(|t| now.duration_since(*t) < Duration::from_secs(10));
+                    p.kills.push(now);
+                    if settings.on(STREAKS) {
+                        if let Some(name) = streak_name(p.kills.len()) {
+                            p.streak = Some((name, now));
+                            p.sounds.push(("minecraft:entity.player.levelup", 0.5, 1.2));
+                        }
+                    }
+                } else if d.victim.eq_ignore_ascii_case(&own) {
+                    p.kills.clear();
+                    if settings.on(DEATH_MSG) {
+                        p.outbox.push((now + Duration::from_millis(800), fill_name(DEATH_TEXTS[settings.v[DEATH_TEXT]].0, d.killer.as_deref())));
+                    }
+                }
+                p.pops.remove(&d.victim);
+                continue;
+            }
+            if settings.on(COMBAT_TAG) {
+                match combat_line(line) {
+                    Some(0) => p.combat_until = None,
+                    Some(seconds) => p.combat_until = Some(now + Duration::from_secs(seconds as u64)),
+                    None => {}
+                }
+            }
+            if settings.on(MENTION) && mentions(line, &own) {
+                p.mention = Some((line.chars().take(60).collect(), now));
+                p.sounds.push(("minecraft:block.note_block.pling", 0.6, 1.4));
+            }
+        }
+    });
+}
+
+/// The other players this tick and the entity events since the last: totem pops (35), hurts, deaths (3).
+pub fn players_tick(settings: &Settings, others: &[Other], events: &[(u32, i32)]) {
+    STATE.with_borrow_mut(|s| {
+        let p = &mut s.pvp;
+        let now = Instant::now();
+        for (id, event) in events {
+            let Some(o) = others.iter().find(|o| o.id == *id) else { continue };
+            match event {
+                35 => {
+                    let n = p.pops.entry(o.name.clone()).or_default();
+                    *n += 1;
+                    if settings.on(POP_ALERTS) {
+                        p.notes.push(format!("{} popped a totem ({})", o.name, n));
+                        p.sounds.push(("minecraft:block.note_block.bell", 0.4, 1.2));
+                    }
+                }
+                3 => {
+                    p.pops.remove(&o.name);
+                }
+                _ => {}
+            }
+        }
+        for o in others {
+            // Damage Numbers: health that went down since the last tick.
+            if let Some(before) = p.health.insert(o.id, o.health + o.absorption) {
+                let lost = before - (o.health + o.absorption);
+                if lost >= 0.5 && settings.on(DAMAGE_NUMS) {
+                    p.damage.push(([o.pos[0], o.pos[1] + 2.0, o.pos[2]], lost, now));
+                }
+            }
+            // Hitmarker: a player just hurt (hurt_time jumped) right after you clicked.
+            let before = p.hurt.insert(o.id, o.hurt_time).unwrap_or(0);
+            if o.hurt_time > before && p.clicked.is_some_and(|c| now.duration_since(c) < Duration::from_millis(400)) {
+                p.hitmarker = Some(now);
+                p.target = Some((o.id, now));
+            }
+        }
+        p.damage.retain(|d| now.duration_since(d.2) < Duration::from_millis(1200));
+        p.health.retain(|id, _| others.iter().any(|o| o.id == *id));
+    });
+}
+
+/// Jump Circles: your position each tick; a jump (rising fast from standing) starts a ring at your feet.
+pub fn own_tick(settings: &Settings, pos: Option<[f64; 3]>) {
+    STATE.with_borrow_mut(|s| {
+        let p = &mut s.pvp;
+        let Some(pos) = pos else {
+            p.last_y = None;
+            return;
+        };
+        let dy = p.last_y.map_or(0.0, |y| pos[1] - y);
+        if settings.on(JUMP_RINGS) && dy > 0.25 && p.last_dy.abs() < 0.05 {
+            p.rings.push(([pos[0], pos[1] - dy, pos[2]], Instant::now()));
+        }
+        p.last_dy = dy;
+        p.last_y = Some(pos[1]);
+        p.rings.retain(|r| r.1.elapsed() < Duration::from_millis(700));
+    });
+}
+
+/// The player you look at most directly within 6 blocks (or the last one you hit, for 3 seconds).
+pub fn target<'a>(others: &'a [Other], eye: [f64; 3], yaw: f32, pitch: f32) -> Option<&'a Other> {
+    let (y, p) = ((yaw as f64).to_radians(), (pitch as f64).to_radians());
+    let look = [-y.sin() * p.cos(), -p.sin(), y.cos() * p.cos()];
+    let remembered = STATE.with_borrow(|s| s.pvp.target.filter(|t| t.1.elapsed() < Duration::from_secs(3)).map(|t| t.0));
+    let best = others.iter().filter_map(|o| {
+        let d = [o.pos[0] - eye[0], o.pos[1] + 1.0 - eye[1], o.pos[2] - eye[2]];
+        let len = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+        if len > 6.0 || len < 0.01 {
+            return None;
+        }
+        let cos = (d[0] * look[0] + d[1] * look[1] + d[2] * look[2]) / len;
+        (cos > 0.95).then_some((o, cos))
+    }).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(o, _)| o);
+    best.or_else(|| remembered.and_then(|id| others.iter().find(|o| o.id == id)))
+}
+
+fn ring_rgb(settings: &Settings, t: f32) -> u32 {
+    match settings.v[JUMP_COLOR] {
+        1 => 0xFFFFFF,
+        2 => {
+            let h = (t * 6.0) % 6.0;
+            let x = 1.0 - ((h % 2.0) - 1.0).abs();
+            let (r, g, b) = match h as u32 { 0 => (1.0, x, 0.0), 1 => (x, 1.0, 0.0), 2 => (0.0, 1.0, x), 3 => (0.0, x, 1.0), 4 => (x, 0.0, 1.0), _ => (1.0, 0.0, x) };
+            ((r * 255.0) as u32) << 16 | ((g * 255.0) as u32) << 8 | (b * 255.0) as u32
+        }
+        _ => settings.accent(),
+    }
+}
+
+/// Everything the combat modules draw this frame: in the world (through the camera) and on the HUD.
+pub fn pvp_shapes(settings: &Settings, others: &[Other], target: Option<&Other>, cam: Option<&Cam>, w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let now = Instant::now();
+    STATE.with_borrow(|s| {
+        let p = &s.pvp;
+        if let Some(cam) = cam {
+            // Jump Circles: a ring on the ground, growing and fading.
+            for (at, start) in &p.rings {
+                let t = start.elapsed().as_secs_f32() / 0.7;
+                let radius = 0.2 + 1.1 * t;
+                let alpha = (((1.0 - t) * 200.0).max(0.0) as u32) << 24;
+                let n = 24;
+                for i in 0..n {
+                    let a0 = i as f64 / n as f64 * std::f64::consts::TAU;
+                    let a1 = (i + 1) as f64 / n as f64 * std::f64::consts::TAU;
+                    let pt = |a: f64, r: f64| [at[0] + a.cos() * r, at[1] + 0.05, at[2] + a.sin() * r];
+                    let (r0, r1) = (radius as f64, (radius - 0.12) as f64);
+                    let corners = [pt(a0, r0), pt(a1, r0), pt(a1, r1), pt(a0, r1)].map(|c| project(cam, c, w, h));
+                    if let [Some(a), Some(b), Some(c), Some(d)] = corners {
+                        out.push(Shape::Quad([a, b, c, d], alpha | ring_rgb(settings, i as f32 / n as f32)));
+                    }
+                }
+            }
+            // Nametag Health: above each player's head.
+            if settings.on(NAMETAG_HP) {
+                for o in others {
+                    if let Some([x, y]) = project(cam, [o.pos[0], o.pos[1] + 2.45, o.pos[2]], w, h) {
+                        let text = format!("{:.1}", (o.health + o.absorption) / 2.0);
+                        let tw = width(&text);
+                        out.push(Shape::Fill([x - tw / 2.0 - 2.0, y - 1.0, tw + 4.0, 10.0], 0x8000_0000));
+                        out.push(Shape::Text(text, [x - tw / 2.0, y], if o.absorption > 0.0 { 0xFFC83D } else { health_rgb(o.health / 20.0) }, false));
+                    }
+                }
+            }
+            // Damage Numbers: rising and fading over a second.
+            for (at, amount, start) in &p.damage {
+                let t = start.elapsed().as_secs_f32();
+                if let Some([x, y]) = project(cam, [at[0], at[1] + t as f64 * 0.8, at[2]], w, h) {
+                    let text = format!("-{:.1}", amount / 2.0);
+                    let tw = width(&text);
+                    out.push(Shape::Text(text, [x - tw / 2.0, y], 0xFF5A5A, true));
+                }
+            }
+        }
+        let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
+        // Hitmarker: an X round the crosshair for a moment.
+        if settings.on(HITMARKER) && p.hitmarker.is_some_and(|t| t.elapsed() < Duration::from_millis(180)) {
+            for (dx, dy) in [(1.0, 1.0), (-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)] {
+                let (a, b) = ([cx + 3.0 * dx, cy + 3.0 * dy], [cx + 7.0 * dx, cy + 7.0 * dy]);
+                let n = [0.7 * dy, -0.7 * dx];
+                out.push(Shape::Quad([[a[0] - n[0], a[1] - n[1]], [b[0] - n[0], b[1] - n[1]], [b[0] + n[0], b[1] + n[1]], [a[0] + n[0], a[1] + n[1]]], 0xFFFF_FFFF));
+            }
+        }
+        // Kill Streaks: big text at the top for two seconds.
+        if let Some((name, at)) = p.streak.filter(|s| s.1.elapsed() < Duration::from_secs(2)) {
+            let _ = at;
+            let tw = width(name);
+            out.push(Shape::Text(name.to_owned(), [cx - tw / 2.0, h * 0.22], 0xFFC83D, true));
+        }
+        // Combat Tag Timer: under the crosshair's left.
+        if let Some(until) = p.combat_until.filter(|u| *u > now) {
+            let text = format!("Combat {}s", (until - now).as_secs() + 1);
+            let tw = width(&text);
+            out.push(Shape::Text(text, [cx - tw / 2.0, cy - 22.0], 0xFF5A5A, true));
+        }
+        // Mention Ping: who wrote your name, for three seconds.
+        if let Some((line, at)) = p.mention.as_ref().filter(|m| m.1.elapsed() < Duration::from_secs(3)) {
+            let _ = at;
+            let tw = width(line);
+            out.push(Shape::Fill([cx - tw / 2.0 - 4.0, 4.0, tw + 8.0, 12.0], BACKGROUND));
+            out.push(Shape::Text(line.clone(), [cx - tw / 2.0, 6.0], 0xFFC83D, true));
+        }
+        // Totem Pop Counter: top right.
+        if settings.on(POPS) && !p.pops.is_empty() {
+            let mut rows: Vec<(&String, &u32)> = p.pops.iter().collect();
+            rows.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
+            let mut y = 4.0;
+            for (name, n) in rows.into_iter().take(8) {
+                let text = format!("{name}: {n}");
+                let tw = width(&text);
+                out.push(Shape::Fill([w - tw - 10.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
+                out.push(Shape::Text(text, [w - tw - 7.0, y], 0xFFFFFF, false));
+                y += 12.0;
+            }
+        }
+        // Target HUD: right of the crosshair.
+        if settings.on(TARGET) {
+            if let Some(t) = target {
+                let (x, y) = (cx + 24.0, cy - 30.0);
+                let pops = p.pops.get(&t.name).copied().unwrap_or(0);
+                let name = if pops > 0 { format!("{} ({pops} pops)", t.name) } else { t.name.clone() };
+                let wide = (width(&name) + 12.0).max(110.0);
+                out.push(Shape::Fill([x, y, wide, 48.0], BACKGROUND));
+                out.push(Shape::Fill([x, y, 2.0, 48.0], 0xFF00_0000 | settings.accent()));
+                out.push(Shape::Text(name, [x + 6.0, y + 4.0], 0xFFFFFF, true));
+                let hp = (t.health / 20.0).clamp(0.0, 1.0);
+                out.push(Shape::Fill([x + 6.0, y + 15.0, wide - 12.0, 4.0], 0xA000_0000));
+                out.push(Shape::Fill([x + 6.0, y + 15.0, ((wide - 12.0) * hp).round(), 4.0], 0xFF00_0000 | health_rgb(hp)));
+                if t.absorption > 0.0 {
+                    out.push(Shape::Fill([x + 6.0, y + 19.0, ((wide - 12.0) * (t.absorption / 20.0).clamp(0.0, 1.0)).round(), 1.0], 0xFFFF_C83D));
+                }
+                let hearts = format!("{:.1}", (t.health + t.absorption) / 2.0);
+                let hw = width(&hearts);
+                out.push(Shape::Text(hearts, [x + wide - 6.0 - hw, y + 4.0], health_rgb(hp), true));
+                // Armour (head first) and the held item.
+                let mut ix = x + 6.0;
+                for slot in [5usize, 4, 3, 2, 0] {
+                    if let Some(Some(id)) = t.equipment.get(slot) {
+                        out.push(Shape::Item(id.clone(), [ix, y + 26.0]));
+                        ix += 18.0;
+                    }
+                }
+            }
+        }
+    });
     out
 }
 
@@ -1259,6 +1755,8 @@ pub enum Shape {
     Text(String, [f32; 2], u32, bool),
     /// An item's icon (its id), 16 pixels square, top left at the point.
     Item(String, [f32; 2]),
+    /// Four corners in order (a slanted bar, a wedge): what a rectangle can't draw.
+    Quad([[f32; 2]; 4], u32),
 }
 
 /// The panel's background, as the HUD's own boxes are drawn.
@@ -1845,6 +2343,82 @@ mod tests {
     }
 
     #[test]
+    fn death_messages_mentions_and_combat_tags() {
+        assert_eq!(parse_death("Steve was slain by Alex using Netherite Sword"), Some(Death { victim: "Steve".into(), killer: Some("Alex".into()) }));
+        assert_eq!(parse_death("[mcpvp] Steve was blown up by Alex"), Some(Death { victim: "Steve".into(), killer: Some("Alex".into()) }));
+        assert_eq!(parse_death("Steve fell from a high place"), Some(Death { victim: "Steve".into(), killer: None }));
+        assert_eq!(parse_death("Steve hit the ground too hard while trying to escape Alex"), Some(Death { victim: "Steve".into(), killer: None }));
+        assert_eq!(parse_death("Steve drowned whilst trying to escape Alex"), Some(Death { victim: "Steve".into(), killer: None }));
+        assert_eq!(parse_death("<Alex> hello there"), None);
+        assert_eq!(parse_death("<Alex> I died lol"), None, "a chat line");
+        assert!(mentions("<Alex> hey Steve, duel?", "Steve"));
+        assert!(!mentions("<Steve> hey Alex", "Steve"), "your own message");
+        assert!(!mentions("<Alex> Steveo is cool", "Steve"), "a longer name");
+        assert_eq!(combat_line("You are now in combat for 15 seconds. Do not log out!"), Some(15));
+        assert_eq!(combat_line("You are no longer in combat."), Some(0));
+        assert_eq!(combat_line("Welcome!"), None);
+        assert_eq!(streak_name(1), None);
+        assert_eq!(streak_name(3), Some("Triple Kill"));
+        assert_eq!(fill_name("gg {name}", Some("Alex")), "gg Alex");
+        assert_eq!(fill_name("nice one {name}", None), "nice one");
+    }
+
+    #[test]
+    fn kill_and_death_messages_go_out_once_each() {
+        let mut s = Settings::default();
+        s.v[KILL_MSG] = 1;
+        s.v[KILL_TEXT] = 3;
+        s.v[DEATH_MSG] = 1;
+        s.v[STREAKS] = 1;
+        chat_lines(&s, Some("Steve"), &["Alex was slain by Steve".into(), "Bob was shot by Steve".into()]);
+        std::thread::sleep(Duration::from_millis(850));
+        assert_eq!(take_outbox(), vec!["gg Alex".to_string()]);
+        assert!(take_outbox().is_empty(), "the next waits 2 seconds");
+        let (sounds, _) = take_effects();
+        assert_eq!(sounds.len(), 1, "Double Kill's sound");
+        chat_lines(&s, None, &["Steve was slain by Bob".into()]);
+        assert_eq!(STATE.with_borrow(|st| st.pvp.outbox.last().map(|o| o.1.clone())), Some("GG".into()));
+    }
+
+    #[test]
+    fn pops_damage_hitmarker_and_projection() {
+        let mut s = Settings::default();
+        s.v[POPS] = 1;
+        s.v[POP_ALERTS] = 1;
+        s.v[DAMAGE_NUMS] = 1;
+        s.v[HITMARKER] = 1;
+        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![Some("minecraft:diamond_sword".into())] };
+        players_tick(&s, std::slice::from_ref(&alex), &[]);
+        clicked();
+        let hit = Other { health: 14.0, hurt_time: 10, ..alex.clone() };
+        players_tick(&s, std::slice::from_ref(&hit), &[(7, 35), (7, 35)]);
+        let (sounds, notes) = take_effects();
+        assert_eq!(notes, vec!["Alex popped a totem (1)".to_string(), "Alex popped a totem (2)".to_string()]);
+        assert_eq!(sounds.len(), 2);
+        STATE.with_borrow(|st| {
+            assert_eq!(st.pvp.pops.get("Alex"), Some(&2));
+            assert_eq!(st.pvp.damage.len(), 1);
+            assert!(st.pvp.hitmarker.is_some());
+        });
+        // A camera at the origin looking down +z (identity view, a simple projection): straight ahead is the middle.
+        let mut proj = [0.0f32; 16];
+        proj[0] = 1.0;
+        proj[5] = 1.0;
+        proj[11] = 1.0; // w = z
+        let mut view = [0.0f32; 16];
+        for i in 0..4 {
+            view[i * 5] = 1.0;
+        }
+        let cam = Cam { pos: [0.0, 0.0, 0.0], view, projection: proj };
+        assert_eq!(project(&cam, [0.0, 0.0, 5.0], 400.0, 300.0), Some([200.0, 150.0]));
+        assert_eq!(project(&cam, [0.0, 0.0, -5.0], 400.0, 300.0), None, "behind");
+        let shapes = pvp_shapes(&s, &[hit.clone()], None, Some(&cam), 400.0, 300.0, &width);
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Quad(..))), "the hitmarker");
+        assert!(shapes.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "Alex: 2")), "the pop counter");
+        assert!(target(&[hit], [0.0, 63.0, 0.0], 0.0, 0.0).is_some(), "looking at Alex 3 blocks ahead");
+    }
+
+    #[test]
     fn inventory_modules() {
         let mut s = Settings::default();
         let mut inv = Inventory { slots: vec![None; 36], selected: 0, ..Default::default() };
@@ -1941,7 +2515,7 @@ mod tests {
         assert_eq!(health_text(13.0, 20.0, false), "6.5");
         assert_eq!(health_text(20.0, 20.0, false), "10");
         assert!(on_horizon("health_hud").is_some());
-        assert!(why_not("kill_message").contains("chat") && why_not("death_message").contains("chat"));
+        assert!(on_horizon("kill_message").is_some() && on_horizon("death_message").is_some());
     }
 
     #[test]

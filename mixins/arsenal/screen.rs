@@ -19,6 +19,7 @@ fn arsenal_screen(
             m::Shape::Item(id, at) => {
                 game.native_item(batch, &id, at, 16.0);
             }
+            m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
         }
     }
 }

@@ -34,6 +34,7 @@ fn arsenal_hud(
                 m::Shape::Item(id, at) => {
                     game.native_item(batch, &id, at, 16.0);
                 }
+                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
             }
         }
     }
@@ -70,6 +71,40 @@ fn arsenal_hud(
                 m::Shape::Item(id, at) => {
                     game.native_item(batch, &id, at, 16.0);
                 }
+                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
+            }
+        }
+    }
+    // The combat modules (Arsenal's chat and players hooks): in the world through the camera, and on the HUD.
+    {
+        let game = &*game;
+        let others: Vec<m::Other> = game.native_others().into_iter().map(|o| m::Other {
+            id: o.id,
+            name: o.name,
+            pos: [o.x, o.y, o.z],
+            health: o.health,
+            absorption: o.absorption,
+            hurt_time: o.hurt_time,
+            equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| s.item.to_string())).collect(),
+        }).collect();
+        let cam = game.native_camera().map(|c| m::Cam {
+            pos: [c.position[0] as f64, c.position[1] as f64, c.position[2] as f64],
+            view: c.view,
+            projection: c.projection,
+        });
+        let target = match (game.native_player(), cam.as_ref()) {
+            (Some(p), Some(c)) => m::target(&others, c.pos, p.yaw, p.pitch),
+            _ => None,
+        };
+        let width = |text: &str| game.native_text_width(text);
+        for shape in m::pvp_shapes(&settings, &others, target, cam.as_ref(), batch.width, batch.height, &width) {
+            match shape {
+                m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
+                m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),
+                m::Shape::Item(id, at) => {
+                    game.native_item(batch, &id, at, 16.0);
+                }
+                m::Shape::Quad(points, argb) => game.native_quad(batch, points, argb),
             }
         }
     }
@@ -108,6 +143,7 @@ fn arsenal_hud(
                 m::Shape::Item(id, [dx, dy]) => {
                     game.native_item(batch, &id, [x + dx, y + dy], 16.0);
                 }
+                m::Shape::Quad(points, argb) => game.native_quad(batch, points.map(|[px, py]| [x + px, y + py]), argb),
             }
         }
     }

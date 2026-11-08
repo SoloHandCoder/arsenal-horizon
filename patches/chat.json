@@ -1,0 +1,36 @@
+{
+  "about": "Lets native mods send chat (as the chat box does: servers, single player, commands, the sent history) and read each chat line that comes in, as plain text. Horizon's chat keeps the lines; this only copies their text into an inbox the mod empties.",
+  "files": [
+    {
+      "file": "crates/horizon-client-render/src/chat.rs",
+      "inserts": [
+        {
+          "before": "    /// PvP & HUD's chat search is on: the screen shows its prompt.\n",
+          "text": "    /// Arsenal's patch: each shown message's plain text, for native mods (`native_take_chat`), the newest last.\n    pub arsenal_inbox: Vec<String>,\n"
+        },
+        {
+          "before": "        if self.qol.compact\n",
+          "text": "        self.arsenal_inbox.push(plain.clone());\n        if self.arsenal_inbox.len() > 200 {\n            self.arsenal_inbox.remove(0);\n        }\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/remote.rs",
+      "inserts": [
+        {
+          "before": "    /// Status for `horizon-ctl status`.\n",
+          "text": "    /// Arsenal's patch: the window's player's own name, from the player list.\n    pub(super) fn arsenal_own_name(&self) -> Option<String> {\n        let r = self.remote.as_ref()?;\n        r.players.get(&r.profile).cloned()\n    }\n"
+        }
+      ]
+    },
+    {
+      "file": "crates/horizon-client/src/game/native_hooks.rs",
+      "inserts": [
+        {
+          "before": "    /// The clock of the world this window shows, for client mods: its game\n",
+          "text": "    /// Sends a chat message or (with `/`) a command, as typing it in the chat box does (Arsenal's patch).\n    pub(super) fn native_send_chat(&mut self, text: &str) {\n        self.handle_chat_input(text);\n    }\n    /// The chat lines shown since the last call, oldest first, as plain text (Arsenal's patch).\n    pub(super) fn native_take_chat(&mut self) -> Vec<String> {\n        std::mem::take(&mut self.ui.chat.arsenal_inbox)\n    }\n    /// The window's player's own name (Arsenal's patch): none before joining a world.\n    pub(super) fn native_own_name(&self) -> Option<String> {\n        self.arsenal_own_name()\n    }\n"
+        }
+      ]
+    }
+  ]
+}

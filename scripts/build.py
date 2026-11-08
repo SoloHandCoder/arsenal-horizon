@@ -69,16 +69,18 @@ def apply_patches(tree):
     never ships with a hook half in."""
     for path in sorted((ROOT / "patches").glob("*.json")):
         patch = json.loads(path.read_text(encoding="utf-8"))
-        target = tree / patch["file"]
-        text = target.read_text(encoding="utf-8")
-        for insert in patch["inserts"]:
-            if insert["text"] in text:
-                continue
-            if text.count(insert["before"]) != 1:
-                sys.exit(f"{path.name}: its anchor isn't in {patch['file']} exactly once: {insert['before'].strip()!r}")
-            text = text.replace(insert["before"], insert["text"] + insert["before"], 1)
-        target.write_text(text, encoding="utf-8")
-        log(f"Patched {patch['file']} ({path.name})")
+        # One file ({file, inserts}) or several ({files: [{file, inserts}]}).
+        for part in patch.get("files", [patch]):
+            target = tree / part["file"]
+            text = target.read_text(encoding="utf-8")
+            for insert in part["inserts"]:
+                if insert["text"] in text:
+                    continue
+                if text.count(insert["before"]) != 1:
+                    sys.exit(f"{path.name}: its anchor isn't in {part['file']} exactly once: {insert['before'].strip()!r}")
+                text = text.replace(insert["before"], insert["text"] + insert["before"], 1)
+            target.write_text(text, encoding="utf-8")
+            log(f"Patched {part['file']} ({path.name})")
 
 
 def mixins_tool():
