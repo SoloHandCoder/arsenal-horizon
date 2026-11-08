@@ -85,7 +85,7 @@ fn arsenal_hud(
             health: o.health,
             absorption: o.absorption,
             hurt_time: o.hurt_time,
-            equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| s.item.to_string())).collect(),
+            equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })).collect(),
         }).collect();
         let cam = game.native_camera().map(|c| m::Cam {
             pos: [c.position[0] as f64, c.position[1] as f64, c.position[2] as f64],
@@ -97,7 +97,19 @@ fn arsenal_hud(
             _ => None,
         };
         let width = |text: &str| game.native_text_width(text);
-        for shape in m::pvp_shapes(&settings, &others, target, cam.as_ref(), batch.width, batch.height, &width) {
+        let st = game.native_status();
+        let status = m::Status { attack: st.attack, effects: st.effects, ping: st.ping, latencies: st.latencies };
+        let totems = game.native_inventory_view().map_or(0, |v| {
+            v.slots.iter().chain(std::iter::once(&v.offhand)).flatten().filter(|s| &*s.item == "minecraft:totem_of_undying").map(|s| s.count).sum()
+        });
+        let falling = m::falling();
+        let clock = {
+            let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+            format!("{:02}:{:02} UTC", secs / 3600 % 24, secs / 60 % 60)
+        };
+        let mut shapes = m::status_shapes(&settings, &status, &others, target.is_some(), totems, falling, cam.as_ref(), batch.width, batch.height, &width, &clock);
+        shapes.extend(m::pvp_shapes(&settings, &others, target, cam.as_ref(), batch.width, batch.height, &width));
+        for shape in shapes {
             match shape {
                 m::Shape::Fill(rect, argb) => game.native_fill(batch, rect, argb),
                 m::Shape::Text(text, at, rgb, shadow) => game.native_text(batch, &text, at, rgb, shadow),

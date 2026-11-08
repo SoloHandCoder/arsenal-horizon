@@ -25,10 +25,13 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         health: o.health,
         absorption: o.absorption,
         hurt_time: o.hurt_time,
-        equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| s.item.to_string())).collect(),
+        equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })).collect(),
     }).collect();
     let events = game.native_take_entity_events();
     m::players_tick(&settings, &others, &events);
+    let status = game.native_status();
+    m::status_tick(&settings, &m::Status { attack: status.attack, effects: status.effects, ping: status.ping, latencies: status.latencies },
+        m::health().map(|h| h.health + h.absorption));
     let me = game.native_player();
     m::own_tick(&settings, me.as_ref().map(|p| [p.x, p.y, p.z]));
     for message in m::take_outbox() {

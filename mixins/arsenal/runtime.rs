@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.8.0";
+pub const VERSION: &str = "1.9.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -284,7 +284,26 @@ pub const NAMETAG_HP: usize = 58;
 pub const DAMAGE_NUMS: usize = 59;
 pub const JUMP_RINGS: usize = 60;
 pub const JUMP_COLOR: usize = 61;
-const N: usize = 62;
+pub const POTIONS: usize = 62;
+pub const POTION_WARN: usize = 63;
+pub const ATTACK_BAR: usize = 64;
+pub const CRIT_IND: usize = 65;
+pub const NAMETAG_PING: usize = 66;
+pub const LAG: usize = 67;
+pub const CLOCK: usize = 68;
+pub const SESSION_STATS: usize = 69;
+pub const FIGHT_TIMER: usize = 70;
+pub const ENEMY_ARMOR: usize = 71;
+pub const LOW_HP_ALERT: usize = 72;
+pub const INV_TOTEM: usize = 73;
+pub const COMBO_REACH: usize = 74;
+pub const COMBO_POP: usize = 75;
+pub const DEATH_RECAP: usize = 76;
+pub const FEED: usize = 77;
+pub const FIGHT_SUMMARY: usize = 78;
+pub const SHIELD_SOUND: usize = 79;
+pub const DYN_CROSSHAIR: usize = 80;
+const N: usize = 81;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -349,6 +368,25 @@ pub const FIELDS: [Field; N] = [
     Field { key: "damage_numbers", label: "Damage Numbers", options: ONOFF, default: 0 },
     Field { key: "jump_circles", label: "Jump Circles", options: ONOFF, default: 0 },
     Field { key: "jump_color", label: "Colour", options: RING_COLORS, default: 0 },
+    Field { key: "potion_timers", label: "Potion Timers", options: ONOFF, default: 0 },
+    Field { key: "potion_warning", label: "Potion Run-out Warning", options: ONOFF, default: 0 },
+    Field { key: "attack_bar", label: "Attack Charge Bar", options: ONOFF, default: 0 },
+    Field { key: "crit_indicator", label: "Crit Indicator", options: ONOFF, default: 0 },
+    Field { key: "nametag_ping", label: "Ping on Nametags", options: ONOFF, default: 0 },
+    Field { key: "lag_meter", label: "Lag Meter", options: ONOFF, default: 0 },
+    Field { key: "clock_info", label: "Clock & Server Info", options: ONOFF, default: 0 },
+    Field { key: "session_stats", label: "Session Stats", options: ONOFF, default: 0 },
+    Field { key: "fight_timer", label: "Fight Timer", options: ONOFF, default: 0 },
+    Field { key: "enemy_armor_alert", label: "Enemy Armor Alert", options: ONOFF, default: 0 },
+    Field { key: "target_low_hp", label: "Target Low HP Alert", options: ONOFF, default: 0 },
+    Field { key: "inventory_totem", label: "Inventory Totem", options: ONOFF, default: 0 },
+    Field { key: "combo_reach", label: "Combo & Reach", options: ONOFF, default: 0 },
+    Field { key: "combo_pop", label: "Combo Counter Pop", options: ONOFF, default: 0 },
+    Field { key: "death_recap", label: "Death Recap", options: ONOFF, default: 0 },
+    Field { key: "notification_feed", label: "Notification Feed", options: ONOFF, default: 0 },
+    Field { key: "fight_summary", label: "Fight Summary", options: ONOFF, default: 0 },
+    Field { key: "shield_break_sound", label: "Shield Break Sound", options: ONOFF, default: 0 },
+    Field { key: "dynamic_crosshair", label: "Dynamic Crosshair", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -393,6 +431,25 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("nametag_health", NAMETAG_HP, &[]),
     ("damage_numbers", DAMAGE_NUMS, &[]),
     ("jump_circles", JUMP_RINGS, &[JUMP_COLOR]),
+    ("potion_timers", POTIONS, &[]),
+    ("potion_warning", POTION_WARN, &[]),
+    ("attack_bar", ATTACK_BAR, &[]),
+    ("crit_indicator", CRIT_IND, &[]),
+    ("nametag_ping", NAMETAG_PING, &[]),
+    ("lag_meter", LAG, &[]),
+    ("clock_info", CLOCK, &[]),
+    ("session_stats", SESSION_STATS, &[]),
+    ("fight_timer", FIGHT_TIMER, &[]),
+    ("enemy_armor_alert", ENEMY_ARMOR, &[]),
+    ("target_low_hp", LOW_HP_ALERT, &[]),
+    ("inventory_totem", INV_TOTEM, &[]),
+    ("combo_reach", COMBO_REACH, &[]),
+    ("combo_pop", COMBO_POP, &[]),
+    ("death_recap", DEATH_RECAP, &[]),
+    ("notification_feed", FEED, &[]),
+    ("fight_summary", FIGHT_SUMMARY, &[]),
+    ("shield_break_sound", SHIELD_SOUND, &[]),
+    ("dynamic_crosshair", DYN_CROSSHAIR, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -423,6 +480,25 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "nametag_health" => "On Horizon: each player's health above their head, green to red.",
         "damage_numbers" => "On Horizon: the damage a player takes floats up from them.",
         "jump_circles" => "On Horizon: a ring spreads out at your feet when you jump.",
+        "potion_timers" => "On Horizon: your effects and the time left on each, at the left.",
+        "potion_warning" => "On Horizon: a sound and a warning 5 seconds before a good effect (Strength, Speed...) runs out.",
+        "attack_bar" => "On Horizon: your attack charge as a bar under the crosshair.",
+        "crit_indicator" => "On Horizon: a gold mark at the crosshair when a hit now would be a critical hit.",
+        "nametag_ping" => "On Horizon: each player's ping above their head.",
+        "lag_meter" => "On Horizon: your ping, coloured green to red.",
+        "clock_info" => "On Horizon: the time and your ping, top left.",
+        "session_stats" => "On Horizon: kills, deaths, K/D, totems you popped and time played this session.",
+        "fight_timer" => "On Horizon: how long the current fight has lasted.",
+        "enemy_armor_alert" => "On Horizon: a warning when a piece of a nearby enemy's armour is about to break.",
+        "target_low_hp" => "On Horizon: a flash and a sound when the player you fight is low.",
+        "inventory_totem" => "On Horizon: how many totems you have, next to the crosshair.",
+        "combo_reach" => "On Horizon: your combo (hits without being hit) and the reach of your last hit.",
+        "combo_pop" => "On Horizon: your combo number pops up with each hit.",
+        "death_recap" => "On Horizon: when you die, who killed you and the damage you took in the last 10 seconds.",
+        "notification_feed" => "On Horizon: kills, deaths and pops in a short feed, top right.",
+        "fight_summary" => "On Horizon: a short card after a fight: hits, damage dealt, pops and how long it took.",
+        "shield_break_sound" => "On Horizon: a sound when a player's shield near you is broken.",
+        "dynamic_crosshair" => "On Horizon: a red ring round the crosshair when you aim at a player.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -1035,8 +1111,8 @@ pub struct Other {
     pub health: f32,
     pub absorption: f32,
     pub hurt_time: i32,
-    /// Main hand, off hand, feet, legs, chest, head (item ids).
-    pub equipment: Vec<Option<String>>,
+    /// Main hand, off hand, feet, legs, chest, head.
+    pub equipment: Vec<Option<Stack>>,
 }
 
 /// The world camera of this frame, for drawing at places in the world.
@@ -1094,6 +1170,73 @@ struct Pvp {
     sounds: Vec<(&'static str, f32, f32)>,
     /// Lines to show in your own chat only.
     notes: Vec<String>,
+    // Session Stats, Combo & Reach, the fight and death cards, the feed.
+    session_start: Option<Instant>,
+    kills_total: u32,
+    deaths_total: u32,
+    combo: u32,
+    best_combo: u32,
+    reach: Option<f32>,
+    own_pos: Option<[f64; 3]>,
+    combo_shown: Option<(u32, Instant)>,
+    fight: Option<Fight>,
+    card: Option<(Vec<String>, Instant)>,
+    taken: Vec<(Instant, f32)>,
+    own_health: Option<f32>,
+    killer: Option<String>,
+    feed: Vec<(String, Instant)>,
+    warned_effects: Vec<String>,
+    armor_warned: Vec<String>,
+    low_alerted: Option<u32>,
+}
+
+/// The fight going on: who with, since when, your hits, the damage you dealt, their pops.
+#[derive(Clone, Debug)]
+struct Fight {
+    with: String,
+    id: u32,
+    start: Instant,
+    last: Instant,
+    hits: u32,
+    dealt: f32,
+    pops: u32,
+}
+
+/// Your status (Arsenal's status hook): attack charge, effects and pings.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Status {
+    pub attack: f32,
+    /// (id, level from 0, ticks left).
+    pub effects: Vec<(String, i32, i32)>,
+    pub ping: Option<i32>,
+    pub latencies: Vec<(String, i32)>,
+}
+
+/// An effect's name for the HUD: "minecraft:fire_resistance" -> "Fire Resistance", with its level ("Strength II").
+pub fn effect_name(id: &str, level: i32) -> String {
+    let base: String = id.strip_prefix("minecraft:").unwrap_or(id).split('_').map(|w| {
+        let mut c = w.chars();
+        c.next().map(|f| f.to_ascii_uppercase().to_string() + c.as_str()).unwrap_or_default()
+    }).collect::<Vec<_>>().join(" ");
+    const ROMAN: [&str; 10] = ["", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"];
+    format!("{base}{}", ROMAN.get(level.max(0) as usize).copied().unwrap_or(""))
+}
+
+/// "1:05", "0:09", "**:**" for an effect that lasts for ever.
+pub fn ticks_text(ticks: i32) -> String {
+    if ticks < 0 || ticks > 20 * 60 * 60 * 9 {
+        return "**:**".into();
+    }
+    let secs = ticks / 20;
+    format!("{}:{:02}", secs / 60, secs % 60)
+}
+
+/// The good effects Potion Run-out Warning watches.
+const GOOD: [&str; 9] = ["strength", "speed", "regeneration", "resistance", "fire_resistance", "absorption", "haste", "jump_boost", "invisibility"];
+
+/// A ping's colour: green under 80 ms, yellow under 150, then red.
+pub fn ping_rgb(ms: i32) -> u32 {
+    if ms < 80 { 0x5CE08A } else if ms < 150 { 0xF5D33D } else { 0xFF5A5A }
 }
 
 /// The left mouse button went down: a hit may land (Hitmarker).
@@ -1136,6 +1279,8 @@ pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
                     }
                     p.kills.retain(|t| now.duration_since(*t) < Duration::from_secs(10));
                     p.kills.push(now);
+                    p.kills_total += 1;
+                    p.feed.push((format!("You killed {}", d.victim), now));
                     if settings.on(STREAKS) {
                         if let Some(name) = streak_name(p.kills.len()) {
                             p.streak = Some((name, now));
@@ -1144,6 +1289,20 @@ pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
                     }
                 } else if d.victim.eq_ignore_ascii_case(&own) {
                     p.kills.clear();
+                    p.deaths_total += 1;
+                    p.combo = 0;
+                    p.killer = d.killer.clone();
+                    p.feed.push((match &d.killer { Some(k) => format!("{k} killed you"), None => "You died".into() }, now));
+                    if settings.on(DEATH_RECAP) {
+                        let taken: f32 = p.taken.iter().filter(|t| now.duration_since(t.0) < Duration::from_secs(10)).map(|t| t.1).sum();
+                        let hits = p.taken.iter().filter(|t| now.duration_since(t.0) < Duration::from_secs(10)).count();
+                        p.card = Some((vec![
+                            match &d.killer { Some(k) => format!("Killed by {k}"), None => "You died".into() },
+                            format!("{hits} hits, {:.1} hearts in the last 10s", taken / 2.0),
+                            format!("Best combo this life: {}", p.best_combo),
+                        ], now));
+                    }
+                    p.best_combo = 0;
                     if settings.on(DEATH_MSG) {
                         p.outbox.push((now + Duration::from_millis(800), fill_name(DEATH_TEXTS[settings.v[DEATH_TEXT]].0, d.killer.as_deref())));
                     }
@@ -1177,10 +1336,19 @@ pub fn players_tick(settings: &Settings, others: &[Other], events: &[(u32, i32)]
                 35 => {
                     let n = p.pops.entry(o.name.clone()).or_default();
                     *n += 1;
+                    let n = *n;
                     if settings.on(POP_ALERTS) {
                         p.notes.push(format!("{} popped a totem ({})", o.name, n));
                         p.sounds.push(("minecraft:block.note_block.bell", 0.4, 1.2));
                     }
+                    p.feed.push((format!("{} popped ({n})", o.name), now));
+                    if let Some(f) = p.fight.as_mut().filter(|f| f.id == o.id) {
+                        f.pops += 1;
+                    }
+                }
+                30 if settings.on(SHIELD_SOUND) => {
+                    p.sounds.push(("minecraft:item.shield.break", 0.8, 1.0));
+                    p.feed.push((format!("{}'s shield broke", o.name), now));
                 }
                 3 => {
                     p.pops.remove(&o.name);
@@ -1195,15 +1363,64 @@ pub fn players_tick(settings: &Settings, others: &[Other], events: &[(u32, i32)]
                 if lost >= 0.5 && settings.on(DAMAGE_NUMS) {
                     p.damage.push(([o.pos[0], o.pos[1] + 2.0, o.pos[2]], lost, now));
                 }
+                if lost > 0.0 {
+                    if let Some(f) = p.fight.as_mut().filter(|f| f.id == o.id) {
+                        f.dealt += lost;
+                    }
+                }
+            }
+            // Enemy Armor Alert: a piece at 10% or less, once each.
+            if settings.on(ENEMY_ARMOR) {
+                for (slot, piece) in [(5usize, "helmet"), (4, "chestplate"), (3, "leggings"), (2, "boots")] {
+                    let key = format!("{}:{piece}", o.name);
+                    let worn = o.equipment.get(slot).and_then(|s| s.as_ref()).and_then(durability_left).is_some_and(|l| l <= 0.1);
+                    if worn && !p.armor_warned.contains(&key) {
+                        p.armor_warned.push(key);
+                        p.feed.push((format!("{}'s {piece} is about to break", o.name), now));
+                        p.sounds.push(("minecraft:block.note_block.chime", 0.5, 1.6));
+                    }
+                }
+            }
+            // Target Low HP Alert: the player you fight at 4 hearts or less, once until they heal.
+            if settings.on(LOW_HP_ALERT) && p.fight.as_ref().is_some_and(|f| f.id == o.id) {
+                if o.health <= 8.0 && p.low_alerted != Some(o.id) {
+                    p.low_alerted = Some(o.id);
+                    p.sounds.push(("minecraft:entity.experience_orb.pickup", 0.6, 0.8));
+                    p.feed.push((format!("{} is low!", o.name), now));
+                } else if o.health > 12.0 && p.low_alerted == Some(o.id) {
+                    p.low_alerted = None;
+                }
             }
             // Hitmarker: a player just hurt (hurt_time jumped) right after you clicked.
             let before = p.hurt.insert(o.id, o.hurt_time).unwrap_or(0);
             if o.hurt_time > before && p.clicked.is_some_and(|c| now.duration_since(c) < Duration::from_millis(400)) {
                 p.hitmarker = Some(now);
                 p.target = Some((o.id, now));
+                p.combo += 1;
+                p.best_combo = p.best_combo.max(p.combo);
+                if let Some(me) = p.own_pos {
+                    let d = [o.pos[0] - me[0], o.pos[1] - me[1], o.pos[2] - me[2]];
+                    p.reach = Some(((d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt() as f32 - 0.3).max(0.0));
+                }
+                p.combo_shown = Some((p.combo, now));
+                let fight = p.fight.get_or_insert_with(|| Fight { with: o.name.clone(), id: o.id, start: now, last: now, hits: 0, dealt: 0.0, pops: 0 });
+                if fight.id != o.id {
+                    *fight = Fight { with: o.name.clone(), id: o.id, start: now, last: now, hits: 0, dealt: 0.0, pops: 0 };
+                }
+                fight.hits += 1;
+                fight.last = now;
             }
         }
         p.damage.retain(|d| now.duration_since(d.2) < Duration::from_millis(1200));
+        p.feed.retain(|f| now.duration_since(f.1) < Duration::from_secs(8));
+        // A fight ends 10 seconds after the last hit: Fight Summary shows its card.
+        if p.fight.as_ref().is_some_and(|f| now.duration_since(f.last) > Duration::from_secs(10)) {
+            let f = p.fight.take().unwrap();
+            if settings.on(FIGHT_SUMMARY) && f.hits > 0 {
+                p.card = Some((vec![format!("Fight with {}", f.with), format!("{} hits, {:.1} hearts dealt", f.hits, f.dealt / 2.0),
+                    format!("{} totems popped", f.pops), format!("{}s", f.last.duration_since(f.start).as_secs().max(1))], now));
+            }
+        }
         p.health.retain(|id, _| others.iter().any(|o| o.id == *id));
     });
 }
@@ -1214,8 +1431,10 @@ pub fn own_tick(settings: &Settings, pos: Option<[f64; 3]>) {
         let p = &mut s.pvp;
         let Some(pos) = pos else {
             p.last_y = None;
+            p.own_pos = None;
             return;
         };
+        p.own_pos = Some(pos);
         let dy = p.last_y.map_or(0.0, |y| pos[1] - y);
         if settings.on(JUMP_RINGS) && dy > 0.25 && p.last_dy.abs() < 0.05 {
             p.rings.push(([pos[0], pos[1] - dy, pos[2]], Instant::now()));
@@ -1224,6 +1443,149 @@ pub fn own_tick(settings: &Settings, pos: Option<[f64; 3]>) {
         p.last_y = Some(pos[1]);
         p.rings.retain(|r| r.1.elapsed() < Duration::from_millis(700));
     });
+}
+
+/// Your status each tick: being hit breaks your combo (Combo & Reach) and counts for Death Recap; effects about to
+/// run out warn (Potion Run-out Warning).
+pub fn status_tick(settings: &Settings, status: &Status, health: Option<f32>) {
+    STATE.with_borrow_mut(|s| {
+        let p = &mut s.pvp;
+        let now = Instant::now();
+        p.session_start.get_or_insert(now);
+        if let Some(h) = health {
+            if let Some(before) = p.own_health.replace(h) {
+                if h < before - 0.01 {
+                    p.combo = 0;
+                    p.taken.push((now, before - h));
+                }
+            }
+        }
+        p.taken.retain(|t| now.duration_since(t.0) < Duration::from_secs(12));
+        if settings.on(POTION_WARN) {
+            for (id, level, ticks) in &status.effects {
+                let name = id.strip_prefix("minecraft:").unwrap_or(id);
+                if GOOD.contains(&name) && (0..=100).contains(ticks) && !p.warned_effects.contains(id) {
+                    p.warned_effects.push(id.clone());
+                    p.feed.push((format!("{} runs out in 5s", effect_name(id, *level)), now));
+                    p.sounds.push(("minecraft:block.note_block.pling", 0.5, 0.7));
+                }
+            }
+            p.warned_effects.retain(|w| status.effects.iter().any(|e| &e.0 == w && e.2 <= 100));
+        }
+    });
+}
+
+/// The status modules' shapes: Potion Timers, the attack bar, Crit Indicator, Lag Meter, the clock, Session Stats,
+/// Fight Timer, Combo & Reach, Inventory Totem, the feed and the fight / death card, Dynamic Crosshair, nametag pings.
+pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aiming: bool, totems: u32, falling: bool, cam: Option<&Cam>, w: f32, h: f32, width: &dyn Fn(&str) -> f32, clock: &str) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
+    let now = Instant::now();
+    if settings.on(POTIONS) && !status.effects.is_empty() {
+        let mut y = (h / 2.0 - status.effects.len() as f32 * 6.0).floor();
+        for (id, level, ticks) in &status.effects {
+            let text = format!("{} {}", effect_name(id, *level), ticks_text(*ticks));
+            let tw = width(&text);
+            out.push(Shape::Fill([2.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
+            out.push(Shape::Text(text, [5.0, y], if (0..=100).contains(ticks) { 0xFF5A5A } else { 0xFFFFFF }, false));
+            y += 12.0;
+        }
+    }
+    if settings.on(ATTACK_BAR) && status.attack < 1.0 {
+        out.push(Shape::Fill([cx - 8.0, cy + 9.0, 16.0, 2.0], 0xA000_0000));
+        out.push(Shape::Fill([cx - 8.0, cy + 9.0, (16.0 * status.attack).round(), 2.0], 0xFF00_0000 | settings.accent()));
+    }
+    if settings.on(CRIT_IND) && falling && status.attack >= 0.9 {
+        out.push(Shape::Quad([[cx, cy - 6.0], [cx + 2.0, cy - 4.0], [cx, cy - 2.0], [cx - 2.0, cy - 4.0]], 0xFFFF_C83D));
+    }
+    if settings.on(DYN_CROSSHAIR) && aiming {
+        for (dx, dy) in [(-6.0, -1.0), (5.0, -1.0), (-1.0, -6.0), (-1.0, 5.0)] {
+            out.push(Shape::Fill([cx + dx, cy + dy, 2.0, 2.0], 0xFFFF_5A5A));
+        }
+    }
+    let mut corner: Vec<(String, u32)> = Vec::new();
+    if settings.on(CLOCK) {
+        corner.push((clock.to_owned(), 0xFFFFFF));
+    }
+    if settings.on(LAG) {
+        match status.ping {
+            Some(ms) => corner.push((format!("Ping {ms} ms"), ping_rgb(ms))),
+            None => corner.push(("Ping -".into(), 0xAAAAAA)),
+        }
+    }
+    STATE.with_borrow(|st| {
+        let p = &st.pvp;
+        if settings.on(SESSION_STATS) {
+            let kd = p.kills_total as f32 / p.deaths_total.max(1) as f32;
+            let mins = p.session_start.map_or(0, |t| t.elapsed().as_secs() / 60);
+            let popped: u32 = p.pops.values().sum();
+            corner.push((format!("K {}  D {}  K/D {kd:.2}", p.kills_total, p.deaths_total), 0xFFFFFF));
+            corner.push((format!("Pops {popped}  {}h {}m", mins / 60, mins % 60), 0xCCCCCC));
+        }
+        if settings.on(COMBO_REACH) {
+            let reach = p.reach.map_or("-".to_string(), |r| format!("{r:.2}"));
+            corner.push((format!("Combo {}  Best {}  Reach {reach}", p.combo, p.best_combo), 0xFFFFFF));
+        }
+        if settings.on(FIGHT_TIMER) {
+            if let Some(f) = &p.fight {
+                corner.push((format!("Fight {}s vs {}", f.start.elapsed().as_secs(), f.with), 0xFFC83D));
+            }
+        }
+        // Combo Counter Pop: the number rises and fades by the crosshair.
+        if settings.on(COMBO_POP) {
+            if let Some((n, at)) = p.combo_shown.filter(|c| c.0 >= 2 && c.1.elapsed() < Duration::from_millis(700)) {
+                let t = at.elapsed().as_secs_f32();
+                out.push(Shape::Text(format!("{n}x"), [cx + 10.0, cy - 12.0 - t * 14.0], 0xFFC83D, true));
+            }
+        }
+        if settings.on(FEED) {
+            let mut y = h - 70.0;
+            for (line, _) in p.feed.iter().rev().take(5) {
+                let tw = width(line);
+                out.push(Shape::Text(line.clone(), [w - tw - 4.0, y], 0xFFFFFF, true));
+                y -= 10.0;
+            }
+        }
+        if let Some((lines, at)) = p.card.as_ref().filter(|c| c.1.elapsed() < Duration::from_secs(6)) {
+            let _ = at;
+            let wide = lines.iter().map(|l| width(l)).fold(0.0, f32::max) + 12.0;
+            let tall = lines.len() as f32 * 11.0 + 8.0;
+            let (x, y) = (cx - wide / 2.0, h * 0.28);
+            out.push(Shape::Fill([x, y, wide, tall], BACKGROUND));
+            out.push(Shape::Fill([x, y, wide, 2.0], 0xFF00_0000 | settings.accent()));
+            for (i, l) in lines.iter().enumerate() {
+                out.push(Shape::Text(l.clone(), [x + 6.0, y + 5.0 + i as f32 * 11.0], if i == 0 { 0xFFC83D } else { 0xFFFFFF }, true));
+            }
+        }
+        let _ = now;
+    });
+    if settings.on(INV_TOTEM) && totems > 0 {
+        out.push(Shape::Item("minecraft:totem_of_undying".into(), [cx - 30.0, cy - 8.0]));
+        out.push(Shape::Text(totems.to_string(), [cx - 13.0, cy - 4.0], 0xFFFFFF, true));
+    }
+    let mut y = 4.0;
+    for (text, rgb) in corner {
+        let tw = width(&text);
+        out.push(Shape::Fill([2.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
+        out.push(Shape::Text(text, [5.0, y], rgb, false));
+        y += 12.0;
+    }
+    if let (true, Some(cam)) = (settings.on(NAMETAG_PING), cam) {
+        for o in others {
+            let Some(ms) = status.latencies.iter().find(|l| l.0 == o.name).map(|l| l.1).filter(|ms| *ms > 0) else { continue };
+            if let Some([x, y]) = project(cam, [o.pos[0], o.pos[1] + 2.75, o.pos[2]], w, h) {
+                let text = format!("{ms} ms");
+                let tw = width(&text);
+                out.push(Shape::Text(text, [x - tw / 2.0, y], ping_rgb(ms), true));
+            }
+        }
+    }
+    out
+}
+
+/// Whether you're falling now (Crit Indicator): going down since the last tick.
+pub fn falling() -> bool {
+    STATE.with_borrow(|s| s.pvp.last_dy < -0.04)
 }
 
 /// The player you look at most directly within 6 blocks (or the last one you hit, for 3 seconds).
@@ -1364,8 +1726,8 @@ pub fn pvp_shapes(settings: &Settings, others: &[Other], target: Option<&Other>,
                 // Armour (head first) and the held item.
                 let mut ix = x + 6.0;
                 for slot in [5usize, 4, 3, 2, 0] {
-                    if let Some(Some(id)) = t.equipment.get(slot) {
-                        out.push(Shape::Item(id.clone(), [ix, y + 26.0]));
+                    if let Some(Some(st)) = t.equipment.get(slot) {
+                        out.push(Shape::Item(st.id.clone(), [ix, y + 26.0]));
                         ix += 18.0;
                     }
                 }
@@ -2343,6 +2705,58 @@ mod tests {
     }
 
     #[test]
+    fn status_modules() {
+        assert_eq!(effect_name("minecraft:fire_resistance", 0), "Fire Resistance");
+        assert_eq!(effect_name("strength", 1), "Strength II");
+        assert_eq!(ticks_text(1300), "1:05");
+        assert_eq!(ticks_text(-1), "**:**");
+        assert_eq!(ping_rgb(40), 0x5CE08A);
+        let mut s = Settings::default();
+        let status = Status { attack: 0.5, effects: vec![("minecraft:strength".into(), 1, 90), ("minecraft:speed".into(), 0, 2400)], ping: Some(45), latencies: vec![("Alex".into(), 120)] };
+        assert!(status_shapes(&s, &status, &[], false, 0, false, None, 400.0, 300.0, &width, "12:00").is_empty(), "everything off");
+        s.v[POTIONS] = 1;
+        s.v[ATTACK_BAR] = 1;
+        s.v[LAG] = 1;
+        s.v[POTION_WARN] = 1;
+        s.v[SESSION_STATS] = 1;
+        s.v[INV_TOTEM] = 1;
+        let shapes = status_shapes(&s, &status, &[], false, 3, false, None, 400.0, 300.0, &width, "12:00");
+        let texts: Vec<String> = shapes.iter().filter_map(|x| if let Shape::Text(t, ..) = x { Some(t.clone()) } else { None }).collect();
+        assert!(texts.contains(&"Strength II 0:04".to_string()) && texts.contains(&"Speed 2:00".to_string()));
+        assert!(texts.contains(&"Ping 45 ms".to_string()) && texts.iter().any(|t| t.starts_with("K 0  D 0")) && texts.contains(&"3".to_string()));
+        status_tick(&s, &status, Some(20.0));
+        status_tick(&s, &status, Some(14.0));
+        let (sounds, _) = take_effects();
+        assert_eq!(sounds.len(), 1, "Strength runs out in 5s, once");
+        STATE.with_borrow(|st| assert_eq!(st.pvp.taken.len(), 1));
+    }
+
+    #[test]
+    fn fights_combos_and_recaps() {
+        let mut s = Settings::default();
+        s.v[FIGHT_SUMMARY] = 1;
+        s.v[DEATH_RECAP] = 1;
+        s.v[ENEMY_ARMOR] = 1;
+        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0,
+            equipment: vec![None, None, None, None, None, st("minecraft:diamond_helmet", 1, 350)] };
+        players_tick(&s, std::slice::from_ref(&alex), &[]);
+        clicked();
+        players_tick(&s, &[Other { health: 15.0, hurt_time: 10, ..alex.clone() }], &[]);
+        players_tick(&s, &[Other { health: 15.0, hurt_time: 9, ..alex.clone() }], &[(7, 35)]);
+        STATE.with_borrow(|st| {
+            let f = st.pvp.fight.as_ref().unwrap();
+            assert_eq!((f.hits, f.pops), (1, 1));
+            assert_eq!(st.pvp.combo, 1);
+            assert!(st.pvp.feed.iter().any(|l| l.0 == "Alex's helmet is about to break"));
+        });
+        chat_lines(&s, Some("Steve"), &["Steve was slain by Alex".into()]);
+        STATE.with_borrow(|st| {
+            assert_eq!(st.pvp.deaths_total, 1);
+            assert_eq!(st.pvp.card.as_ref().unwrap().0[0], "Killed by Alex");
+        });
+    }
+
+    #[test]
     fn death_messages_mentions_and_combat_tags() {
         assert_eq!(parse_death("Steve was slain by Alex using Netherite Sword"), Some(Death { victim: "Steve".into(), killer: Some("Alex".into()) }));
         assert_eq!(parse_death("[mcpvp] Steve was blown up by Alex"), Some(Death { victim: "Steve".into(), killer: Some("Alex".into()) }));
@@ -2387,7 +2801,7 @@ mod tests {
         s.v[POP_ALERTS] = 1;
         s.v[DAMAGE_NUMS] = 1;
         s.v[HITMARKER] = 1;
-        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![Some("minecraft:diamond_sword".into())] };
+        let alex = Other { id: 7, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![st("minecraft:diamond_sword", 1, 0)] };
         players_tick(&s, std::slice::from_ref(&alex), &[]);
         clicked();
         let hit = Other { health: 14.0, hurt_time: 10, ..alex.clone() };
