@@ -251,6 +251,35 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
     m::ask_network(&settings, &others);
     let offhand_totem = game.arsenal_inventory().is_some_and(|v| v.offhand.as_ref().is_some_and(|s| &*s.item == "minecraft:totem_of_undying" && s.count > 0));
     m::more_tick(&settings, &others, &events, own_id, offhand_totem);
+    // The Arsenal website: fights, session parts, presence, friends, quests (signed like the Java mod's).
+    {
+        let health = m::health().map(|h| h.health);
+        let address = game.arsenal_server();
+        for up in m::website_tick(&settings, address.as_deref(), &others, health) {
+            if let Some(signed) = game.arsenal_signed(up.prefix, &up.extra) {
+                m::send_upload(up, signed);
+            }
+        }
+        let (notes, friends) = m::take_web();
+        for note in notes {
+            if let Some(note) = m::route(&settings, note) {
+                game.native_chat(&note);
+            }
+        }
+        if !friends.is_empty() {
+            let mut list = m::friends(|key| game.native_setting(m::ID, key));
+            let before = list.len();
+            for f in friends {
+                if !list.iter().any(|x| x.eq_ignore_ascii_case(&f)) {
+                    list.push(f);
+                }
+            }
+            if list.len() != before {
+                game.native_set_setting(m::ID, "friend_list", &list.join(","));
+                m::set_friends(list);
+            }
+        }
+    }
     let mace = game.arsenal_inventory().is_some_and(|v| v.slots.get(v.selected).cloned().flatten().is_some_and(|s| &*s.item == "minecraft:mace"));
     m::mace_hit(&settings, &others, mace);
     // Session Summary: leaving a world ends the session.

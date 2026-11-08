@@ -30,6 +30,13 @@ fn arsenal_screen_click(
         return;
     }
     menu.search_focus = matches!(action, Some(m::Action::Search));
+    // A click anywhere else closes an open dropdown or the hex box.
+    if !matches!(action, Some(m::Action::Pick(..)) | Some(m::Action::Dropdown(_))) {
+        menu.dropdown = None;
+    }
+    if !matches!(action, Some(m::Action::Hex(_))) {
+        menu.hex = None;
+    }
     m::set_menu(menu.clone());
     let Some(action) = action else {
         return;

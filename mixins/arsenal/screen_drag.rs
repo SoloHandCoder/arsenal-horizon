@@ -12,6 +12,22 @@ fn arsenal_screen_drag(
     }
     *canceled = true;
     let mut menu = m::menu();
+    if button == 0 && menu.page == m::Page::Modules {
+        // Dragging over the colour picker keeps picking.
+        let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
+        let browse = m::Fetch::Loading;
+        if let Some(action @ m::Action::SetColor(..)) = m::menu_click(screen.rect, screen.mouse, &menu, &settings, &browse, &|t| game.native_text_width(t)) {
+            let before = settings.clone();
+            if m::apply(action, &mut menu, &mut settings, &browse) {
+                m::set_settings(&settings);
+                for (key, value) in m::changed(&before, &settings) {
+                    game.native_set_setting(m::ID, key, &value);
+                }
+            }
+        }
+        m::set_menu(menu);
+        return;
+    }
     if button != 0 || menu.page != m::Page::HudEdit {
         return;
     }

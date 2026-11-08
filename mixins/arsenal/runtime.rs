@@ -202,7 +202,7 @@ pub struct Field {
 const ONOFF: &[(&str, &str)] = &[("false", "OFF"), ("true", "ON")];
 pub const CORNERS: &[(&str, &str)] = &[("top_left", "Top left"), ("top_right", "Top right"), ("bottom_left", "Bottom left"), ("bottom_right", "Bottom right")];
 /// The accents; the last is the HUD theme applied from Browse.
-pub const ACCENTS: &[(&str, &str)] = &[("gold", "Gold"), ("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("purple", "Purple"), ("white", "White"), ("browse", "Theme from Browse")];
+pub const ACCENTS: &[(&str, &str)] = &[("gold", "Gold"), ("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("purple", "Purple"), ("white", "White"), ("custom", "Custom colour"), ("browse", "Theme from Browse")];
 /// The accents' colours, as `ACCENTS` (but the last).
 pub const ACCENT_RGB: [u32; 6] = [0xF5B83D, 0xFF5A5A, 0x5AA9FF, 0x5CE08A, 0xB884FF, 0xFFFFFF];
 pub const ZOOMS: &[(&str, &str)] = &[("2", "2x"), ("3", "3x"), ("4", "4x"), ("6", "6x"), ("8", "8x")];
@@ -210,7 +210,7 @@ pub const ITEM_SIZES: &[(&str, &str)] = &[("100", "100%"), ("90", "90%"), ("80",
 pub const DISTANCES: &[(&str, &str)] = &[("4", "4 blocks (vanilla)"), ("2", "2 blocks"), ("3", "3 blocks"), ("6", "6 blocks"), ("8", "8 blocks")];
 pub const FOGS: &[(&str, &str)] = &[("less", "Less"), ("none", "None")];
 pub const TAG_WHO: &[(&str, &str)] = &[("players", "Players"), ("all", "Players and mobs")];
-pub const OUTLINE_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("red", "Red"), ("gold", "Gold"), ("blue", "Blue"), ("green", "Green")];
+pub const OUTLINE_COLORS: &[(&str, &str)] = &[("accent", "HUD accent"), ("white", "White"), ("red", "Red"), ("gold", "Gold"), ("blue", "Blue"), ("green", "Green"), ("custom", "Custom colour")];
 const OUTLINE_RGB: [u32; 5] = [0xFFFFFF, 0xFF5A5A, 0xF5B83D, 0x5AA9FF, 0x5CE08A];
 pub const OUTLINE_WIDTHS: &[(&str, &str)] = &[("2", "Normal"), ("3", "Thick"), ("5", "Very thick"), ("1", "Thin")];
 pub const HEALTH_SHOWS: &[(&str, &str)] = &[("both", "Number and bar"), ("number", "Number only"), ("bar", "Bar only")];
@@ -232,8 +232,8 @@ pub const FLASH_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("green", "Green")
 pub const KILL_STYLES: &[(&str, &str)] = &[("burst", "Burst"), ("ring", "Ring"), ("lightning", "Lightning")];
 pub const AMOUNTS: &[(&str, &str)] = &[("0.5", "Medium"), ("0.25", "Low"), ("0.75", "High"), ("1", "Full")];
 pub const LOOKS: &[(&str, &str)] = &[("vivid", "Vivid"), ("cinematic", "Cinematic"), ("faded", "Faded"), ("noir", "Black and white"), ("warm", "Warm"), ("cold", "Cold")];
-pub const TINTS: &[(&str, &str)] = &[("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent")];
-pub const MIST_COLORS: &[(&str, &str)] = &[("white", "White"), ("blue", "Blue"), ("purple", "Purple"), ("green", "Green")];
+pub const TINTS: &[(&str, &str)] = &[("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent"), ("custom", "Custom colour")];
+pub const MIST_COLORS: &[(&str, &str)] = &[("white", "White"), ("blue", "Blue"), ("purple", "Purple"), ("green", "Green"), ("custom", "Custom colour")];
 pub const GOALS: &[(&str, &str)] = &[("10", "10 kills"), ("5", "5 kills"), ("20", "20 kills"), ("50", "50 kills")];
 pub const SWING_SPEEDS: &[(&str, &str)] = &[("150", "Slower"), ("70", "Faster"), ("50", "Much faster"), ("200", "Much slower")];
 pub const CRYSTAL_SIZES: &[(&str, &str)] = &[("50", "Half"), ("75", "Three quarters"), ("35", "Tiny")];
@@ -465,7 +465,11 @@ pub const CURSOR_SPEED: usize = 210;
 pub const COSMETICS: usize = 211;
 pub const BLADES: usize = 212;
 pub const BLADE_SIZE: usize = 213;
-const N: usize = 214;
+pub const HAND_COLOR: usize = 214;
+pub const BLOCK_ANIM_COLOR: usize = 215;
+pub const SPRINT_COLOR: usize = 216;
+pub const PARTY_COLOR: usize = 217;
+const N: usize = 218;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -682,6 +686,10 @@ pub const FIELDS: [Field; N] = [
     Field { key: "arsenal_cosmetics", label: "Arsenal Cosmetics", options: ONOFF, default: 1 },
     Field { key: "blade_settings", label: "Blade Settings", options: ONOFF, default: 1 },
     Field { key: "blade_size", label: "Size", options: BLADE_SIZES, default: 0 },
+    Field { key: "hand_color", label: "Colour", options: TINTS, default: 6 },
+    Field { key: "block_animation_color", label: "Colour", options: TINTS, default: 6 },
+    Field { key: "sprint_color", label: "Colour", options: TINTS, default: 3 },
+    Field { key: "party_color", label: "Arrow colour", options: TINTS, default: 6 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -799,14 +807,14 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("smooth_inventory", SMOOTH_INV, &[]),
     ("old_animations", OLD_ANIM, &[]),
     ("swing_animation", SWING_ANIM, &[SWING_SPEED]),
-    ("hand_tint", HAND_TINT, &[HAND_GLOW]),
+    ("hand_tint", HAND_TINT, &[HAND_COLOR, HAND_GLOW]),
     ("small_crystals", SMALL_CRYSTALS, &[CRYSTAL_SIZE, CRYSTAL_STILL]),
     ("big_items", BIG_ITEMS, &[BIG_WHICH]),
     ("armor_color", ARMOR_COLOR, &[ARMOR_TINT]),
     ("nametag_style", TAG_STYLE, &[TAG_SIZE, TAG_BG]),
     ("free_look", FREE_LOOK, &[]),
-    ("block_break_animation", BREAK_ANIM, &[BREAK_KIND]),
-    ("place_animation", PLACE_ANIM, &[PLACE_KIND]),
+    ("block_break_animation", BREAK_ANIM, &[BREAK_KIND, BLOCK_ANIM_COLOR]),
+    ("place_animation", PLACE_ANIM, &[PLACE_KIND, BLOCK_ANIM_COLOR]),
     ("slick_floors", SLICK, &[]),
     ("tab_ping", TAB_PING, &[]),
     ("chat_mentions", MENTIONS, &[]),
@@ -814,14 +822,14 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("chat_copy", CHAT_COPY, &[]),
     ("name_hider", NAME_HIDER, &[HIDE_NAME_AS]),
     ("sound_tweaks", SOUND_TWEAKS, &[VOL_EXPLODE, VOL_TOTEM, VOL_HIT, VOL_MACE]),
-    ("sprint_indicator", SPRINT_IND, &[]),
+    ("sprint_indicator", SPRINT_IND, &[SPRINT_COLOR]),
     ("obsidian_guard", OBSIDIAN_GUARD, &[]),
     ("crystal_helper", CRYSTAL_HELPER, &[]),
     ("screenshot_clipboard", SHOT_CLIP, &[]),
     ("quick_menu", QUICK_MENU, &[]),
     ("performance_mode", PERF, &[]),
     ("arsenal_messages", MESSAGES, &[MESSAGES_WHERE]),
-    ("party_hud", PARTY, &[]),
+    ("party_hud", PARTY, &[PARTY_COLOR]),
     ("wardrobe_kill_effects", WARDROBE_FX, &[]),
     ("usage_stats", USAGE, &[]),
     ("auto_reconnect", RECONNECT, &[]),
@@ -923,7 +931,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "crystal_preview" => "On Horizon: a green box where a held crystal would go on obsidian or bedrock, red where it can't.",
         "crystal_optimizer" => "On Horizon: crystals you hit disappear at once instead of waiting for the server.",
         "chat_hotkeys" => "On Horizon: four keys (Options > Mods > Arsenal) that send gg, gl hf, /spawn and /kit.",
-        "friends" => "On Horizon: middle-click a player (the Friend key) to mark them a friend: a green F above them, never your target.",
+        "friends" => "On Horizon: middle-click a player (the Friend key) to mark them a friend: a green F above them, never your target. With the Arsenal website: friends from My Arsenal, who is online, friend requests (/arsenal friend add <name>) and duels (/arsenal duel <name>).",
         "session_summary" => "On Horizon: when you join again, a card with your last session: time, kills, deaths, K/D, pops and best combo.",
         "session_goals" => "On Horizon: a kill goal for this session and how close you are.",
         "opponent_intel" => "On Horizon: during a fight, what you saw the player use: totems popped, golden apples eaten, shield breaks.",
@@ -1054,6 +1062,8 @@ pub struct Settings {
     pub server_layouts: Vec<(String, Vec<(String, [f32; 5])>)>,
     /// Hide risky: the menu leaves out what some servers may not allow.
     pub hide_risky: bool,
+    /// The Custom colour each colour setting has (its key, 0xRRGGBB).
+    pub colors: Vec<(String, u32)>,
 }
 
 impl Default for Settings {
@@ -1063,7 +1073,7 @@ impl Default for Settings {
             v[i] = f.default;
         }
         Self { v, theme: None, crosshair: None, layout: Vec::new(), favorites: Vec::new(), keys: Vec::new(), profiles: Vec::new(), auto_profiles: Vec::new(),
-               hud_themes: Vec::new(), main_layout: Vec::new(), server_layouts: Vec::new(), hide_risky: false }
+               hud_themes: Vec::new(), main_layout: Vec::new(), server_layouts: Vec::new(), hide_risky: false, colors: Vec::new() }
     }
 }
 
@@ -1105,6 +1115,9 @@ impl Settings {
         s.auto_profiles = json_pairs(get("auto_profiles").as_deref());
         s.hud_themes = pairs_of(get("hud_themes").as_deref()).into_iter().filter(|(e, t)| HUD_ELEMENTS.iter().any(|x| x.0 == e) && HUD_THEMES.iter().any(|x| x.0 == t)).collect();
         s.hide_risky = get("hide_risky").is_some_and(|v| v == "true");
+        s.colors = pairs_of(get("custom_colors").as_deref()).into_iter()
+            .filter_map(|(k, v)| u32::from_str_radix(v.trim_start_matches('#'), 16).ok().filter(|_| FIELDS.iter().any(|f| f.key == k)).map(|c| (k, c & 0xFF_FFFF)))
+            .collect();
         s.favorites = get("favorites").map(|t| t.split(',').map(str::trim).filter(|f| JAVA_MODULES.iter().any(|j| j.id == *f)).map(str::to_owned).collect())
             .unwrap_or_default();
         s.crosshair = get("browse_crosshair").and_then(|t| {
@@ -1115,6 +1128,16 @@ impl Settings {
             crosshair_ok(&rows).then_some(Crosshair { rows, rgb, size })
         });
         s
+    }
+
+    /// Field `field`'s Custom colour (0xRRGGBB; a gold until one is picked).
+    pub fn color(&self, field: usize) -> u32 {
+        self.colors.iter().find(|(k, _)| k == FIELDS[field].key).map_or(0xF5B83D, |e| e.1)
+    }
+
+    pub fn set_color(&mut self, field: usize, rgb: u32) {
+        self.colors.retain(|(k, _)| k != FIELDS[field].key);
+        self.colors.push((FIELDS[field].key.to_owned(), rgb & 0xFF_FFFF));
     }
 
     pub fn on(&self, field: usize) -> bool {
@@ -1160,6 +1183,7 @@ impl Settings {
         out.push(("auto_profiles", json_text(&self.auto_profiles)));
         out.push(("hud_themes", self.hud_themes.iter().map(|(a, b)| format!("{a}={b}")).collect::<Vec<_>>().join(";")));
         out.push(("hide_risky", self.hide_risky.to_string()));
+        out.push(("custom_colors", self.colors.iter().map(|(k, c)| format!("{k}={c:06X}")).collect::<Vec<_>>().join(";")));
         out
     }
 
@@ -1175,6 +1199,7 @@ impl Settings {
     pub fn accent(&self) -> u32 {
         let base = match self.browse_theme() {
             Some(t) => t.accent,
+            None if self.on(THEME) && ACCENTS[self.v[ACCENT]].0 == "custom" => self.color(ACCENT),
             None if self.on(THEME) => ACCENT_RGB.get(self.v[ACCENT]).copied().unwrap_or(ACCENT_RGB[0]),
             None => ACCENT_RGB[0],
         };
@@ -1242,7 +1267,11 @@ impl Settings {
         if !self.on(OUTLINE) {
             return None;
         }
-        let rgb = if self.v[OUTLINE_COLOR] == 0 { self.accent() } else { OUTLINE_RGB[self.v[OUTLINE_COLOR] - 1] };
+        let rgb = match OUTLINE_COLORS[self.v[OUTLINE_COLOR]].0 {
+            "accent" => self.accent(),
+            "custom" => self.color(OUTLINE_COLOR),
+            _ => OUTLINE_RGB[self.v[OUTLINE_COLOR] - 1],
+        };
         Some((0xFF00_0000 | rgb, self.number(OUTLINE_WIDTH)))
     }
 }
@@ -1288,6 +1317,8 @@ pub enum Page {
     HudEdit,
     /// Profiles: save, load, update, delete, Auto per server; share codes.
     Profiles,
+    /// Your daily and weekly quests (from the website).
+    Quests,
 }
 
 /// A HUD element being dragged: which, where the pointer holds it, and the layout before (for Undo).
@@ -1322,6 +1353,14 @@ pub struct Menu {
     pub guides: Vec<[f32; 4]>,
     /// The module waiting for its key (index in `JAVA_MODULES`).
     pub binding: Option<usize>,
+    /// The setting whose dropdown is open, and how far its list is scrolled.
+    pub dropdown: Option<usize>,
+    pub drop_scroll: usize,
+    /// The colour setting whose hex is being typed, and what's typed.
+    pub hex: Option<(usize, String)>,
+    /// A module page's groups that are folded (by name), and how far the page is scrolled (pixels).
+    pub folded: Vec<String>,
+    pub page_scroll: f32,
     /// Profiles: the name being typed, whether typing goes there, and the profile (or "reset") waiting for a second click.
     pub profile_name: String,
     pub name_focus: bool,
@@ -1378,6 +1417,7 @@ struct State {
     pack_done: bool,
     more: More,
     more2: More2,
+    more3: More3,
     in_world: bool,
 }
 
@@ -1784,6 +1824,10 @@ struct Fight {
     hits: u32,
     dealt: f32,
     pops: u32,
+    uuid: u128,
+    swings: u32,
+    taken: f32,
+    combo: u32,
 }
 
 /// Your status (Arsenal's status hook): attack charge, effects and pings.
@@ -1849,7 +1893,8 @@ pub fn take_outbox() -> Vec<String> {
 /// New chat lines (Arsenal's chat hook): kills and deaths (Kill / Death Message, Kill Streaks), mentions, combat tags.
 pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
     STATE.with_borrow_mut(|s| {
-        let p = &mut s.pvp;
+        let State { pvp: p, more3, .. } = &mut *s;
+        let s = Later { more3 };
         if let Some(own) = own {
             p.own_name = Some(own.to_owned());
         }
@@ -1865,6 +1910,15 @@ pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
                     p.kills.push(now);
                     p.kills_total += 1;
                     p.new_kills.push(d.victim.clone());
+                    s.more3.part_kills += 1;
+                    let victim = s.more3.uuid_of.get(&d.victim.to_lowercase()).copied();
+                    if let Some(v) = victim {
+                        *s.more3.part_victims.entry(v).or_default() += 1;
+                    }
+                    s.more3.first_kill_at.get_or_insert(now);
+                    if let Some(f) = p.fight.take_if(|f| f.with.eq_ignore_ascii_case(&d.victim)) {
+                        s.more3.uploads.push(fight_upload(&f, true, p.combo, s.more3.health, now));
+                    }
                     p.feed.push((format!("You killed {}", d.victim), now));
                     if settings.on(STREAKS) {
                         if let Some(name) = streak_name(p.kills.len()) {
@@ -1875,6 +1929,10 @@ pub fn chat_lines(settings: &Settings, own: Option<&str>, lines: &[String]) {
                 } else if d.victim.eq_ignore_ascii_case(&own) {
                     p.kills.clear();
                     p.deaths_total += 1;
+                    s.more3.part_deaths += 1;
+                    if let Some(f) = p.fight.take() {
+                        s.more3.uploads.push(fight_upload(&f, false, p.combo, 0.0, now));
+                    }
                     p.combo = 0;
                     p.killer = d.killer.clone();
                     p.feed.push((match &d.killer { Some(k) => format!("{k} killed you"), None => "You died".into() }, now));
@@ -1988,11 +2046,13 @@ pub fn players_tick(settings: &Settings, others: &[Other], events: &[(u32, i32)]
                     p.reach = Some(((d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt() as f32 - 0.3).max(0.0));
                 }
                 p.combo_shown = Some((p.combo, now));
-                let fight = p.fight.get_or_insert_with(|| Fight { with: o.name.clone(), id: o.id, start: now, last: now, hits: 0, dealt: 0.0, pops: 0 });
+                let fresh = || Fight { with: o.name.clone(), id: o.id, start: now, last: now, hits: 0, dealt: 0.0, pops: 0, uuid: o.uuid, swings: 0, taken: 0.0, combo: 0 };
+                let fight = p.fight.get_or_insert_with(fresh);
                 if fight.id != o.id {
-                    *fight = Fight { with: o.name.clone(), id: o.id, start: now, last: now, hits: 0, dealt: 0.0, pops: 0 };
+                    *fight = fresh();
                 }
                 fight.hits += 1;
+                fight.combo = fight.combo.max(p.combo);
                 fight.last = now;
             }
         }
@@ -2047,6 +2107,9 @@ pub fn status_tick(settings: &Settings, status: &Status, health: Option<f32>) {
                 if h < before - 0.01 {
                     p.combo = 0;
                     p.taken.push((now, before - h));
+                    if let Some(f) = p.fight.as_mut() {
+                        f.taken += before - h;
+                    }
                 }
             }
         }
@@ -2879,7 +2942,14 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
     }
     if settings.on(MIST) {
         p[0][2] = 1.0;
-        let rgb = match MIST_COLORS[settings.v[MIST_COLOR]].0 { "blue" => [0.6, 0.72, 0.9], "purple" => [0.7, 0.6, 0.9], "green" => [0.62, 0.85, 0.66], _ => [0.85, 0.87, 0.9] };
+        let custom = settings.color(MIST_COLOR);
+        let rgb = match MIST_COLORS[settings.v[MIST_COLOR]].0 {
+            "blue" => [0.6, 0.72, 0.9],
+            "purple" => [0.7, 0.6, 0.9],
+            "green" => [0.62, 0.85, 0.66],
+            "custom" => [((custom >> 16) & 255) as f32 / 255.0, ((custom >> 8) & 255) as f32 / 255.0, (custom & 255) as f32 / 255.0],
+            _ => [0.85, 0.87, 0.9],
+        };
         p[5] = [rgb[0], rgb[1], rgb[2], -3.0];
     }
     p[0][3] = 1.0;
@@ -3254,6 +3324,7 @@ pub fn tint_rgb(settings: &Settings, field: usize) -> u32 {
         "green" => 0x5CE08A,
         "orange" => 0xFF9A3C,
         "red" => 0xFF5A5A,
+        "custom" => settings.color(field),
         _ => settings.accent(),
     }
 }
@@ -3326,7 +3397,7 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
         l.blockhit = true;
     }
     if settings.on(HAND_TINT) {
-        l.hand_tint = settings.accent();
+        l.hand_tint = tint_rgb(settings, HAND_COLOR);
         l.hand_glow = settings.on(HAND_GLOW);
     }
     if settings.on(SMALL_CRYSTALS) {
@@ -3467,6 +3538,10 @@ pub fn attacked() {
         if s.more.sprinting {
             s.more.sprint_used = true;
         }
+        // Fight Summary's accuracy: swings during a fight.
+        if let Some(f) = s.pvp.fight.as_mut() {
+            f.swings += 1;
+        }
     });
 }
 
@@ -3551,6 +3626,8 @@ pub enum Command {
     ForgetCrash,
     /// Cloud Backup: save (true) or restore.
     Cloud(bool),
+    /// A signed request for the website (friends, duels).
+    Web(Upload, String),
 }
 
 /// `/arsenal <args>`: notes, profiles and crash reports.
@@ -3582,6 +3659,10 @@ pub fn command(settings: &Settings, raw: &Settings, args: &str, server: Option<&
                 _ => Command::Say("/arsenal profile save or /arsenal profile clear".into()),
             }
         }
+        "friend" | "duel" => match social_upload(args, current_own_name().as_deref(), &seen_uuid) {
+            Some(up) => Command::Web(up, if word == "friend" { "Sending the friend request...".into() } else { "Sending...".into() }),
+            None => Command::Say("/arsenal friend add <name>, /arsenal duel <name>, /arsenal duel accept <name>, /arsenal duel decline <name>".into()),
+        },
         "cloud" => match rest {
             "save" => Command::Cloud(true),
             "restore" => Command::Cloud(false),
@@ -3839,6 +3920,7 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
                     w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
     let mut out = Vec::new();
     let accent = settings.accent();
+    let block_rgb = tint_rgb(settings, BLOCK_ANIM_COLOR);
     let (blocks, sprint, toasts, quick) = STATE.with_borrow_mut(|s| {
         s.more.toasts.retain(|t| t.1.elapsed() < Duration::from_secs(5));
         (s.more.blocks.clone(), s.more.sprinting && !s.more.sprint_used, s.more.toasts.clone(), s.more.quick)
@@ -3847,7 +3929,7 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
         for (pos, kind, at) in &blocks {
             let t = (at.elapsed().as_secs_f32() / 0.7).min(1.0);
             let alpha = ((1.0 - t) * 255.0) as u32;
-            let argb = (alpha << 24) | accent;
+            let argb = (alpha << 24) | block_rgb;
             let c = [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5];
             let cube = |half: f64, at: [f64; 3], out: &mut Vec<Shape>| {
                 box_edges(cam, [at[0] - half, at[1] - half, at[2] - half], [at[0] + half, at[1] + half, at[2] + half], w, h, argb, out)
@@ -3883,7 +3965,7 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
     }
     let (cx, cy) = (w / 2.0, h / 2.0);
     if settings.on(SPRINT_IND) && sprint && attack >= 0.9 {
-        let g = 0xFF55_FF55;
+        let g = 0xFF00_0000 | tint_rgb(settings, SPRINT_COLOR);
         let (x, y) = (cx + 8.0, cy - 4.0);
         out.push(Shape::Quad([[x + 3.0, y], [x + 6.0, y], [x + 3.5, y + 4.0], [x + 1.0, y + 4.0]], g));
         out.push(Shape::Quad([[x + 2.5, y + 3.5], [x + 5.5, y + 3.5], [x + 1.5, y + 8.5], [x + 3.0, y + 3.5]], g));
@@ -3910,7 +3992,7 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
                 let tip = [ax + s * 4.0, ay + c * 4.0];
                 let l = [ax - c * 3.0 - s * 3.0, ay + s * 3.0 - c * 3.0];
                 let r = [ax + c * 3.0 - s * 3.0, ay - s * 3.0 - c * 3.0];
-                out.push(Shape::Quad([tip, l, [ax, ay], r], 0xFF00_0000 | accent));
+                out.push(Shape::Quad([tip, l, [ax, ay], r], 0xFF00_0000 | tint_rgb(settings, PARTY_COLOR)));
             }
         }
     }
@@ -5635,6 +5717,338 @@ pub fn blade_pose(settings: &Settings, holding_sword: bool, has_blade: bool) -> 
     Some((size, turn))
 }
 
+
+// ---- 1.16: the Arsenal website, as the Java mod uses it ----
+
+/// `chat_lines`' view of the website state next to the PvP state it borrows.
+struct Later<'a> {
+    more3: &'a mut More3,
+}
+
+/// What goes to the website and what came back.
+#[derive(Default)]
+struct More3 {
+    /// Signed uploads waiting: (prefix, the JSON that's hashed into the signature, path, the body field it goes in).
+    uploads: Vec<Upload>,
+    /// The session part being counted: kills, deaths, victims (uuid: kills), since when, the first kill since the last.
+    part_kills: u32,
+    part_deaths: u32,
+    part_victims: std::collections::HashMap<u128, u32>,
+    part_since: Option<Instant>,
+    session_start_hour: Option<String>,
+    first_kill_at: Option<Instant>,
+    best_combo: u32,
+    /// Players' uuids by lower-case name (for the victims), your health now.
+    uuid_of: std::collections::HashMap<String, u128>,
+    health: f32,
+    in_world: bool,
+    server: Option<String>,
+    presence_at: Option<Instant>,
+    friends_at: Option<Instant>,
+}
+
+/// One signed request for the website.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Upload {
+    pub prefix: &'static str,
+    /// The text after uuid:ts in the signed message (joined with ':').
+    pub extra: Vec<String>,
+    pub path: &'static str,
+    /// Fields added to the signed body.
+    pub fields: Vec<(String, serde_json::Value)>,
+}
+
+fn fight_upload(f: &Fight, won: bool, combo: u32, health: f32, now: Instant) -> Upload {
+    let json = serde_json::json!({
+        "opponent": f.with,
+        "won": won,
+        "hits": f.hits,
+        "accuracy": (f.hits * 100 / f.swings.max(f.hits).max(1)).min(100),
+        "dealt": (f.dealt * 10.0).round() / 10.0,
+        "taken": (f.taken * 10.0).round() / 10.0,
+        "damageTaken": (f.taken / 2.0 * 10.0).round() / 10.0,
+        "endHealth": (health / 2.0 * 10.0).round() / 10.0,
+        "combo": f.combo.max(combo),
+        "pops": f.pops,
+        "ownPops": 0,
+        "seconds": now.duration_since(f.start).as_secs(),
+        "opponentId": dashed(f.uuid),
+        "version": VERSION,
+        "mc": "26.3",
+        "client": "horizon",
+    }).to_string();
+    Upload { prefix: "arsenal-fight-v1", extra: vec![sha256_hex(json.as_bytes())], path: "/v1/fights", fields: vec![("fight".into(), json.into())] }
+}
+
+/// The hour (UTC) a session started, as the Java mod's "yyyy-MM-ddTHH".
+fn hour_now() -> String {
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()) as i64;
+    let days = secs.div_euclid(86400);
+    // Civil date from days (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}T{:02}", secs.rem_euclid(86400) / 3600)
+}
+
+/// A session part for the website: what happened since the last one (`last` on leaving).
+fn session_upload(x: &mut More3, server: &str, last: bool) -> Option<Upload> {
+    let since = x.part_since?;
+    let millis = since.elapsed().as_millis() as u64;
+    x.part_since = Some(Instant::now());
+    let victims: serde_json::Map<String, serde_json::Value> = x.part_victims.drain().map(|(u, n)| (dashed(u), n.into())).collect();
+    let mut json = serde_json::json!({
+        "version": VERSION,
+        "mc": "26.3",
+        "client": "horizon",
+        "server": server,
+        "millis": millis,
+        "victims": victims,
+        "kills": std::mem::take(&mut x.part_kills),
+        "deaths": std::mem::take(&mut x.part_deaths),
+        "pops": 0,
+        "ownPops": 0,
+        "bestCombo": x.best_combo,
+        "localStart": x.session_start_hour.clone().unwrap_or_else(hour_now),
+    });
+    if last && millis < 60_000 {
+        json["part"] = true.into();
+    }
+    x.first_kill_at = None;
+    let json = json.to_string();
+    Some(Upload { prefix: "arsenal-session-v1", extra: vec![sha256_hex(json.as_bytes())], path: "/v1/sessions", fields: vec![("session".into(), json.into())] })
+}
+
+/// Each tick: the session (a part every 5 minutes, 10 s after a kill, and on leaving), presence and friends every
+/// minute, Quests when asked. `others` names the players around (their uuids for the victims).
+pub fn website_tick(settings: &Settings, server: Option<&str>, others: &[Other], health: Option<f32>) -> Vec<Upload> {
+    let mut out = Vec::new();
+    STATE.with_borrow_mut(|s| {
+        let combo = s.pvp.best_combo;
+        let x = &mut s.more3;
+        x.best_combo = x.best_combo.max(combo);
+        for o in others {
+            x.uuid_of.insert(o.name.to_lowercase(), o.uuid);
+        }
+        if let Some(h) = health {
+            x.health = h;
+        }
+        let now_in = server.is_some();
+        let server_now = server.map(str::to_owned);
+        // Leaving (or another server): the last part of the session.
+        if x.in_world && (!now_in || x.server != server_now) {
+            if let Some(old) = x.server.clone() {
+                out.extend(session_upload(x, &old, true));
+            }
+            x.part_since = None;
+            x.best_combo = 0;
+            out.push(Upload { prefix: "arsenal-presence-v1", extra: vec![String::new(), "26.3".into()], path: "/v1/friends/presence",
+                fields: vec![("server".into(), "".into()), ("mc".into(), "26.3".into())] });
+        }
+        if now_in && (!x.in_world || x.server != server_now) {
+            x.part_since = Some(Instant::now());
+            x.session_start_hour = Some(hour_now());
+            x.presence_at = None;
+            x.friends_at = None;
+        }
+        x.in_world = now_in;
+        x.server = server_now;
+        let Some(address) = server else {
+            out.append(&mut x.uploads);
+            return;
+        };
+        let due = x.part_since.is_some_and(|t| t.elapsed() > Duration::from_secs(300))
+            || x.first_kill_at.is_some_and(|t| t.elapsed() > Duration::from_secs(10));
+        if due {
+            out.extend(session_upload(x, address, false));
+        }
+        if settings.on(FRIENDS) {
+            let shown = if settings.on(FRIENDS) { address.to_owned() } else { String::new() };
+            if x.presence_at.is_none_or(|t| t.elapsed() > Duration::from_secs(60)) {
+                x.presence_at = Some(Instant::now());
+                out.push(Upload { prefix: "arsenal-presence-v1", extra: vec![shown.clone(), "26.3".into()], path: "/v1/friends/presence",
+                    fields: vec![("server".into(), shown.into()), ("mc".into(), "26.3".into())] });
+            }
+            if x.friends_at.is_none_or(|t| t.elapsed() > Duration::from_secs(60)) {
+                x.friends_at = Some(Instant::now());
+                out.push(Upload { prefix: "arsenal-friends-v1", extra: Vec::new(), path: "/v1/friends/sync", fields: Vec::new() });
+            }
+        }
+        out.append(&mut x.uploads);
+    });
+    out
+}
+
+/// Quests: asks the website now (the menu's Quests page and after an upload completes one).
+pub fn ask_quests() {
+    STATE.with_borrow_mut(|s| s.more3.uploads.push(Upload { prefix: "arsenal-quests-v1", extra: Vec::new(), path: "/v1/quests/me", fields: Vec::new() }));
+}
+
+/// A quest as the website gives it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Quest {
+    pub title: String,
+    pub progress: f64,
+    pub goal: f64,
+    pub reward: i64,
+    pub done: bool,
+}
+
+/// The website's answers, back from its thread.
+#[derive(Default)]
+struct WebNet {
+    /// Lines to show (quests done, achievements, duels, friend requests).
+    notes: Vec<String>,
+    /// Quests: daily, weekly, when they reset; or why not.
+    quests: Option<Result<(Vec<Quest>, Vec<Quest>, String, String), String>>,
+    /// Friends from the website (names) to add to yours.
+    friends: Vec<String>,
+}
+static WEB: std::sync::Mutex<Option<WebNet>> = std::sync::Mutex::new(None);
+fn web<T>(f: impl FnOnce(&mut WebNet) -> T) -> T {
+    f(WEB.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(WebNet::default))
+}
+
+/// The Quests page's list.
+pub fn quests() -> Option<Result<(Vec<Quest>, Vec<Quest>, String, String), String>> {
+    web(|w| w.quests.clone())
+}
+
+/// The lines the website's answers left, and friends to add.
+pub fn take_web() -> (Vec<String>, Vec<String>) {
+    web(|w| (std::mem::take(&mut w.notes), std::mem::take(&mut w.friends)))
+}
+
+/// An answer: quests done and achievements unlocked (any upload), the quests list, friends and duels.
+pub fn web_answer(path: &str, status: u16, json: &str) {
+    let v: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
+    web(|w| {
+        for q in v["questsCompleted"].as_array().into_iter().flatten() {
+            w.notes.push(format!("Quest done: {} (+{} credits)", q["title"].as_str().unwrap_or("?"), q["reward"].as_i64().unwrap_or(0)));
+        }
+        for a in v["unlocked"].as_array().into_iter().flatten().filter_map(|a| a.as_str()) {
+            let name: String = a.split('_').map(|w| {
+                let mut c = w.chars();
+                c.next().map_or(String::new(), |f| f.to_uppercase().collect::<String>() + c.as_str())
+            }).collect::<Vec<_>>().join(" ");
+            w.notes.push(format!("Achievement unlocked: {name}"));
+        }
+        match path {
+            "/v1/quests/me" => {
+                let list = |k: &str| v[k].as_array().map(|a| a.iter().map(|q| Quest {
+                    title: q["title"].as_str().unwrap_or("").to_owned(),
+                    progress: q["progress"].as_f64().unwrap_or(0.0),
+                    goal: q["goal"].as_f64().unwrap_or(1.0),
+                    reward: q["reward"].as_i64().unwrap_or(0),
+                    done: q["done"].as_bool().unwrap_or(false),
+                }).collect::<Vec<_>>()).unwrap_or_default();
+                w.quests = Some(match status {
+                    200 => Ok((list("daily"), list("weekly"), v["dailyResetsAt"].as_str().unwrap_or("").to_owned(), v["weeklyResetsAt"].as_str().unwrap_or("").to_owned())),
+                    404 => Err("Quests aren't on the Arsenal server yet.".into()),
+                    _ => Err(v["reason"].as_str().unwrap_or("Couldn't load your quests.").to_owned()),
+                });
+            }
+            "/v1/friends/sync" if status == 200 => {
+                for f in v["friends"].as_array().into_iter().flatten() {
+                    if let Some(n) = f["name"].as_str() {
+                        w.friends.push(n.to_owned());
+                    }
+                }
+                let incoming = v["incoming"].as_array().map_or(0, |a| a.len());
+                if incoming > 0 {
+                    w.notes.push(format!("{incoming} friend request(s) waiting: /arsenal friend add <name> to accept."));
+                }
+                for d in v["duels"]["incoming"].as_array().into_iter().flatten() {
+                    let name = d["name"].as_str().unwrap_or("?");
+                    w.notes.push(format!("{name} challenges you to a duel! /arsenal duel accept {name} or /arsenal duel decline {name}"));
+                }
+            }
+            "/v1/fights" | "/v1/sessions" if status != 200 && status != 409 => {
+                if let Some(r) = v["reason"].as_str() {
+                    w.notes.push(format!("This isn't counting on the Arsenal website: {r}"));
+                }
+            }
+            "/v1/friends/request" => w.notes.push(match (status, v["status"].as_str()) {
+                (200, Some("friends")) => "You're friends now.".into(),
+                (200, _) => "Friend request sent.".into(),
+                _ => format!("Couldn't send the request: {}", v["reason"].as_str().unwrap_or("try again later")),
+            }),
+            "/v1/duels/challenge" => w.notes.push(if status == 200 { "Duel challenge sent. They have 5 minutes to accept.".into() } else {
+                format!("Couldn't challenge them: {}", v["reason"].as_str().unwrap_or("try again later"))
+            }),
+            "/v1/duels/respond" if status == 200 => w.notes.push("Done: your next fight against them counts as the duel if you accepted.".into()),
+            _ => {}
+        }
+    });
+    // A quest may have moved: the list is asked for again.
+    if v["questsCompleted"].as_array().is_some_and(|a| !a.is_empty()) {
+        ask_quests();
+    }
+}
+
+/// Sends a signed upload (the body Horizon signed) on its own thread; retried a few times when the website is busy.
+#[cfg(not(test))]
+pub fn send_upload(up: Upload, signed: String) {
+    std::thread::spawn(move || {
+        let mut body: serde_json::Value = serde_json::from_str(&signed).unwrap_or_default();
+        for (k, v) in &up.fields {
+            body[k] = v.clone();
+        }
+        let body = body.to_string();
+        for attempt in 0..4 {
+            let r = ureq::post(&format!("{WEBSITE}{}", up.path)).timeout(Duration::from_secs(20)).set("User-Agent", "Arsenal-Horizon")
+                .set("Content-Type", "application/json").send_string(&body);
+            let (status, text) = match r {
+                Ok(r) => (r.status(), r.into_string().unwrap_or_default()),
+                Err(ureq::Error::Status(code, r)) => (code, r.into_string().unwrap_or_default()),
+                Err(_) => (0, String::new()),
+            };
+            if matches!(status, 0 | 429 | 502..=504 | 520..=530) && attempt < 3 {
+                std::thread::sleep(Duration::from_secs(30 * (attempt + 1)));
+                continue;
+            }
+            web_answer(up.path, status, &text);
+            return;
+        }
+    });
+}
+#[cfg(test)]
+pub fn send_upload(_up: Upload, _signed: String) {}
+
+/// `/arsenal friend add <name>`, `/arsenal duel <name>`, `/arsenal duel accept|decline <name>`.
+pub fn social_upload(args: &str, own: Option<&str>, uuid_of: &dyn Fn(&str) -> Option<u128>) -> Option<Upload> {
+    let words: Vec<&str> = args.split_whitespace().collect();
+    match words.as_slice() {
+        ["friend", "add", name] => Some(Upload { prefix: "arsenal-friend-v1", extra: vec![(*name).to_owned()], path: "/v1/friends/request",
+            fields: vec![("name".into(), (*name).into()), ("self".into(), own.unwrap_or("").into())] }),
+        ["duel", "accept" | "decline", name] => {
+            let accept = words[1] == "accept";
+            let from = dashed(uuid_of(name)?);
+            Some(Upload { prefix: "arsenal-duel-respond-v1", extra: vec![from.clone(), accept.to_string()], path: "/v1/duels/respond",
+                fields: vec![("from".into(), from.into()), ("accept".into(), accept.to_string().into())] })
+        }
+        ["duel", name] => Some(Upload { prefix: "arsenal-duel-v1", extra: vec![(*name).to_owned()], path: "/v1/duels/challenge",
+            fields: vec![("target".into(), (*name).into()), ("server".into(), "".into())] }),
+        _ => None,
+    }
+}
+
+/// Your name as the chat hook last said.
+pub fn current_own_name() -> Option<String> {
+    STATE.with_borrow(|s| s.pvp.own_name.clone())
+}
+
+/// A player's uuid by name, from the players seen this session.
+pub fn seen_uuid(name: &str) -> Option<u128> {
+    STATE.with_borrow(|s| s.more3.uuid_of.get(&name.to_lowercase()).copied())
+}
+
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
 pub const HOTKEY_KEYS: [(&str, &str, &str); 4] = [("hotkey_gg", "Chat Hotkey: gg", "gg"), ("hotkey_glhf", "Chat Hotkey: gl hf", "gl hf"),
     ("hotkey_spawn", "Chat Hotkey: /spawn", "/spawn"), ("hotkey_kit", "Chat Hotkey: /kit", "/kit")];
@@ -6738,6 +7152,14 @@ pub enum Action {
     Retry,
     /// Star or unstar module `i` (index in `JAVA_MODULES`).
     Favorite(usize),
+    /// Open or close setting `f`'s dropdown; pick option `i` of it.
+    Dropdown(usize),
+    Pick(usize, usize),
+    /// Setting `f`'s Custom colour (0xRRGGBB); type its hex.
+    SetColor(usize, u32),
+    Hex(usize),
+    /// Fold or unfold group `g` of the open module's page.
+    Group(u8),
     /// Typing goes to the search box.
     Search,
     /// The HUD editor's buttons.
@@ -7158,6 +7580,7 @@ fn layout(
         (Page::Cosmetics, _) => "/  Cosmetics".into(),
         (Page::HudEdit, _) => "/  Edit HUD".into(),
         (Page::Profiles, _) => "/  Profiles".into(),
+        (Page::Quests, _) => "/  Quests".into(),
     };
     label(&mut out, &fit(&crumb, w - title_w - 60.0, width), [x0 + 22.0 + title_w, y0 + 14.0], argb(MUTED, 1.0), false, 1.0);
     if m.page == Page::Modules {
@@ -7182,6 +7605,43 @@ fn layout(
 
     match m.page {
         Page::HudEdit => {}
+        Page::Quests => {
+            let cx = x0 + 18.0;
+            let cw = w - 36.0;
+            label(&mut out, "Quests", [cx, top + 8.0], 0xFFFF_FFFF, true, 1.25);
+            let r = [x0 + w - 18.0 - 70.0, top + 6.0, 70.0, 16.0];
+            let t = hover(key(33, 0), r);
+            button(&mut out, &mut hits, r, "Refresh", Action::Retry, mouse, width, t);
+            content = out.len();
+            match quests() {
+                None => label(&mut out, "Loading your quests...", [cx, top + 34.0], argb(MUTED, 1.0), false, 1.0),
+                Some(Err(why)) => label(&mut out, &fit(&why, cw, width), [cx, top + 34.0], argb(MUTED, 1.0), false, 1.0),
+                Some(Ok((daily, weekly, _, _))) => {
+                    let mut y = top + 30.0;
+                    for (title, list) in [("Daily", daily), ("Weekly", weekly)] {
+                        let done = list.iter().filter(|q| q.done).count();
+                        label(&mut out, &format!("{title}  ·  {done} of {} done", list.len()), [cx, y], argb(MUTED, 1.0), false, 1.0);
+                        y += 12.0;
+                        for q in &list {
+                            if y + 24.0 > y0 + h - 6.0 {
+                                break;
+                            }
+                            let row = [cx, y, cw, 22.0];
+                            rounded(&mut out, row, 4.0, CARD);
+                            label(&mut out, &fit(&q.title, cw - 120.0, width), [row[0] + 8.0, row[1] + 4.0], if q.done { argb(GREY, 1.0) } else { 0xFFFF_FFFF }, false, 1.0);
+                            let reward = format!("+{}", q.reward);
+                            label(&mut out, &reward, [row[0] + row[2] - width(&reward) - 8.0, row[1] + 4.0], 0xFFF5_B83D, false, 1.0);
+                            let bar = [row[0] + 8.0, row[1] + 15.0, row[2] - 16.0, 3.0];
+                            rounded(&mut out, bar, 1.5, 0x20FF_FFFF);
+                            let part = (q.progress / q.goal.max(1.0)).clamp(0.0, 1.0) as f32;
+                            rounded(&mut out, [bar[0], bar[1], (bar[2] * part).max(3.0), bar[3]], 1.5, if q.done { 0xFF5C_E08A } else { solid });
+                            y += 25.0;
+                        }
+                        y += 4.0;
+                    }
+                }
+            }
+        }
         Page::Profiles => {
             let cx = x0 + 18.0;
             let cw = w - 36.0;
@@ -7263,13 +7723,14 @@ fn layout(
             rounded(&mut out, bar, 2.0, 0x20FF_FFFF);
             let part = ease(key(3, 0), ON_HORIZON.len() as f32 / JAVA_MODULES.len() as f32, 0.0, animate);
             rounded(&mut out, [bar[0], bar[1], (bar[2] * part).max(4.0), bar[3]], 2.0, solid);
-            let tiles: [(&str, String, Page, u8); 4] = [
+            let tiles: [(&str, String, Page, u8); 5] = [
                 ("Modules", format!("{on} on. Switch them, set them, search, star favourites."), Page::Modules, 0),
                 ("Edit HUD", "Drag, resize and line up your HUD over the game.".into(), Page::HudEdit, 3),
                 ("Browse", "Crosshairs and HUD themes from the website, one click to use.".into(), Page::Browse, 1),
-                ("Cosmetics", "Capes, hats and more: shown to players on the Java version.".into(), Page::Cosmetics, 2),
+                ("Quests", "Daily and weekly quests for credits.".into(), Page::Quests, 4),
+                ("Cosmetics", "Your Wardrobe on players.".into(), Page::Cosmetics, 2),
             ];
-            let tw = ((w - 36.0 - 24.0) / 4.0).floor();
+            let tw = ((w - 36.0 - 32.0) / 5.0).floor();
             let ty = top + 54.0;
             let th = (h - HEADER - 54.0 - 36.0).max(60.0);
             for (i, (name, text, page, icon)) in tiles.iter().enumerate() {
@@ -7290,6 +7751,12 @@ fn layout(
                     0 => {
                         for (dx, dy) in [(0.0, 0.0), (8.0, 0.0), (0.0, 8.0), (8.0, 8.0)] {
                             rounded(&mut out, [ix + dx, iy + dy, 6.0, 6.0], 1.0, ic);
+                        }
+                    }
+                    4 => {
+                        for k in 0..3 {
+                            rounded(&mut out, [ix, iy + k as f32 * 5.0, 3.0, 3.0], 1.5, ic);
+                            out.push(Shape::Fill([ix + 5.0, iy + 1.0 + k as f32 * 5.0, 9.0, 1.5], ic));
                         }
                     }
                     3 => {
@@ -7575,28 +8042,77 @@ fn layout(
                                 }
                                 y += r[3] + 6.0;
                             }
+                            // The page scrolls; rows outside it aren't drawn (or clicked).
+                            let bottom = y0 + h - 4.0;
+                            let view_top = y;
+                            y -= m.page_scroll;
+                            let mut drop: Option<(usize, [f32; 4])> = None;
+                            let mut group_now: Option<u8> = None;
                             for &f in std::iter::once(&toggle).chain(fields.iter()) {
-                                if y + 20.0 > y0 + h - 4.0 {
-                                    break;
+                                // Group headers, as the Java menu folds its settings.
+                                let g = if f == toggle { 0 } else { setting_group(f) };
+                                if group_now != Some(g) {
+                                    group_now = Some(g);
+                                    if g != 0 {
+                                        let hr = [cx, y, cw, 14.0];
+                                        let folded = m.folded.iter().any(|n| n == GROUP_NAMES[g as usize]);
+                                        if hr[1] >= view_top && hr[1] + hr[3] <= bottom {
+                                            let ht = hover(key(31, g as usize), hr);
+                                            label(&mut out, if folded { ">" } else { "v" }, [hr[0] + 2.0, hr[1] + 3.0], mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, ht), false, 1.0);
+                                            label(&mut out, GROUP_NAMES[g as usize], [hr[0] + 12.0, hr[1] + 3.0], mix_argb(argb(MUTED, 1.0), 0xFFFF_FFFF, ht), false, 1.0);
+                                            out.push(Shape::Fill([hr[0] + 16.0 + width(GROUP_NAMES[g as usize]), hr[1] + 7.0, hr[2] - 20.0 - width(GROUP_NAMES[g as usize]), 1.0], 0x18FF_FFFF));
+                                            hits.push((hr, Action::Group(g)));
+                                        }
+                                        y += 16.0;
+                                    }
+                                }
+                                if g != 0 && m.folded.iter().any(|n| n == GROUP_NAMES[g as usize]) {
+                                    continue;
                                 }
                                 let r = [cx, y, cw, 19.0];
-                                let t = hover(key(14, f), r);
-                                rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
-                                let name = if f == toggle { "Enabled" } else { FIELDS[f].label };
-                                label(&mut out, &fit(name, cw - 110.0, width), [r[0] + 8.0, r[1] + 6.0], 0xFFFF_FFFF, false, 1.0);
-                                if FIELDS[f].options == ONOFF {
-                                    let on = ease(key(15, f), s.v[f] as f32, s.v[f] as f32, animate);
-                                    switch(&mut out, [r[0] + r[2] - 30.0, r[1] + 4.0], on, accent);
-                                } else {
-                                    let value = fit(FIELDS[f].options[s.v[f]].1, 90.0, width);
-                                    let vw = width(&value) + 22.0;
-                                    let chip = [r[0] + r[2] - vw - 6.0, r[1] + 3.0, vw, 13.0];
-                                    rounded(&mut out, chip, 4.0, mix_argb(0x20FF_FFFF, argb(accent, 0.35), t));
-                                    label(&mut out, &value, [chip[0] + 11.0, chip[1] + 3.0], 0xFFFF_FFFF, false, 1.0);
-                                    label(&mut out, ">", [chip[0] + chip[2] - 8.0, chip[1] + 3.0], argb(MUTED, 1.0), false, 1.0);
+                                let custom = FIELDS[f].options[s.v[f]].0 == "custom";
+                                let shown = r[1] >= view_top && r[1] + r[3] <= bottom;
+                                if shown {
+                                    let t = hover(key(14, f), r);
+                                    rounded(&mut out, r, 4.0, mix_argb(CARD, CARD_HOVER, t));
+                                    let name = if f == toggle { "Enabled" } else { FIELDS[f].label };
+                                    label(&mut out, &fit(name, cw - 120.0, width), [r[0] + 8.0, r[1] + 6.0], 0xFFFF_FFFF, false, 1.0);
+                                    if FIELDS[f].options == ONOFF {
+                                        let on = ease(key(15, f), s.v[f] as f32, s.v[f] as f32, animate);
+                                        switch(&mut out, [r[0] + r[2] - 30.0, r[1] + 4.0], on, accent);
+                                        hits.push((r, Action::Setting(f)));
+                                    } else {
+                                        // A dropdown: its value and a little arrow (open: the list under it).
+                                        let value = fit(FIELDS[f].options[s.v[f]].1, 96.0, width);
+                                        let vw = width(&value) + 26.0;
+                                        let chip = [r[0] + r[2] - vw - 6.0, r[1] + 3.0, vw, 13.0];
+                                        let open = m.dropdown == Some(f);
+                                        rounded(&mut out, chip, 4.0, if open { argb(accent, 0.45) } else { mix_argb(0x20FF_FFFF, argb(accent, 0.35), t) });
+                                        if custom {
+                                            rounded(&mut out, [chip[0] + 4.0, chip[1] + 3.0, 7.0, 7.0], 2.0, 0xFF00_0000 | s.color(f));
+                                        }
+                                        label(&mut out, &value, [chip[0] + if custom { 14.0 } else { 8.0 }, chip[1] + 3.0], 0xFFFF_FFFF, false, 1.0);
+                                        let (ax, ay) = (chip[0] + chip[2] - 9.0, chip[1] + 5.0);
+                                        let tri = if open { [[ax, ay + 3.0], [ax + 5.0, ay + 3.0], [ax + 2.5, ay], [ax + 2.5, ay]] } else { [[ax, ay], [ax + 5.0, ay], [ax + 2.5, ay + 3.0], [ax + 2.5, ay + 3.0]] };
+                                        out.push(Shape::Quad(tri, 0xFFCC_CCD6));
+                                        hits.push((r, Action::Dropdown(f)));
+                                        if open {
+                                            drop = Some((f, chip));
+                                        }
+                                    }
                                 }
-                                hits.push((r, Action::Setting(f)));
                                 y += 22.0;
+                                // Custom colour: the picker under its row.
+                                if custom {
+                                    let ph = 64.0;
+                                    if y >= view_top && y + ph <= bottom {
+                                        color_picker(&mut out, &mut hits, [cx, y, cw, ph], f, s, m, accent, width);
+                                    }
+                                    y += ph + 4.0;
+                                }
+                            }
+                            if let Some((f, chip)) = drop {
+                                dropdown_list(&mut out, &mut hits, f, chip, s, m, mouse, accent, bottom, width, animate);
                             }
                             if module.id == "custom_crosshair" || module.id == "hud_theme" {
                                 let r = [cx, y + 4.0, width("Open Browse") + 18.0, 17.0];
@@ -7778,6 +8294,12 @@ pub fn menu_typed(m: &mut Menu, c: char) -> bool {
     if m.binding.is_some() || c.is_control() {
         return false;
     }
+    if let Some((_, text)) = m.hex.as_mut() {
+        if c.is_ascii_hexdigit() && text.len() < 6 {
+            text.push(c.to_ascii_uppercase());
+        }
+        return true;
+    }
     if m.page == Page::Profiles {
         if m.profile_name.chars().count() < 32 {
             m.profile_name.push(c);
@@ -7807,6 +8329,32 @@ pub fn menu_key(m: &mut Menu, s: &mut Settings, key: &str, ctrl: bool) -> (bool,
             s.keys.push((id.to_owned(), key.to_owned()));
         }
         return (true, true);
+    }
+    if let Some((f, text)) = m.hex.clone() {
+        match key {
+            "key.keyboard.backspace" => {
+                if let Some((_, t)) = m.hex.as_mut() {
+                    t.pop();
+                }
+                return (true, false);
+            }
+            "key.keyboard.enter" | "key.keyboard.keypad.enter" => {
+                m.hex = None;
+                return match u32::from_str_radix(&text, 16) {
+                    Ok(rgb) if text.len() == 6 => (true, apply(Action::SetColor(f, rgb), m, s, &Fetch::Loading)),
+                    _ => (true, false),
+                };
+            }
+            "key.keyboard.escape" => {
+                m.hex = None;
+                return (true, false);
+            }
+            _ => return (false, false),
+        }
+    }
+    if m.dropdown.is_some() && key == "key.keyboard.escape" {
+        m.dropdown = None;
+        return (true, false);
     }
     match (m.page, key) {
         (Page::Profiles, "key.keyboard.backspace") if !m.profile_name.is_empty() => {
@@ -7959,6 +8507,122 @@ pub fn hud_scroll(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 
     true
 }
 
+
+/// The groups a module page folds its settings into (0: the switch, never folded).
+pub const GROUP_NAMES: [&str; 4] = ["", "Options", "Colours", "More"];
+
+/// A setting's group: its colours together, sizes and choices under Options.
+pub fn setting_group(f: usize) -> u8 {
+    let o = FIELDS[f].options;
+    if o.iter().any(|x| x.0 == "custom") || std::ptr::eq(o, GLINTS) || std::ptr::eq(o, HIT_COLORS) || std::ptr::eq(o, FX_COLORS) || std::ptr::eq(o, RING_COLORS) {
+        2
+    } else if o == ONOFF {
+        3
+    } else {
+        1
+    }
+}
+
+/// Rows a dropdown shows at once (the wheel scrolls the rest).
+const DROP_ROWS: usize = 8;
+
+/// An open dropdown: its options under (or over, near the bottom) the chip, the chosen one marked.
+#[allow(clippy::too_many_arguments)]
+fn dropdown_list(out: &mut Vec<Shape>, hits: &mut Vec<([f32; 4], Action)>, f: usize, chip: [f32; 4], s: &Settings, m: &Menu, mouse: [f32; 2],
+                 accent: u32, bottom: f32, width: &dyn Fn(&str) -> f32, animate: bool) {
+    let options = FIELDS[f].options;
+    let rows = options.len().min(DROP_ROWS);
+    let first = m.drop_scroll.min(options.len() - rows);
+    let w = options.iter().map(|o| width(o.1)).fold(chip[2] - 8.0, f32::max) + 22.0;
+    let h = rows as f32 * 14.0 + 4.0;
+    let x = chip[0] + chip[2] - w;
+    let y = if chip[1] + chip[3] + 2.0 + h > bottom { chip[1] - h - 2.0 } else { chip[1] + chip[3] + 2.0 };
+    rounded(out, [x - 1.0, y - 1.0, w + 2.0, h + 2.0], 5.0, PANEL_EDGE);
+    rounded(out, [x, y, w, h], 4.0, 0xF81A_1A22);
+    for (n, (_, name)) in options.iter().enumerate().skip(first).take(rows) {
+        let r = [x + 2.0, y + 2.0 + (n - first) as f32 * 14.0, w - 4.0, 14.0];
+        let t = ease(key(32, n), if inside(r, mouse) { 1.0 } else { 0.0 }, 0.0, animate);
+        let chosen = s.v[f] == n;
+        if chosen || t > 0.01 {
+            rounded(out, r, 3.0, if chosen { argb(accent, 0.35 + 0.15 * t) } else { argb(0xFFFFFF, 0.08 * t) });
+        }
+        label(out, name, [r[0] + 6.0, r[1] + 3.5], 0xFFFF_FFFF, false, 1.0);
+        hits.push((r, Action::Pick(f, n)));
+    }
+    if options.len() > rows {
+        let track = [x + w - 4.0, y + 3.0, 2.0, h - 6.0];
+        out.push(Shape::Fill(track, 0x18FF_FFFF));
+        let part = rows as f32 / options.len() as f32;
+        out.push(Shape::Fill([track[0], track[1] + track[3] * first as f32 / options.len() as f32, 2.0, (track[3] * part).max(6.0)], 0xFF00_0000 | accent));
+    }
+}
+
+/// HSV (all 0..1) as 0xRRGGBB.
+pub fn hsv_rgb(h: f32, s: f32, v: f32) -> u32 {
+    let i = (h * 6.0).floor();
+    let f = h * 6.0 - i;
+    let (p, q, t) = (v * (1.0 - s), v * (1.0 - f * s), v * (1.0 - (1.0 - f) * s));
+    let (r, g, b) = match i as i32 % 6 { 0 => (v, t, p), 1 => (q, v, p), 2 => (p, v, t), 3 => (p, q, v), 4 => (t, p, v), _ => (v, p, q) };
+    let c = |x: f32| (x.clamp(0.0, 1.0) * 255.0).round() as u32;
+    (c(r) << 16) | (c(g) << 8) | c(b)
+}
+
+/// The built-in colour picker: saturation and brightness across a square, a hue bar, quick swatches and the hex.
+#[allow(clippy::too_many_arguments)]
+fn color_picker(out: &mut Vec<Shape>, hits: &mut Vec<([f32; 4], Action)>, r: [f32; 4], f: usize, s: &Settings, m: &Menu, accent: u32,
+                width: &dyn Fn(&str) -> f32) {
+    let rgb = s.color(f);
+    let (h, sat, val) = rgb_hsv([((rgb >> 16) & 255) as f32 / 255.0, ((rgb >> 8) & 255) as f32 / 255.0, (rgb & 255) as f32 / 255.0]);
+    rounded(out, r, 4.0, CARD);
+    // The square: saturation left to right, brightness top to bottom, at this hue (clicked or dragged).
+    let (cols, rows) = (24usize, 12usize);
+    let sq = [r[0] + 6.0, r[1] + 6.0, 120.0, r[3] - 12.0];
+    let (cw, ch) = (sq[2] / cols as f32, sq[3] / rows as f32);
+    for i in 0..cols {
+        for j in 0..rows {
+            let (cs, cv) = (i as f32 / (cols - 1) as f32, 1.0 - j as f32 / (rows - 1) as f32);
+            let cell = [sq[0] + i as f32 * cw, sq[1] + j as f32 * ch, cw + 0.3, ch + 0.3];
+            let c = hsv_rgb(h, cs, cv);
+            out.push(Shape::Fill(cell, 0xFF00_0000 | c));
+            hits.push((cell, Action::SetColor(f, c)));
+        }
+    }
+    let mark = [sq[0] + sat * (sq[2] - 3.0), sq[1] + (1.0 - val) * (sq[3] - 3.0)];
+    out.push(Shape::Fill([mark[0] - 1.0, mark[1] - 1.0, 5.0, 5.0], 0xFF00_0000));
+    out.push(Shape::Fill([mark[0], mark[1], 3.0, 3.0], 0xFFFF_FFFF));
+    // The hue bar.
+    let bar = [sq[0] + sq[2] + 6.0, sq[1], 10.0, sq[3]];
+    let steps = 36;
+    for k in 0..steps {
+        let hh = k as f32 / steps as f32;
+        let cell = [bar[0], bar[1] + k as f32 * bar[3] / steps as f32, bar[2], bar[3] / steps as f32 + 0.3];
+        out.push(Shape::Fill(cell, 0xFF00_0000 | hsv_rgb(hh, 1.0, 1.0)));
+        hits.push((cell, Action::SetColor(f, hsv_rgb(hh, sat.max(0.6), val.max(0.6)))));
+    }
+    out.push(Shape::Fill([bar[0] - 2.0, bar[1] + h * bar[3] - 1.0, bar[2] + 4.0, 2.0], 0xFFFF_FFFF));
+    // The swatch, the hex box and quick picks.
+    let side = bar[0] + bar[2] + 8.0;
+    rounded(out, [side, sq[1], 22.0, 22.0], 4.0, 0xFF00_0000 | rgb);
+    let hb = [side + 28.0, sq[1] + 3.0, 62.0, 15.0];
+    let typing = m.hex.as_ref().filter(|(hf, _)| *hf == f);
+    rounded(out, hb, 4.0, if typing.is_some() { argb(accent, 0.25) } else { 0x20FF_FFFF });
+    let text = typing.map_or(format!("#{rgb:06X}"), |(_, t)| format!("#{t}"));
+    label(out, &text, [hb[0] + 6.0, hb[1] + 4.0], 0xFFFF_FFFF, false, 1.0);
+    if typing.is_some() {
+        out.push(Shape::Fill([hb[0] + 7.0 + width(&text), hb[1] + 3.0, 1.0, 9.0], 0xFFFF_FFFF));
+    }
+    hits.push((hb, Action::Hex(f)));
+    let quick = [0xFFFFFF, 0xFF5A5A, 0xFF9A3C, 0xF5B83D, 0x5CE08A, 0x3FC1FF, 0x5A7BFF, 0xB884FF, 0xFF7AC8, 0x222228];
+    for (n, c) in quick.iter().enumerate() {
+        let q = [side + (n % 5) as f32 * 14.0, sq[1] + 28.0 + (n / 5) as f32 * 13.0, 11.0, 11.0];
+        rounded(out, q, 3.0, 0xFF00_0000 | c);
+        if *c == rgb {
+            out.push(Shape::Fill([q[0], q[1] + q[3] + 0.5, q[2], 1.0], 0xFFFF_FFFF));
+        }
+        hits.push((q, Action::SetColor(f, *c)));
+    }
+}
+
 /// What a click at `mouse` does, from the same layout as the drawing.
 pub fn menu_click(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, browse: &Fetch, width: &dyn Fn(&str) -> f32) -> Option<Action> {
     let (_, hits) = menu_layout(screen, mouse, m, s, browse, width);
@@ -7974,6 +8638,9 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             false
         }
         Action::Go(page) => {
+            if page == Page::Quests {
+                ask_quests();
+            }
             *m = Menu { page, tab: m.tab, undo: std::mem::take(&mut m.undo), ..Menu::default() };
             false
         }
@@ -7983,10 +8650,17 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
         }
         Action::Back => {
             m.detail = None;
+            m.dropdown = None;
+            m.hex = None;
+            m.page_scroll = 0.0;
             false
         }
         Action::Open(i) => {
             m.detail = Some(i);
+            m.dropdown = None;
+            m.hex = None;
+            m.page_scroll = 0.0;
+            m.folded = vec!["More".into()];
             false
         }
         Action::Toggle(i) => match on_horizon(JAVA_MODULES[i].id) {
@@ -8007,7 +8681,41 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             false
         }
         Action::Retry => {
-            retry(m.tab);
+            if m.page == Page::Quests {
+                ask_quests();
+            } else {
+                retry(m.tab);
+            }
+            false
+        }
+        Action::Dropdown(f) => {
+            m.dropdown = if m.dropdown == Some(f) { None } else { Some(f) };
+            m.drop_scroll = s.v[f].saturating_sub(3);
+            false
+        }
+        Action::Pick(f, i) => {
+            m.dropdown = None;
+            if s.v[f] == i {
+                return false;
+            }
+            s.v[f] = i.min(FIELDS[f].options.len() - 1);
+            true
+        }
+        Action::SetColor(f, rgb) => {
+            s.set_color(f, rgb);
+            true
+        }
+        Action::Hex(f) => {
+            m.hex = Some((f, format!("{:06X}", s.color(f))));
+            false
+        }
+        Action::Group(g) => {
+            let name = GROUP_NAMES[g as usize].to_owned();
+            if let Some(at) = m.folded.iter().position(|n| *n == name) {
+                m.folded.remove(at);
+            } else {
+                m.folded.push(name);
+            }
             false
         }
         Action::Favorite(i) => {
@@ -8178,6 +8886,15 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
 /// The wheel over the menu: `steps` up (positive) or down moves the list.
 pub fn menu_scroll(m: &mut Menu, s: &Settings, steps: f64, screen: [f32; 4], browse: &Fetch) {
     let step = -(steps.signum() as i64);
+    if let Some(f) = m.dropdown {
+        let max = FIELDS[f].options.len().saturating_sub(DROP_ROWS);
+        m.drop_scroll = (m.drop_scroll.min(max) as i64 + step).clamp(0, max as i64) as usize;
+        return;
+    }
+    if m.page == Page::Modules && m.detail.is_some() {
+        m.page_scroll = (m.page_scroll + step as f32 * 22.0).clamp(0.0, 600.0);
+        return;
+    }
     match m.page {
         Page::Modules if m.detail.is_none() => {
             let max = shown_modules(m, s).len().saturating_sub(rows_shown(screen));
@@ -8561,6 +9278,84 @@ mod tests {
         let d = dressing(&s, Some(1), std::path::Path::new("nowhere"), std::path::Path::new("nowhere"));
         assert!(d.capes.is_empty() && !d.pack);
         assert!(CAPE_IDS.len() >= 54 && BLADE_IDS.len() == 36);
+    }
+
+    #[test]
+    fn dropdowns_colours_and_groups() {
+        let screen = [0.0, 0.0, 640.0, 360.0];
+        let mut s = Settings::default();
+        let look = JAVA_MODULES.iter().position(|j| j.id == "world_colors").unwrap();
+        let mut m = Menu { page: Page::Modules, ..Menu::default() };
+        apply(Action::Open(look), &mut m, &mut s, &Fetch::Loading);
+        m.folded.clear();
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+        assert!(hits.iter().any(|(_, a)| *a == Action::Dropdown(WORLD_TINT)), "a choice opens a dropdown");
+        assert!(!apply(Action::Dropdown(WORLD_TINT), &mut m, &mut s, &Fetch::Loading));
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+        let custom = TINTS.iter().position(|t| t.0 == "custom").unwrap();
+        assert!(hits.iter().any(|(_, a)| *a == Action::Pick(WORLD_TINT, 0)));
+        assert!(apply(Action::Pick(WORLD_TINT, custom), &mut m, &mut s, &Fetch::Loading));
+        assert!(m.dropdown.is_none());
+        // Custom colour: the picker's swatches and square set it; the hex can be typed.
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+        assert!(hits.iter().any(|(_, a)| matches!(a, Action::SetColor(f, _) if *f == WORLD_TINT)));
+        assert!(apply(Action::SetColor(WORLD_TINT, 0x123456), &mut m, &mut s, &Fetch::Loading));
+        assert_eq!(tint_rgb(&s, WORLD_TINT), 0x123456);
+        apply(Action::Hex(WORLD_TINT), &mut m, &mut s, &Fetch::Loading);
+        for _ in 0..6 {
+            menu_key(&mut m, &mut s, "key.keyboard.backspace", false);
+        }
+        for c in "ff8800".chars() {
+            assert!(menu_typed(&mut m, c));
+        }
+        assert_eq!(menu_key(&mut m, &mut s, "key.keyboard.enter", false), (true, true));
+        assert_eq!(s.color(WORLD_TINT), 0xFF8800);
+        let stored = s.stored();
+        let back = Settings::read(|k| stored.iter().find(|(key, _)| *key == k).map(|(_, v)| v.clone()));
+        assert_eq!(back.color(WORLD_TINT), 0xFF8800);
+        assert_eq!(hsv_rgb(0.0, 1.0, 1.0), 0xFF0000);
+        // Groups fold.
+        assert_eq!(setting_group(WORLD_TINT), 2);
+        apply(Action::Group(2), &mut m, &mut s, &Fetch::Loading);
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &Fetch::Loading, &width);
+        assert!(!hits.iter().any(|(_, a)| *a == Action::Dropdown(WORLD_TINT)), "folded away");
+        // A custom accent.
+        s.v[THEME] = 1;
+        s.v[ACCENT] = ACCENTS.iter().position(|a| a.0 == "custom").unwrap();
+        s.set_color(ACCENT, 0xABCDEF);
+        assert_eq!(s.accent(), 0xABCDEF);
+    }
+
+    #[test]
+    fn the_website_like_the_java_mod() {
+        let f = Fight { with: "Alex".into(), id: 7, start: Instant::now(), last: Instant::now(), hits: 6, dealt: 14.0, pops: 1, uuid: 0x1234, swings: 8, taken: 5.0, combo: 4 };
+        let up = fight_upload(&f, true, 3, 12.0, Instant::now());
+        assert_eq!((up.prefix, up.path), ("arsenal-fight-v1", "/v1/fights"));
+        let json: serde_json::Value = serde_json::from_str(up.fields[0].1.as_str().unwrap()).unwrap();
+        assert_eq!((json["won"].as_bool(), json["accuracy"].as_u64(), json["client"].as_str()), (Some(true), Some(75), Some("horizon")));
+        assert_eq!(up.extra[0], sha256_hex(up.fields[0].1.as_str().unwrap().as_bytes()), "the signature covers the fight");
+        let mut x = More3 { part_since: Some(Instant::now()), part_kills: 2, ..Default::default() };
+        x.part_victims.insert(0x99, 2);
+        let up = session_upload(&mut x, "play.example.net", false).unwrap();
+        let json: serde_json::Value = serde_json::from_str(up.fields[0].1.as_str().unwrap()).unwrap();
+        assert_eq!((json["kills"].as_u64(), json["server"].as_str()), (Some(2), Some("play.example.net")));
+        assert_eq!(x.part_kills, 0);
+        assert_eq!(hour_now().len(), 13);
+        // Joining sends presence and a sync (with Friends on); leaving the last session part.
+        let mut s = Settings::default();
+        s.v[FRIENDS] = 1;
+        let ups = website_tick(&s, Some("play.example.net"), &[], Some(20.0));
+        assert!(ups.iter().any(|u| u.prefix == "arsenal-presence-v1") && ups.iter().any(|u| u.prefix == "arsenal-friends-v1"));
+        let ups = website_tick(&s, None, &[], None);
+        assert!(ups.iter().any(|u| u.prefix == "arsenal-session-v1"));
+        web_answer("/v1/fights", 200, r#"{"ok":true,"unlocked":["first_blood"],"questsCompleted":[{"title":"Win 3 fights","reward":50}]}"#);
+        let (notes, _) = take_web();
+        assert!(notes.iter().any(|n| n == "Quest done: Win 3 fights (+50 credits)") && notes.iter().any(|n| n == "Achievement unlocked: First Blood"));
+        web_answer("/v1/quests/me", 200, r#"{"daily":[{"title":"Get 5 kills","progress":2,"goal":5,"reward":20,"done":false}],"weekly":[]}"#);
+        assert_eq!(quests().unwrap().unwrap().0[0].title, "Get 5 kills");
+        assert!(social_upload("friend add Steve", Some("Me"), &|_| None).is_some_and(|u| u.prefix == "arsenal-friend-v1"));
+        assert!(social_upload("duel accept Steve", None, &|_| Some(5)).is_some_and(|u| u.extra[1] == "true"));
+        assert!(social_upload("duel accept Steve", None, &|_| None).is_none());
     }
 
     #[test]
@@ -9103,8 +9898,12 @@ mod tests {
         let zoom = JAVA_MODULES.iter().position(|j| j.id == "zoom").unwrap();
         apply(Action::Open(zoom), &mut m, &mut s, &none);
         let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
-        assert!(hits.iter().any(|(_, a)| *a == Action::Setting(ZOOM)));
-        assert!(apply(Action::Setting(ZOOM), &mut m, &mut s, &none));
+        assert!(hits.iter().any(|(_, a)| *a == Action::Dropdown(ZOOM)), "a choice opens its dropdown");
+        apply(Action::Dropdown(ZOOM), &mut m, &mut s, &none);
+        let six = ZOOMS.iter().position(|z| z.0 == "6").unwrap();
+        let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &none, &width);
+        assert!(hits.iter().any(|(_, a)| *a == Action::Pick(ZOOM, six)));
+        assert!(apply(Action::Pick(ZOOM, six), &mut m, &mut s, &none));
         assert_eq!(s.zoom_level(), 6.0);
         // Browse: a card applies its crosshair.
         let ready = Fetch::Ready(vec![GalleryItem { title: "Plus".into(), author: "A".into(), look: Look::Crosshair(cross()) }]);

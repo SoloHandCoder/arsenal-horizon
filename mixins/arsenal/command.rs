@@ -33,6 +33,16 @@ fn arsenal_command(game: &mut crate::game::Game<'_>, command: &str, ran: &mut bo
             m::send_crash(&dir);
             game.native_chat("Crash report sent. Thanks!");
         }
+        m::Command::Web(up, say) => {
+            let signed = game.arsenal_signed(up.prefix, &up.extra);
+            match signed {
+                Some(signed) => {
+                    m::send_upload(up, signed);
+                    game.native_chat(&say);
+                }
+                None => game.native_chat("That needs your Minecraft account (offline accounts can't use the Arsenal website)."),
+            }
+        }
         m::Command::Cloud(save) => {
             m::cloud_ask(save);
             game.native_chat(if save { "Saving to your Arsenal cloud backup..." } else { "Restoring from your Arsenal cloud backup..." });
