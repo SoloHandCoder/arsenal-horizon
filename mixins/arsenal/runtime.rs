@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.15.0";
+pub const VERSION: &str = "1.16.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -968,7 +968,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "hypixel_skyblock" => "On Horizon: your area, purse, bits and the SkyBlock date, Booster Cookie and God Potion timers, dungeon and slayer cards, Bazaar and NPC prices in tooltips and a spam filter. Only reads what the game shows.",
         "album_colors" => "On Horizon (Windows): the HUD and menu accent, and the sky with Arsenal's shader pack, take the colours of the album playing in Spotify.",
         "cloud_backup" => "On Horizon: /arsenal cloud save keeps your Horizon setup in your Arsenal cloud backup (next to the Java one, which stays as it is) and every 5 minutes after a change; /arsenal cloud restore brings it back on any PC (or your Java setup's modules when there's no Horizon one).",
-        "blade_settings" => "On Horizon: your Wardrobe blade in your hand, its size, and the inspect key (Y) that spins it. Other Arsenal users' blades and capes show too (Arsenal Cosmetics).",
+        "blade_settings" => "On Horizon: your Wardrobe blade in your hand, its size, and the inspect key (Y) that spins it. Other Arsenal users' blades, capes, hats, accessories and pets show too (Arsenal Cosmetics).",
         "inventory_cursor_speed" => "On Horizon: a separate mouse speed in inventories. Your real cursor is never moved: Arsenal draws its own. F8 turns it off at once.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
@@ -1039,7 +1039,7 @@ pub struct Settings {
     pub theme: Option<Theme>,
     pub crosshair: Option<Crosshair>,
     /// Where the HUD editor moved elements: (element, [dx, dy, scale]).
-    pub layout: Vec<(String, [f32; 3])>,
+    pub layout: Vec<(String, [f32; 5])>,
     /// The modules starred in the menu (Java ids), in the order starred.
     pub favorites: Vec<String>,
     /// A key per module (Java id, "key.keyboard.h") that switches it.
@@ -1050,8 +1050,8 @@ pub struct Settings {
     /// The HUD editor: a theme for one element (element, theme name).
     pub hud_themes: Vec<(String, String)>,
     /// The layout for everywhere, and the ones for one server (`layout` is the one in use).
-    pub main_layout: Vec<(String, [f32; 3])>,
-    pub server_layouts: Vec<(String, Vec<(String, [f32; 3])>)>,
+    pub main_layout: Vec<(String, [f32; 5])>,
+    pub server_layouts: Vec<(String, Vec<(String, [f32; 5])>)>,
     /// Hide risky: the menu leaves out what some servers may not allow.
     pub hide_risky: bool,
 }
@@ -1364,7 +1364,9 @@ struct State {
     pvp: Pvp,
     /// The visuals Arsenal set (to give each back once when its module goes off), and the brightness before Fullbright.
     applied: [bool; 8],
+    applied_v: [Option<String>; 8],
     saved_gamma: Option<f32>,
+    gamma_checked: bool,
     /// The block aimed at this frame.
     aimed: Option<[i32; 3]>,
     /// Arsenal's own particles: where, which (1 crit, 2 sweep), since when, which way.
@@ -2095,45 +2097,45 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
             out.push(Shape::Fill([cx + dx, cy + dy, 2.0, 2.0], 0xFFFF_5A5A));
         }
     }
-    let mut corner: Vec<(String, u32)> = Vec::new();
-    let mark = out.len();
+    // The top-left lines, each its own HUD element.
+    let mut corner: Vec<(String, u32, &'static str)> = Vec::new();
     if settings.on(CLOCK) {
-        corner.push((clock.to_owned(), 0xFFFFFF));
+        corner.push((clock.to_owned(), 0xFFFFFF, "clock"));
     }
-    place(settings, &mut out, mark, "clock", w, h, width);
-    let mark = out.len();
     if settings.on(LAG) {
         match status.ping {
-            Some(ms) => corner.push((format!("Ping {ms} ms"), ping_rgb(ms))),
-            None => corner.push(("Ping -".into(), 0xAAAAAA)),
+            Some(ms) => corner.push((format!("Ping {ms} ms"), ping_rgb(ms), "lag")),
+            None => corner.push(("Ping -".into(), 0xAAAAAA, "lag")),
         }
     }
-    place(settings, &mut out, mark, "lag", w, h, width);
     STATE.with_borrow(|st| {
         let p = &st.pvp;
         if settings.on(SESSION_STATS) {
             let kd = p.kills_total as f32 / p.deaths_total.max(1) as f32;
             let mins = p.session_start.map_or(0, |t| t.elapsed().as_secs() / 60);
             let popped: u32 = p.pops.values().sum();
-            corner.push((format!("K {}  D {}  K/D {kd:.2}", p.kills_total, p.deaths_total), 0xFFFFFF));
-            corner.push((format!("Pops {popped}  {}h {}m", mins / 60, mins % 60), 0xCCCCCC));
+            corner.push((format!("K {}  D {}  K/D {kd:.2}", p.kills_total, p.deaths_total), 0xFFFFFF, "session_stats"));
+            corner.push((format!("Pops {popped}  {}h {}m", mins / 60, mins % 60), 0xCCCCCC, "session_stats"));
         }
         if settings.on(COMBO_REACH) {
             let reach = p.reach.map_or("-".to_string(), |r| format!("{r:.2}"));
-            corner.push((format!("Combo {}  Best {}  Reach {reach}", p.combo, p.best_combo), 0xFFFFFF));
+            corner.push((format!("Combo {}  Best {}  Reach {reach}", p.combo, p.best_combo), 0xFFFFFF, "combo_reach"));
         }
         if settings.on(FIGHT_TIMER) {
             if let Some(f) = &p.fight {
-                corner.push((format!("Fight {}s vs {}", f.start.elapsed().as_secs(), f.with), 0xFFC83D));
+                corner.push((format!("Fight {}s vs {}", f.start.elapsed().as_secs(), f.with), 0xFFC83D, "fight_timer"));
             }
         }
         // Combo Counter Pop: the number rises and fades by the crosshair.
+        let mark = out.len();
         if settings.on(COMBO_POP) {
             if let Some((n, at)) = p.combo_shown.filter(|c| c.0 >= 2 && c.1.elapsed() < Duration::from_millis(700)) {
                 let t = at.elapsed().as_secs_f32();
                 out.push(Shape::Text(format!("{n}x"), [cx + 10.0, cy - 12.0 - t * 14.0], 0xFFC83D, true));
             }
         }
+        place(settings, &mut out, mark, "combo_pop", w, h, width);
+        let mark = out.len();
         if settings.on(FEED) {
             let mut y = h - 70.0;
             for (line, _) in p.feed.iter().rev().take(5) {
@@ -2142,6 +2144,8 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
                 y -= 10.0;
             }
         }
+        place(settings, &mut out, mark, "feed", w, h, width);
+        let mark = out.len();
         if let Some((lines, at)) = p.card.as_ref().filter(|c| c.1.elapsed() < Duration::from_secs(6)) {
             let _ = at;
             let wide = lines.iter().map(|l| width(l)).fold(0.0, f32::max) + 12.0;
@@ -2153,6 +2157,7 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
                 out.push(Shape::Text(l.clone(), [x + 6.0, y + 5.0 + i as f32 * 11.0], if i == 0 { 0xFFC83D } else { 0xFFFFFF }, true));
             }
         }
+        place(settings, &mut out, mark, "fight_card", w, h, width);
         let _ = now;
     });
     let mark = out.len();
@@ -2162,14 +2167,20 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
     }
     place(settings, &mut out, mark, "totems", w, h, width);
     let mut y = 4.0;
-    let mark = out.len();
-    for (text, rgb) in corner {
-        let tw = width(&text);
-        out.push(Shape::Fill([2.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
-        out.push(Shape::Text(text, [5.0, y], rgb, false));
-        y += 12.0;
+    let mut i = 0;
+    while i < corner.len() {
+        let id = corner[i].2;
+        let mark = out.len();
+        while i < corner.len() && corner[i].2 == id {
+            let (text, rgb, _) = corner[i].clone();
+            let tw = width(&text);
+            out.push(Shape::Fill([2.0, y - 2.0, tw + 6.0, 11.0], BACKGROUND));
+            out.push(Shape::Text(text, [5.0, y], rgb, false));
+            y += 12.0;
+            i += 1;
+        }
+        place(settings, &mut out, mark, id, w, h, width);
     }
-    place(settings, &mut out, mark, "stats", w, h, width);
     if let (true, Some(cam)) = (settings.on(NAMETAG_PING), cam) {
         for o in others {
             let Some(ms) = status.latencies.iter().find(|l| l.0 == o.name).map(|l| l.1).filter(|ms| *ms > 0) else { continue };
@@ -2201,6 +2212,9 @@ pub struct Visuals {
     pub hide_particles: u32,
     pub capture: bool,
     pub crystal_optimizer: bool,
+    /// Fullbright: the brightness to keep in Arsenal's settings (-1 forgets it), and whether to put the kept one back.
+    pub keep_gamma: Option<f32>,
+    pub restore_gamma: bool,
 }
 
 /// The lines Chat Filter hides (lower case pieces of them).
@@ -2231,11 +2245,18 @@ pub fn visuals(settings: &Settings, gamma: f32) -> Visuals {
         let a = &mut s.applied;
         let (hide_particles, capture) = particle_rules(settings);
         let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), hide_particles, capture, crystal_optimizer: settings.on(CRYSTAL_OPT), ..Default::default() };
+        let last = &mut s.applied_v;
         let mut pick = |on: bool, slot: usize, value: Option<String>, off: String| -> Option<String> {
             if on {
                 a[slot] = true;
+                // Only when it changes: the player's own Horizon options aren't set again every tick.
+                if last[slot] == value {
+                    return None;
+                }
+                last[slot] = value.clone();
                 value
             } else if std::mem::take(&mut a[slot]) {
+                last[slot] = None;
                 Some(off)
             } else {
                 None
@@ -2258,11 +2279,17 @@ pub fn visuals(settings: &Settings, gamma: f32) -> Visuals {
         if settings.on(FULLBRIGHT) {
             if s.saved_gamma.is_none() && gamma < 2.0 {
                 s.saved_gamma = Some(gamma);
+                v.keep_gamma = Some(gamma);
             }
             v.gamma = Some(15.0);
         } else if let Some(g) = s.saved_gamma.take() {
             v.gamma = Some(g);
+            v.keep_gamma = Some(-1.0);
+        } else if gamma >= 2.0 && !s.gamma_checked {
+            // Bright from a save made while Fullbright was on: the brightness kept from before.
+            v.restore_gamma = true;
         }
+        s.gamma_checked = true;
         v
     })
 }
@@ -2853,7 +2880,7 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
     if settings.on(MIST) {
         p[0][2] = 1.0;
         let rgb = match MIST_COLORS[settings.v[MIST_COLOR]].0 { "blue" => [0.6, 0.72, 0.9], "purple" => [0.7, 0.6, 0.9], "green" => [0.62, 0.85, 0.66], _ => [0.85, 0.87, 0.9] };
-        p[5] = [rgb[0], rgb[1], rgb[2], 72.0];
+        p[5] = [rgb[0], rgb[1], rgb[2], -3.0];
     }
     p[0][3] = 1.0;
     if settings.on(LOOK) {
@@ -2894,7 +2921,7 @@ pub const PACK: &[(&str, &str)] = &[
 //   mods[2]: world tint: rgb colour, w how much
 //   mods[3]: sky tint: rgb colour, w how much
 //   mods[4]: Sky Effects: x aurora, y stars, z sky glow
-//   mods[5]: Mist colour: rgb, w height it lies under (blocks)
+//   mods[5]: Mist colour: rgb, w how far under the camera it lies (blocks)
 //   mods[6]: x Slick Floors (1 on)
 
 fn luminance(c: vec3<f32>) -> f32 {
@@ -2913,7 +2940,7 @@ fn hash2(p: vec2<f32>) -> f32 {
     ("horizon-shaders.toml", r####"schema = 1
 id = "arsenal"
 name = "Arsenal"
-version = "1.1.0"
+version = "1.2.0"
 api = "0.1"
 description = "Arsenal's visuals on Horizon: Bloom, World Look, Sky & World Colors, Mist, Sky Effects and Motion Blur, switched on and set in Arsenal's menu (Right Shift). With them all off it leaves the picture as it is."
 authors = ["Arsenal"]
@@ -2936,31 +2963,66 @@ name = "Bloom"
 file = "post/motion.wgsl"
 name = "Motion Blur"
 
+[[post]]
+file = "post/fxaa.wgsl"
+name = "Smoothing (packs turn off the game's own anti-aliasing)"
+
 [budget]
 gpu_ms = 2.0
 "####),
-    ("post/bloom.wgsl", r####"// Bloom: bright parts glow out softly (a ring of samples round each pixel, only what's brighter than the threshold).
+    ("post/bloom.wgsl", r####"// Bloom: bright parts glow out softly. A disc of samples turned a little for each pixel (no rings), sized to the
+// screen so it looks the same at any resolution; only what's brighter than the threshold glows.
 fn post(input: PostInput) -> vec4<f32> {
     let strength = frame.mods[0].x;
     if strength <= 0.0 {
         return input.color;
     }
-    let px = 1.0 / frame.resolution;
+    let aspect = frame.resolution.x / frame.resolution.y;
+    let radius = vec2<f32>(0.012 / aspect, 0.012);
+    let spin = hash2(input.pixel.xy) * 6.2831853;
     var glow = vec3<f32>(0.0);
     var total = 0.0;
-    for (var ring = 1; ring <= 3; ring++) {
-        for (var k = 0; k < 8; k++) {
-            let a = f32(k) * 0.7853982 + f32(ring) * 0.4;
-            let offset = vec2<f32>(cos(a), sin(a)) * px * f32(ring) * 4.0;
-            let s = textureSampleLevel(previous, linear_sampler, input.uv + offset, 0.0).rgb;
-            let bright = max(luminance(s) - 0.65, 0.0);
-            let w = 1.0 / f32(ring);
-            glow += s * bright * w;
-            total += w;
-        }
+    for (var k = 0; k < 16; k++) {
+        // Vogel's spiral: evenly spread over the disc.
+        let r = sqrt((f32(k) + 0.5) / 16.0);
+        let a = f32(k) * 2.3999632 + spin;
+        let offset = vec2<f32>(cos(a), sin(a)) * radius * r;
+        let s = textureSampleLevel(previous, linear_sampler, input.uv + offset, 0.0).rgb;
+        let bright = max(luminance(s) - 0.65, 0.0);
+        let w = 1.0 - r * 0.7;
+        glow += s * bright * w;
+        total += w;
     }
     let c = input.color.rgb + glow / max(total, 1.0) * strength * 4.0;
     return vec4<f32>(c, input.color.a);
+}
+"####),
+    ("post/fxaa.wgsl", r####"// Smoothing: a light FXAA, as a pack with post passes turns off the game's own anti-aliasing.
+fn post(input: PostInput) -> vec4<f32> {
+    let px = 1.0 / frame.resolution;
+    let c = input.color.rgb;
+    let n = textureSampleLevel(previous, linear_sampler, input.uv + vec2<f32>(0.0, -px.y), 0.0).rgb;
+    let s = textureSampleLevel(previous, linear_sampler, input.uv + vec2<f32>(0.0, px.y), 0.0).rgb;
+    let e = textureSampleLevel(previous, linear_sampler, input.uv + vec2<f32>(px.x, 0.0), 0.0).rgb;
+    let w = textureSampleLevel(previous, linear_sampler, input.uv + vec2<f32>(-px.x, 0.0), 0.0).rgb;
+    let lc = luminance(c);
+    let ln = luminance(n);
+    let ls = luminance(s);
+    let le = luminance(e);
+    let lw = luminance(w);
+    let lo = min(lc, min(min(ln, ls), min(le, lw)));
+    let hi = max(lc, max(max(ln, ls), max(le, lw)));
+    let range = hi - lo;
+    if range < max(0.0312, hi * 0.125) {
+        return input.color;
+    }
+    // Blur along the edge (across the larger change).
+    let horizontal = abs(ln + ls - 2.0 * lc) >= abs(le + lw - 2.0 * lc);
+    let dir = select(vec2<f32>(px.x, 0.0), vec2<f32>(0.0, px.y), horizontal);
+    let a = textureSampleLevel(previous, linear_sampler, input.uv + dir * 0.5, 0.0).rgb;
+    let b = textureSampleLevel(previous, linear_sampler, input.uv - dir * 0.5, 0.0).rgb;
+    let amount = clamp(range / max(hi, 0.0001), 0.0, 1.0) * 0.6;
+    return vec4<f32>(mix(c, (a + b) * 0.5, amount), input.color.a);
 }
 "####),
     ("post/grade.wgsl", r####"// World Look (saturation, contrast, exposure, vignette), Sky & World Colors' world tint, Mist low over the ground and
@@ -2983,14 +3045,14 @@ fn post(input: PostInput) -> vec4<f32> {
     let density = frame.mods[0].z;
     if density > 0.0 && input.depth > 0.0 {
         let p = view_position(input.uv, input.depth);
-        let height = p.y + frame.camera_position.y;
-        let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, height);
+        // mist.w: how far under the camera it lies, so caves and every world get it the same.
+        let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, p.y);
         let far = 1.0 - exp(-length(p) * 0.03 * density);
         c = mix(c, mist.rgb, clamp(far * low, 0.0, 0.85));
     }
     // Slick Floors: up-facing ground near you darker and glossy, with puddles (the normal comes from the depth).
     if frame.mods[6].x > 0.0 && input.depth > 0.0 {
-        let px = 1.0 / frame.resolution;
+        let px = 2.0 / frame.resolution;
         let right = input.uv + vec2<f32>(px.x, 0.0);
         let down = input.uv + vec2<f32>(0.0, px.y);
         let dr = depth_at(right);
@@ -2998,8 +3060,8 @@ fn post(input: PostInput) -> vec4<f32> {
         if dr > 0.0 && dd > 0.0 {
             let p = view_position(input.uv, input.depth);
             let n = normalize(cross(view_position(right, dr) - p, view_position(down, dd) - p));
-            let near = 1.0 - smoothstep(8.0, 22.0, length(p));
-            let ground = smoothstep(0.9, 0.99, abs(n.y)) * select(0.0, 1.0, p.y < -0.2) * near * frame.mods[6].x;
+            let near = 1.0 - smoothstep(6.0, 16.0, length(p));
+            let ground = smoothstep(0.95, 0.995, abs(n.y)) * select(0.0, 1.0, p.y < -0.2) * near * frame.mods[6].x;
             if ground > 0.0 {
                 let world = p.xz + frame.camera_position.xz;
                 let puddle = smoothstep(0.55, 0.8, hash2(floor(world * 0.5)) * 0.6 + hash2(floor(world * 1.7)) * 0.4);
@@ -3021,12 +3083,15 @@ fn post(input: PostInput) -> vec4<f32> {
     return vec4<f32>(clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), input.color.a);
 }
 "####),
-    ("post/motion.wgsl", r####"// Motion Blur: a little of the last frame stays on, so fast turns smear (none on the first frame or after a pause).
+    ("post/motion.wgsl", r####"// Motion Blur: the last frame fades out over a set time (the same at any frame rate); none after a pause.
 fn post(input: PostInput) -> vec4<f32> {
-    let k = clamp(frame.mods[0].y, 0.0, 0.85);
-    if k <= 0.0 || frame.delta_time <= 0.0 {
+    let amount = clamp(frame.mods[0].y, 0.0, 1.0);
+    let dt = frame.delta_time;
+    if amount <= 0.0 || dt <= 0.0 || dt > 0.2 {
         return input.color;
     }
+    // How much of the last frame is left after dt: a time constant of up to 60 ms.
+    let k = min(exp(-dt / (0.06 * amount)), 0.75);
     let last = textureSampleLevel(history, linear_sampler, input.uv, 0.0).rgb;
     return vec4<f32>(mix(input.color.rgb, last, k), input.color.a);
 }
@@ -3206,6 +3271,7 @@ struct More {
     freelook_held: bool,
     /// Quick Menu: the feature picked while V is held.
     quick: Option<usize>,
+    quick_len: usize,
     /// Sprint Reset Indicator: you hit since you started sprinting.
     sprint_used: bool,
     sprinting: bool,
@@ -3257,7 +3323,6 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
         l.swing = option_num(settings, SWING_SPEED);
     }
     if settings.on(OLD_ANIM) {
-        l.lower = 12;
         l.blockhit = true;
     }
     if settings.on(HAND_TINT) {
@@ -3304,7 +3369,7 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
     STATE.with_borrow_mut(|s| {
         let m = &mut s.more;
         let now = [settings.on(CHAT_TWEAKS), settings.on(CHAT_TWEAKS), settings.on(CHAT_COPY), settings.on(RECONNECT)];
-        let change = |i: usize, was: &[bool; 4]| if now[i] { Some(true) } else if was[i] { Some(false) } else { None };
+        let change = |i: usize, was: &[bool; 4]| if now[i] && !was[i] { Some(true) } else if was[i] && !now[i] { Some(false) } else { None };
         l.chat = [change(0, &m.was), change(1, &m.was), change(2, &m.was)];
         l.reconnect = change(3, &m.was);
         m.was = now;
@@ -3349,11 +3414,14 @@ pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool, aim
             }
             "key_quick_menu" if settings.on(QUICK_MENU) => {
                 if pressed && playing {
-                    m.quick = Some(0);
+                    // No pick yet: a tap of V switches nothing.
+                    m.quick = Some(usize::MAX);
+                    m.quick_len = quick_list(settings).len();
                     None
                 } else {
                     let list = quick_list(settings);
-                    m.quick.take().map(|i| list[quick_pick(list.len(), aim, i)])
+                    let aimed = aim.is_some_and(|(x, y)| (x * x + y * y).sqrt() > 12.0);
+                    m.quick.take().filter(|i| aimed || *i != usize::MAX).map(|i| list[quick_pick(list.len(), aim, if i == usize::MAX { 0 } else { i })])
                 }
             }
             "key_performance" if pressed => Some(PERF),
@@ -3369,9 +3437,9 @@ pub fn more_key(settings: &Settings, id: &str, pressed: bool, playing: bool, aim
 /// Quick Menu's wheel moves the pick while V is held.
 pub fn quick_wheel(steps: f32) -> bool {
     STATE.with_borrow_mut(|s| {
+        let n = s.more.quick_len.max(1) as i32;
         let Some(i) = s.more.quick.as_mut() else { return false };
-        let n = 10;
-        *i = (*i as i32 - steps.signum() as i32).rem_euclid(n) as usize;
+        *i = if *i == usize::MAX { 0 } else { (*i as i32 - steps.signum() as i32).rem_euclid(n) as usize };
         true
     })
 }
@@ -3865,7 +3933,8 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
     place(settings, &mut out, mark, "lyrics", w, h, width);
     if let Some(wheel) = quick {
         let list = quick_list(settings);
-        let pick = quick_pick(list.len(), aim, wheel);
+        let aimed = aim.is_some_and(|(x, y)| (x * x + y * y).sqrt() > 12.0);
+        let pick = if aimed || wheel != usize::MAX { quick_pick(list.len(), aim, if wheel == usize::MAX { 0 } else { wheel }) } else { usize::MAX };
         let n = list.len() as f32;
         rounded(&mut out, [cx - 18.0, cy - 18.0, 36.0, 36.0], 18.0, 0x9010_1014);
         if let Some((x, y)) = aim {
@@ -3903,9 +3972,11 @@ pub fn toast(text: String) {
 
 /// The HUD elements the editor moves: (id, name).
 pub const HUD_ELEMENTS: &[(&str, &str)] = &[
-    ("panel", "Info HUD"), ("graph", "FPS Graph"), ("health", "Health HUD"), ("saturation", "Saturation"), ("armor", "Armor HUD"),
+    ("info_fps", "FPS"), ("info_cps", "CPS"), ("info_xyz", "Coordinates"), ("info_facing", "Facing"), ("info_speed", "Speed"),
+    ("info_session", "Session time"), ("info_sneak", "Toggle Sneak"), ("graph", "FPS Graph"), ("health", "Health HUD"), ("saturation", "Saturation"), ("armor", "Armor HUD"),
     ("counter", "Item Counter"), ("warnings", "Warnings"), ("ready", "Ready Check"), ("potions", "Potion Timers"),
-    ("attack_bar", "Attack Charge Bar"), ("clock", "Clock"), ("lag", "Lag Meter"), ("stats", "Session and fight lines"),
+    ("attack_bar", "Attack Charge Bar"), ("clock", "Clock"), ("lag", "Lag Meter"), ("session_stats", "Session Stats"), ("combo_reach", "Combo & Reach"),
+    ("fight_timer", "Fight Timer"), ("combo_pop", "Combo Pop"), ("feed", "Combat Feed"), ("fight_card", "Fight Summary"),
     ("totems", "Totem Count"), ("streak", "Kill Streaks"), ("combat_tag", "Combat Tag Timer"), ("mention", "Mention Ping"),
     ("pops", "Totem Pop Counter"), ("target", "Target HUD"), ("bow", "Bow Charge"), ("retotem", "Re-totem Timer"),
     ("goal", "Session Goal"), ("intel", "Opponent Intel"), ("summary", "Session Summary"), ("cooldowns", "Cooldown HUD"),
@@ -3913,18 +3984,33 @@ pub const HUD_ELEMENTS: &[(&str, &str)] = &[
     ("skyblock_timers", "SkyBlock timers"), ("skyblock_dungeon", "SkyBlock dungeon"), ("skyblock_slayer", "SkyBlock slayer"),
 ];
 
-/// "id=dx,dy,scale;..." as the layout.
-pub fn parse_layout(text: &str) -> Vec<(String, [f32; 3])> {
+/// "id=col,row,x,y,scale;..." as the layout: each moved element's place, as the Java mod keeps it: which third of
+/// the screen it's anchored to (col and row 0..2), how far from that anchor, and its size.
+pub fn parse_layout(text: &str) -> Vec<(String, [f32; 5])> {
     text.split(';').filter_map(|p| {
         let (id, v) = p.split_once('=')?;
         let n: Vec<f32> = v.split(',').filter_map(|x| x.trim().parse().ok()).collect();
-        (n.len() == 3 && HUD_ELEMENTS.iter().any(|e| e.0 == id.trim()) && n.iter().all(|x| x.is_finite()))
-            .then(|| (id.trim().to_owned(), [n[0].clamp(-4000.0, 4000.0), n[1].clamp(-4000.0, 4000.0), n[2].clamp(0.5, 3.0)]))
+        (n.len() == 5 && HUD_ELEMENTS.iter().any(|e| e.0 == id.trim()) && n.iter().all(|x| x.is_finite()))
+            .then(|| (id.trim().to_owned(), [n[0].round().clamp(0.0, 2.0), n[1].round().clamp(0.0, 2.0), n[2].clamp(-4000.0, 4000.0),
+                n[3].clamp(-4000.0, 4000.0), n[4].clamp(0.5, 3.0)]))
     }).collect()
 }
 
-pub fn layout_text(layout: &[(String, [f32; 3])]) -> String {
-    layout.iter().map(|(id, v)| format!("{id}={:.0},{:.0},{:.1}", v[0], v[1], v[2])).collect::<Vec<_>>().join(";")
+pub fn layout_text(layout: &[(String, [f32; 5])]) -> String {
+    layout.iter().map(|(id, v)| format!("{id}={:.0},{:.0},{:.0},{:.0},{:.1}", v[0], v[1], v[2], v[3], v[4])).collect::<Vec<_>>().join(";")
+}
+
+/// Where an element of `size` anchored to third `part` (0, 1, 2) of `screen` starts.
+fn anchor_base(part: f32, screen: f32, size: f32) -> f32 {
+    screen * part / 2.0 - size * part / 2.0
+}
+
+/// An element at `at` (top left) of `size` as a layout entry: the third its middle is in, and the distance from there.
+pub fn anchored(at: [f32; 2], size: [f32; 2], scale: f32, screen: [f32; 2]) -> [f32; 5] {
+    let third = |mid: f32, full: f32| if mid < full / 3.0 { 0.0 } else if mid < full * 2.0 / 3.0 { 1.0 } else { 2.0 };
+    let col = third(at[0] + size[0] / 2.0, screen[0]);
+    let row = third(at[1] + size[1] / 2.0, screen[1]);
+    [col, row, (at[0] - anchor_base(col, screen[0], size[0])).round(), (at[1] - anchor_base(row, screen[1], size[1])).round(), scale]
 }
 
 thread_local! {
@@ -3987,12 +4073,18 @@ pub fn offset(shape: Shape, d: [f32; 2]) -> Shape {
 /// HUD element `id` is `out[from..]`: moved and sized as the HUD editor left it, kept on screen, and noted for the editor.
 pub fn place(settings: &Settings, out: &mut Vec<Shape>, from: usize, id: &'static str, w: f32, h: f32, width: &dyn Fn(&str) -> f32) {
     let Some(home) = bounds(&out[from..], width) else { return };
-    let [dx, dy, sc] = settings.layout.iter().find(|(i, _)| i == id).map_or([0.0, 0.0, 1.0], |e| e.1);
+    let entry = settings.layout.iter().find(|(i, _)| i == id).map(|e| e.1);
+    let sc = entry.map_or(1.0, |e| e[4]);
     let (bw, bh) = (home[2] * sc, home[3] * sc);
-    let x = (home[0] + dx).clamp(0.0, (w - bw).max(0.0));
-    let y = (home[1] + dy).clamp(0.0, (h - bh).max(0.0));
+    // Unmoved: where it draws itself. Moved: from its anchor, so a change of size or text never makes it jump.
+    let (x, y) = match entry {
+        Some([col, row, ax, ay, _]) => (anchor_base(col, w, bw) + ax, anchor_base(row, h, bh) + ay),
+        None => (home[0], home[1]),
+    };
+    let x = x.clamp(0.0, (w - bw).max(0.0));
+    let y = y.clamp(0.0, (h - bh).max(0.0));
     let moved = [x, y, bw, bh];
-    if dx != 0.0 || dy != 0.0 || sc != 1.0 || x != home[0] + dx || y != home[1] + dy {
+    if entry.is_some() || x != home[0] || y != home[1] {
         let (ox, oy) = (home[0], home[1]);
         let p = |q: [f32; 2]| [x + (q[0] - ox) * sc, y + (q[1] - oy) * sc];
         for sh in &mut out[from..] {
@@ -5283,6 +5375,10 @@ pub fn load_profile(raw: &Settings, name: &str) -> Option<Settings> {
     s.profiles = raw.profiles.clone();
     s.auto_profiles = raw.auto_profiles.clone();
     s.server_layouts = raw.server_layouts.clone();
+    s.main_layout = s.layout.clone();
+    if let Some(l) = current_server().and_then(|k| s.server_layouts.iter().find(|e| e.0 == k).map(|e| e.1.clone())) {
+        s.layout = l;
+    }
     Some(s)
 }
 
@@ -5317,6 +5413,18 @@ pub fn blade_model(id: &str) -> Option<String> {
 pub struct Wear {
     pub cape: Option<String>,
     pub blade: Option<String>,
+    pub hat: Option<String>,
+    pub accessory: Option<String>,
+    pub pet: Option<String>,
+}
+
+/// What the player with `uuid` wears, as the Wardrobe lookups last said.
+pub fn worn(uuid: u128) -> Option<Wear> {
+    wardrobe(|w| w.worn.get(&uuid).cloned())
+}
+
+fn cosmetic_id(v: &serde_json::Value) -> Option<String> {
+    v.as_str().filter(|id| !id.is_empty() && id.len() < 64 && id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')).map(str::to_owned)
 }
 
 #[derive(Default)]
@@ -5338,7 +5446,13 @@ fn wardrobe<T>(f: impl FnOnce(&mut Wardrobe) -> T) -> T {
 pub fn own_wear(json: &str) -> Wear {
     let v: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
     let pick = |k: &str, known: &dyn Fn(&str) -> bool| v[k].as_str().filter(|id| known(id)).map(str::to_owned);
-    Wear { cape: pick("equipped", &|id| CAPE_IDS.contains(&id)), blade: pick("equippedBlade", &|id| BLADE_IDS.contains(&id)) }
+    Wear {
+        cape: pick("equipped", &|id| CAPE_IDS.contains(&id)),
+        blade: pick("equippedBlade", &|id| BLADE_IDS.contains(&id)),
+        hat: cosmetic_id(&v["equippedHat"]),
+        accessory: cosmetic_id(&v["equippedAccessory"]),
+        pet: cosmetic_id(&v["equippedPet"]),
+    }
 }
 
 /// The lookup's answer for other players (by account hash).
@@ -5347,7 +5461,7 @@ pub fn others_wear(json: &str, hashes: &[(u128, String)]) -> Vec<(u128, Wear)> {
     hashes.iter().map(|(uuid, h)| {
         let cape = v["capes"][h].as_str().filter(|id| CAPE_IDS.contains(id)).map(str::to_owned);
         let blade = v["blades"][h].as_str().filter(|id| BLADE_IDS.contains(id)).map(str::to_owned);
-        (*uuid, Wear { cape, blade })
+        (*uuid, Wear { cape, blade, hat: cosmetic_id(&v["hats"][h]), accessory: cosmetic_id(&v["accessories"][h]), pet: cosmetic_id(&v["pets"][h]) })
     }).collect()
 }
 
@@ -5491,6 +5605,11 @@ fn fetch_pack(pack: std::path::PathBuf, marker: std::path::PathBuf) {
 }
 #[cfg(test)]
 fn fetch_pack(_pack: std::path::PathBuf, _marker: std::path::PathBuf) {}
+
+/// 1.8 Animations: how far held items sit lower (blocks).
+pub fn held_lower(settings: &Settings) -> f32 {
+    if settings.on(OLD_ANIM) { 0.12 } else { 0.0 }
+}
 
 /// Blade Settings' inspect key: the blade spins once.
 pub fn blade_inspect() {
@@ -6169,6 +6288,26 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
+/// What changed between two setups, to store (each stored setting is its own file: only these are written).
+pub fn changed(before: &Settings, after: &Settings) -> Vec<(&'static str, String)> {
+    let old = before.stored();
+    after.stored().into_iter().filter(|(k, v)| old.iter().find(|(ok, _)| ok == k).is_none_or(|(_, ov)| ov != v)).collect()
+}
+
+thread_local! {
+    /// Friends' names, read once (the Friend key and the menu change them through `set_friends`).
+    static FRIENDS_CACHE: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
+}
+
+/// The friends list, read through `get` once and kept.
+pub fn friends(get: impl Fn(&str) -> Option<String>) -> Vec<String> {
+    FRIENDS_CACHE.with_borrow_mut(|f| f.get_or_insert_with(|| friends_of(get("friend_list"))).clone())
+}
+
+pub fn set_friends(list: Vec<String>) {
+    FRIENDS_CACHE.with_borrow_mut(|f| *f = Some(list));
+}
+
 /// The settings as stored, read once through `get` (the menu changes these).
 pub fn raw_settings(get: impl Fn(&str) -> Option<String>) -> Settings {
     STATE.with_borrow_mut(|s| s.settings.get_or_insert_with(|| Settings::read(get)).clone())
@@ -6384,6 +6523,20 @@ pub fn lines(s: &Settings, r: &Readings) -> Vec<(&'static str, String)> {
         }
     }
     out
+}
+
+
+/// An Info HUD line's own element.
+pub fn info_id(label: &str) -> &'static str {
+    match label {
+        "FPS" => "info_fps",
+        "CPS" => "info_cps",
+        "XYZ" => "info_xyz",
+        "Facing" => "info_facing",
+        "Speed" => "info_speed",
+        "Session" => "info_session",
+        _ => "info_sneak",
+    }
 }
 
 /// One thing to draw: a rectangle `[x, y, w, h]` in 0xAARRGGBB, or text at `[x, y]` in 0xRRGGBB with a shadow or not.
@@ -6846,12 +6999,10 @@ pub fn menu_frame(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, bro
             return fade(sh, open, [0.0, 0.0]);
         }
         let mut k = open;
-        let mut d = [0.0, (1.0 - open) * 12.0];
         if i >= content {
             k *= view;
-            d[0] += (1.0 - view) * 14.0;
         }
-        fade(sh, k, d)
+        fade(sh, k, [0.0, 0.0])
     }).collect()
 }
 
@@ -6896,7 +7047,7 @@ fn hud_editor(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: 
         out.push(Shape::Fill([rr[0] + rr[2] - 1.0, rr[1] + 1.0, 1.0, rr[3] - 2.0], edge));
         if picked || t > 0.05 {
             let name = HUD_ELEMENTS.iter().find(|e| e.0 == *id).map_or(*id, |e| e.1);
-            let scale = s.layout.iter().find(|(i, _)| i == id).map_or(1.0, |e| e.1[2]);
+            let scale = s.layout.iter().find(|(i, _)| i == id).map_or(1.0, |e| e.1[4]);
             let text = if scale != 1.0 { format!("{name}  {:.0}%", scale * 100.0) } else { name.to_owned() };
             let tw = width(&text) + 8.0;
             let ty = if rr[1] >= 13.0 { rr[1] - 12.0 } else { rr[1] + rr[3] + 1.0 };
@@ -7696,9 +7847,9 @@ pub fn menu_key(m: &mut Menu, s: &mut Settings, key: &str, ctrl: bool) -> (bool,
 
 // ---- The HUD editor ----
 
-fn set_layout(s: &mut Settings, id: &str, v: [f32; 3]) {
+fn set_layout(s: &mut Settings, id: &str, v: Option<[f32; 5]>) {
     s.layout.retain(|(i, _)| i != id);
-    if v != [0.0, 0.0, 1.0] {
+    if let Some(v) = v {
         s.layout.push((id.to_owned(), v));
     }
 }
@@ -7737,7 +7888,7 @@ pub fn hud_press(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4
     m.picked = Some(id);
     if button == 1 {
         push_undo(m, layout_text(&s.layout));
-        set_layout(s, id, [0.0, 0.0, 1.0]);
+        set_layout(s, id, None);
         return true;
     }
     m.drag = Some(Drag { id, grab: [mouse[0] - rect[0], mouse[1] - rect[1]], before: layout_text(&s.layout), moved: false });
@@ -7781,8 +7932,9 @@ pub fn hud_drag(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4]
     }
     m.drag = Some(Drag { moved: true, ..drag });
     m.guides = guides;
-    let scale = s.layout.iter().find(|(i, _)| i == drag.id).map_or(1.0, |e| e.1[2]);
-    set_layout(s, drag.id, [(x - home[0]).round(), (y - home[1]).round(), scale]);
+    let _ = home;
+    let scale = s.layout.iter().find(|(i, _)| i == drag.id).map_or(1.0, |e| e.1[4]);
+    set_layout(s, drag.id, Some(anchored([x, y], [rect[2], rect[3]], scale, screen)));
     true
 }
 
@@ -7793,16 +7945,17 @@ pub fn hud_release(m: &mut Menu) {
 }
 
 /// The wheel over an element sizes it (0.5 to 3, from its top left). True when the layout changed.
-pub fn hud_scroll(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4], [f32; 4])], mouse: [f32; 2], steps: f64) -> bool {
+pub fn hud_scroll(m: &mut Menu, s: &mut Settings, boxes: &[(&'static str, [f32; 4], [f32; 4])], mouse: [f32; 2], steps: f64, screen: [f32; 2]) -> bool {
     let Some((id, rect, home)) = hud_at(boxes, mouse) else { return false };
-    let now = s.layout.iter().find(|(i, _)| i == id).map_or([0.0, 0.0, 1.0], |e| e.1);
-    let scale = (((now[2] + steps.signum() as f32 * 0.1) * 10.0).round() / 10.0).clamp(0.5, 3.0);
-    if scale == now[2] {
+    let now = s.layout.iter().find(|(i, _)| i == id).map_or(1.0, |e| e.1[4]);
+    let scale = (((now + steps.signum() as f32 * 0.1) * 10.0).round() / 10.0).clamp(0.5, 3.0);
+    if scale == now {
         return false;
     }
     push_undo(m, layout_text(&s.layout));
     m.picked = Some(id);
-    set_layout(s, id, [rect[0] - home[0], rect[1] - home[1], scale]);
+    // It keeps its top left; the anchor is worked out for the new size.
+    set_layout(s, id, Some(anchored([rect[0], rect[1]], [home[2] * scale, home[3] * scale], scale, screen)));
     true
 }
 
@@ -8122,7 +8275,9 @@ mod tests {
         let mut q = Settings::default();
         q.v[QUICK_MENU] = 1;
         assert_eq!(more_key(&q, "key_quick_menu", true, true, None), None);
-        assert!(quick_wheel(-1.0));
+        assert_eq!(more_key(&q, "key_quick_menu", false, true, None), None, "a tap switches nothing");
+        assert_eq!(more_key(&q, "key_quick_menu", true, true, None), None);
+        assert!(quick_wheel(-1.0) && quick_wheel(-1.0));
         assert_eq!(more_key(&q, "key_quick_menu", false, true, None), Some(QUICK[1]));
         assert!(!quick_wheel(1.0));
         assert_eq!(more_key(&q, "key_performance", true, true, None), Some(PERF));
@@ -8224,16 +8379,17 @@ mod tests {
         let mut e = Menu { page: Page::HudEdit, ..Menu::default() };
         assert!(!hud_press(&mut e, &mut s, &boxes, [105.0, 55.0], 0));
         assert!(hud_drag(&mut e, &mut s, &boxes, [312.0, 55.0], [640.0, 360.0], false));
-        assert_eq!(s.layout, vec![("armor".to_string(), [210.0, 0.0, 1.0])], "snapped to the middle (310 = 320 - 10)");
+        assert_eq!(s.layout, vec![("armor".to_string(), [1.0, 0.0, 0.0, 50.0, 1.0])], "snapped to the middle (310 = 320 - 10), anchored there");
         assert_eq!(e.guides.len(), 1);
         hud_release(&mut e);
         let moved = vec![("armor", [310.0, 50.0, 20.0, 20.0], [100.0, 50.0, 20.0, 20.0])];
-        assert!(hud_scroll(&mut e, &mut s, &moved, [315.0, 55.0], 1.0));
-        assert_eq!(s.layout[0].1[2], 1.1);
+        assert!(hud_scroll(&mut e, &mut s, &moved, [315.0, 55.0], 1.0, [640.0, 360.0]));
+        assert_eq!(s.layout[0].1[4], 1.1);
+        assert_eq!(s.layout[0].1[2], 1.0, "it keeps its top left as it grows");
         assert!(hud_press(&mut e, &mut s, &moved, [315.0, 55.0], 1));
         assert!(s.layout.is_empty());
         assert!(hud_undo(&mut e, &mut s));
-        assert_eq!(s.layout[0].1[2], 1.1);
+        assert_eq!(s.layout[0].1[4], 1.1);
         let (shapes, hits) = menu_layout(screen, [0.0, 0.0], &e, &s, &Fetch::Loading, &width);
         assert!(hits.iter().any(|(_, a)| *a == Action::Go(Page::Home)) && !shapes.is_empty());
         assert_eq!(menu_key(&mut e, &mut s, "key.keyboard.escape", false), (true, false));
@@ -8243,9 +8399,9 @@ mod tests {
     #[test]
     fn hud_elements_move_and_stay_on_screen() {
         let mut s = Settings::default();
-        assert_eq!(parse_layout("armor=10,-5,1.5;nope=1,1,1;potions=a,b,c"), vec![("armor".to_string(), [10.0, -5.0, 1.5])]);
-        assert_eq!(layout_text(&parse_layout("armor=10,-5,1.5")), "armor=10,-5,1.5");
-        s.layout = vec![("armor".into(), [-1000.0, 0.0, 2.0])];
+        assert_eq!(parse_layout("armor=2,1,10,-5,1.5;nope=1,1,1,1,1;potions=a,b,c,d,e;old=1,2,3"), vec![("armor".to_string(), [2.0, 1.0, 10.0, -5.0, 1.5])]);
+        assert_eq!(layout_text(&parse_layout("armor=2,1,10,-5,1.5")), "armor=2,1,10,-5,1.5");
+        s.layout = vec![("armor".into(), [0.0, 0.0, -1000.0, 50.0, 2.0])];
         let mut out = vec![Shape::Fill([0.0; 4], 0), Shape::Fill([100.0, 50.0, 10.0, 10.0], 0xFF00_0000), Shape::Item("x".into(), [100.0, 50.0])];
         hud_begin();
         place(&s, &mut out, 1, "armor", 320.0, 200.0, &width);
@@ -8254,7 +8410,7 @@ mod tests {
         assert_eq!(hud_boxes(), vec![("armor", [0.0, 50.0, 32.0, 32.0], [100.0, 50.0, 16.0, 16.0])]);
         let mut raw = Settings::default();
         raw.favorites = vec!["zoom".into()];
-        raw.layout = vec![("clock".into(), [3.0, 4.0, 1.0])];
+        raw.layout = vec![("clock".into(), [0.0, 0.0, 3.0, 4.0, 1.0])];
         let stored = raw.stored();
         let back = Settings::read(|k| stored.iter().find(|(key, _)| *key == k).map(|(_, v)| v.clone()));
         assert_eq!((back.favorites, back.layout), (raw.favorites, raw.layout));
@@ -8393,7 +8549,7 @@ mod tests {
         assert_eq!(blade_model("katana").as_deref(), Some("arsenal:blade_katana"));
         assert!(blade_model("nope").is_none());
         let own = own_wear(r#"{"equipped":"galaxy","equippedBlade":"katana","equippedHat":"crown"}"#);
-        assert_eq!(own, Wear { cape: Some("galaxy".into()), blade: Some("katana".into()) });
+        assert_eq!(own, Wear { cape: Some("galaxy".into()), blade: Some("katana".into()), hat: Some("crown".into()), accessory: None, pet: None });
         assert_eq!(own_wear(r#"{"equipped":"made_up"}"#), Wear::default());
         let h = vec![(7u128, "aa".to_string()), (8, "bb".to_string())];
         let others = others_wear(r#"{"capes":{"aa":"lava"},"blades":{"bb":"kunai"}}"#, &h);

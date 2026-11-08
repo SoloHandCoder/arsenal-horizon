@@ -4,7 +4,7 @@
 //   mods[2]: world tint: rgb colour, w how much
 //   mods[3]: sky tint: rgb colour, w how much
 //   mods[4]: Sky Effects: x aurora, y stars, z sky glow
-//   mods[5]: Mist colour: rgb, w height it lies under (blocks)
+//   mods[5]: Mist colour: rgb, w how far under the camera it lies (blocks)
 //   mods[6]: x Slick Floors (1 on)
 
 fn luminance(c: vec3<f32>) -> f32 {

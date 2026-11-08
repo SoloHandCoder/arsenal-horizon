@@ -12,10 +12,11 @@ fn arsenal_screen_key(
     }
     let mut menu = m::menu();
     let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
+    let before = settings.clone();
     let (taken, changed) = m::menu_key(&mut menu, &mut settings, key, modifiers & 2 != 0);
     if changed {
         m::set_settings(&settings);
-        for (key, value) in settings.stored() {
+        for (key, value) in m::changed(&before, &settings) {
             game.native_set_setting(m::ID, key, &value);
         }
     }

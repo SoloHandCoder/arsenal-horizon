@@ -18,14 +18,14 @@ fn post(input: PostInput) -> vec4<f32> {
     let density = frame.mods[0].z;
     if density > 0.0 && input.depth > 0.0 {
         let p = view_position(input.uv, input.depth);
-        let height = p.y + frame.camera_position.y;
-        let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, height);
+        // mist.w: how far under the camera it lies, so caves and every world get it the same.
+        let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, p.y);
         let far = 1.0 - exp(-length(p) * 0.03 * density);
         c = mix(c, mist.rgb, clamp(far * low, 0.0, 0.85));
     }
     // Slick Floors: up-facing ground near you darker and glossy, with puddles (the normal comes from the depth).
     if frame.mods[6].x > 0.0 && input.depth > 0.0 {
-        let px = 1.0 / frame.resolution;
+        let px = 2.0 / frame.resolution;
         let right = input.uv + vec2<f32>(px.x, 0.0);
         let down = input.uv + vec2<f32>(0.0, px.y);
         let dr = depth_at(right);
@@ -33,8 +33,8 @@ fn post(input: PostInput) -> vec4<f32> {
         if dr > 0.0 && dd > 0.0 {
             let p = view_position(input.uv, input.depth);
             let n = normalize(cross(view_position(right, dr) - p, view_position(down, dd) - p));
-            let near = 1.0 - smoothstep(8.0, 22.0, length(p));
-            let ground = smoothstep(0.9, 0.99, abs(n.y)) * select(0.0, 1.0, p.y < -0.2) * near * frame.mods[6].x;
+            let near = 1.0 - smoothstep(6.0, 16.0, length(p));
+            let ground = smoothstep(0.95, 0.995, abs(n.y)) * select(0.0, 1.0, p.y < -0.2) * near * frame.mods[6].x;
             if ground > 0.0 {
                 let world = p.xz + frame.camera_position.xz;
                 let puddle = smoothstep(0.55, 0.8, hash2(floor(world * 0.5)) * 0.6 + hash2(floor(world * 1.7)) * 0.4);

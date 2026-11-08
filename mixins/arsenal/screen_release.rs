@@ -17,7 +17,9 @@ fn arsenal_screen_release(
         if moved {
             let settings = m::raw_settings(|key| game.native_setting(m::ID, key));
             for (key, value) in settings.stored() {
-                game.native_set_setting(m::ID, key, &value);
+                if key == "hud_layout" || key == "server_huds" {
+                    game.native_set_setting(m::ID, key, &value);
+                }
             }
         }
         m::set_menu(menu);

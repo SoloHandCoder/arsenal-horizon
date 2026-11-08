@@ -140,7 +140,7 @@ fn arsenal_hud(
             let stack = |s: &Option<horizon_client::items::ItemStack>| s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage });
             m::Inventory { slots: v.slots.iter().map(stack).collect(), armor: [0, 1, 2, 3].map(|i| v.armor.get(i).and_then(stack)), offhand: stack(&v.offhand), selected: v.selected }
         });
-        let friends = m::friends_of(game.native_setting(m::ID, "friend_list"));
+        let friends = m::friends(|key| game.native_setting(m::ID, key));
         shapes.extend(m::more_shapes(&settings, &others, target, inv.as_ref(), &world, using.as_ref().map(|(i, t)| (i.as_str(), *t)), status.attack,
             block.as_deref(), aimed, me, &friends, cam.as_ref(), batch.width, batch.height, &width));
         shapes.extend(m::world_shapes(&settings, &world, me, armor, target, block.as_deref(), cam.as_ref(), batch.width, batch.height, &width));
@@ -167,9 +167,12 @@ fn arsenal_hud(
     };
     let lines = m::lines(&settings, &readings);
     let game = &*game;
+    // Each Info HUD line is its own element (stacked in the corner until moved).
     let mut boxes = Vec::new();
-    if let Some(panel) = m::panel(&lines, &settings, &|text| game.native_text_width(text)) {
-        boxes.push(("panel", panel));
+    for line in &lines {
+        if let Some(panel) = m::panel(std::slice::from_ref(line), &settings, &|text| game.native_text_width(text)) {
+            boxes.push((m::info_id(line.0), panel));
+        }
     }
     if settings.on(m::GRAPH) {
         if let Some(graph) = m::graph(&m::fps_history(), &settings) {
@@ -179,7 +182,8 @@ fn arsenal_hud(
     let width = |text: &str| game.native_text_width(text);
     let (sw, sh) = (batch.width, batch.height);
     for (id, (shapes, w, h)) in boxes {
-        let (x, y) = corners.place(corner, w, h);
+        // A moved one keeps its own place and leaves the corner's stack to the others.
+        let (x, y) = if settings.layout.iter().any(|(i, _)| i == id) { (0.0, 0.0) } else { corners.place(corner, w, h) };
         let mut moved: Vec<m::Shape> = shapes.into_iter().map(|s| m::offset(s, [x, y])).collect();
         m::place(&settings, &mut moved, 0, id, sw, sh, &width);
         arsenal_draw(game, batch, moved);

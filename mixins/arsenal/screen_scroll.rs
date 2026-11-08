@@ -13,10 +13,12 @@ fn arsenal_screen_scroll(
     if scroll[1] != 0.0 {
         let mut menu = m::menu();
         let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
+        let before = settings.clone();
         if menu.page == m::Page::HudEdit {
-            if m::hud_scroll(&mut menu, &mut settings, &m::hud_boxes(), screen.mouse, scroll[1]) {
+            let size = [screen.rect[0] + screen.rect[2], screen.rect[1] + screen.rect[3]];
+            if m::hud_scroll(&mut menu, &mut settings, &m::hud_boxes(), screen.mouse, scroll[1], size) {
                 m::set_settings(&settings);
-                for (key, value) in settings.stored() {
+                for (key, value) in m::changed(&before, &settings) {
                     game.native_set_setting(m::ID, key, &value);
                 }
             }

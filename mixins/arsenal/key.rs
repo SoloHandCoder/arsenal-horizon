@@ -93,6 +93,7 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
             let list = m::friends_of(game.native_setting(m::ID, "friend_list"));
             let (stored, added) = m::toggle_friend(&list, &name);
             game.native_set_setting(m::ID, "friend_list", &stored);
+            m::set_friends(m::friends_of(Some(stored.clone())));
             game.native_chat(&if added { format!("{name} is your friend now") } else { format!("{name} isn't your friend any more") });
         }
     }

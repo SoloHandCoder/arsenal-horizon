@@ -1,7 +1,7 @@
 schema = 1
 id = "arsenal"
 name = "Arsenal"
-version = "1.1.0"
+version = "1.2.0"
 api = "0.1"
 description = "Arsenal's visuals on Horizon: Bloom, World Look, Sky & World Colors, Mist, Sky Effects and Motion Blur, switched on and set in Arsenal's menu (Right Shift). With them all off it leaves the picture as it is."
 authors = ["Arsenal"]
@@ -23,6 +23,10 @@ name = "Bloom"
 [[post]]
 file = "post/motion.wgsl"
 name = "Motion Blur"
+
+[[post]]
+file = "post/fxaa.wgsl"
+name = "Smoothing (packs turn off the game's own anti-aliasing)"
 
 [budget]
 gpu_ms = 2.0

@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.15.0"
+version = "1.16.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
@@ -13,6 +13,18 @@ id = "runtime"
 file = "crates/horizon-client/src/game.rs"
 name = "arsenal_native"
 source = "runtime.rs"
+
+[[module]]
+id = "hats"
+file = "crates/horizon-client/src/game.rs"
+name = "arsenal_hats"
+source = "models_hats.rs"
+
+[[module]]
+id = "accessories"
+file = "crates/horizon-client/src/game.rs"
+name = "arsenal_accessories"
+source = "models_accessories.rs"
 
 [[injection]]
 id = "list"
@@ -96,6 +108,7 @@ helper = "hand.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
   { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" },
+  { name = "y", ty = "&mut f32", value = "&mut *y" },
   { name = "yaw", ty = "&mut f32", value = "&mut *yaw" },
   { name = "scale", ty = "&mut f32", value = "&mut *scale" },
 ]
@@ -367,4 +380,34 @@ helper = "gui_post.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "layers"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_layer_definitions"
+helper = "layers.rs"
+bindings = [
+  { name = "layers", ty = "&mut Vec<(String, horizon_client::mod_api::LayerDefinition)>", value = "&mut *layers" },
+]
+
+[[injection]]
+id = "listened"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_render_listened"
+helper = "listened.rs"
+bindings = [
+  { name = "listened", ty = "&mut bool", value = "&mut *listened" },
+]
+
+[[injection]]
+id = "mob_layer"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mob_layer"
+helper = "mob_layer.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "mob", ty = "&crate::game::native_mob_draw::NativeMobRender<'_>", value = "mob" },
+  { name = "who", ty = "Option<&crate::game::native_mob_draw::NativePlayerRender<'_>>", value = "who" },
+  { name = "draw", ty = "&mut crate::game::native_block_entity_draw::BlockEntityDraw", value = "&mut *draw" },
 ]

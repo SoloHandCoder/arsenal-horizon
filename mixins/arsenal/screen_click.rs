@@ -11,6 +11,7 @@ fn arsenal_screen_click(
     }
     *canceled = true;
     let mut settings = m::raw_settings(|key| game.native_setting(m::ID, key));
+    let before = settings.clone();
     let mut menu = m::menu();
     let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
     let action = m::menu_click(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text));
@@ -18,7 +19,7 @@ fn arsenal_screen_click(
     if menu.page == m::Page::HudEdit && (action.is_none() || button != 0) {
         if (button == 0 || button == 1) && m::hud_press(&mut menu, &mut settings, &m::hud_boxes(), screen.mouse, button) {
             m::set_settings(&settings);
-            for (key, value) in settings.stored() {
+            for (key, value) in m::changed(&before, &settings) {
                 game.native_set_setting(m::ID, key, &value);
             }
         }
@@ -35,7 +36,7 @@ fn arsenal_screen_click(
     };
     if m::apply(action, &mut menu, &mut settings, &browse) {
         m::set_settings(&settings);
-        for (key, value) in settings.stored() {
+        for (key, value) in m::changed(&before, &settings) {
             game.native_set_setting(m::ID, key, &value);
         }
     }

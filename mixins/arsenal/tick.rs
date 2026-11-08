@@ -32,6 +32,19 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         capture: v.capture,
     });
     crate::game::native_hooks::ARSENAL_CRYSTAL_OPT.store(v.crystal_optimizer, std::sync::atomic::Ordering::Relaxed);
+    // Fullbright's brightness from before, kept in Arsenal's settings.
+    match v.keep_gamma {
+        Some(g) if g >= 0.0 => game.native_set_setting(m::ID, "saved_gamma", &g.to_string()),
+        Some(_) => game.native_set_setting(m::ID, "saved_gamma", ""),
+        None => {}
+    }
+    if v.restore_gamma {
+        if let Some(g) = game.native_setting(m::ID, "saved_gamma").and_then(|g| g.parse::<f32>().ok()) {
+            game.arsenal_visuals(&crate::game::native_hooks::ArsenalVisuals { gamma: Some(g), particles: 100, ..Default::default() });
+            game.native_set_setting(m::ID, "saved_gamma", "");
+        }
+    }
+    game.arsenal_cursor_tick();
     // This version's looks, chat, sounds and input (Arsenal's patches/more.json).
     {
         use horizon_client::camera::arsenal as a;
@@ -183,7 +196,7 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
             };
             if let Some(loaded) = m::load_profile(&raw, &name) {
                 m::set_settings(&loaded);
-                for (key, value) in loaded.stored() {
+                for (key, value) in m::changed(&raw, &loaded) {
                     game.native_set_setting(m::ID, key, &value);
                 }
                 game.native_chat(&format!("Profile \"{name}\" loaded for this server."));
