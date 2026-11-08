@@ -1,6 +1,6 @@
 [mod]
 id = "arsenal"
-version = "1.11.0"
+version = "1.12.0"
 priority = 100
 
 # The launcher pins this to the Horizon commit it builds on. It hooks only the native hook points
@@ -274,4 +274,14 @@ bindings = [
   { name = "background", ty = "&mut u32", value = "&mut *background" },
   { name = "border_top", ty = "&mut u32", value = "&mut *border_top" },
   { name = "border_bottom", ty = "&mut u32", value = "&mut *border_bottom" },
+]
+
+[[injection]]
+id = "shader"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_shader_params"
+helper = "shader.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "params", ty = "&mut [[f32; 4]; 8]", value = "&mut *params" },
 ]

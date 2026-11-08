@@ -9,6 +9,34 @@ fn arsenal_key(game: &mut crate::game::Game<'_>, key: &str, pressed: bool) {
     if pressed && key == "key.mouse.left" && game.native_playing() {
         m::clicked();
     }
+    // Chat Hotkeys and Friends (the Friend key on the player you look at).
+    if pressed && game.native_playing() {
+        let settings = {
+            let game = &*game;
+            m::settings(|name| game.native_setting(m::ID, name))
+        };
+        let target = {
+            let game = &*game;
+            let others: Vec<m::Other> = game.arsenal_others().into_iter().map(|o| m::Other {
+                id: o.id, uuid: o.uuid, name: o.name, pos: [o.x, o.y, o.z], health: o.health, absorption: o.absorption, hurt_time: o.hurt_time,
+                using: o.using, using_off_hand: o.using_off_hand, equipment: Vec::new(),
+            }).collect();
+            match (game.native_player(), game.native_camera()) {
+                (Some(p), Some(c)) => m::target(&others, [c.position[0] as f64, c.position[1] as f64, c.position[2] as f64], p.yaw, p.pitch).map(|o| o.name.clone()),
+                _ => None,
+            }
+        };
+        let bound = |id: &str| {
+            let fallback = if id == m::FRIEND_KEY { m::DEFAULT_FRIEND_KEY } else { "key.keyboard.unknown" };
+            game.native_mod_key(m::ID, id, fallback)
+        };
+        if let Some(name) = m::hotkey(&settings, key, &bound, target.as_deref()) {
+            let list = m::friends_of(game.native_setting(m::ID, "friend_list"));
+            let (stored, added) = m::toggle_friend(&list, &name);
+            game.native_set_setting(m::ID, "friend_list", &stored);
+            game.native_chat(&if added { format!("{name} is your friend now") } else { format!("{name} isn't your friend any more") });
+        }
+    }
     if pressed && key == game.native_mod_key(m::ID, m::MENU_KEY, m::DEFAULT_MENU_KEY) {
         if game.native_mod_screen() == Some(m::ID) {
             game.native_mod_screen_close(m::ID);

@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.11.0";
+pub const VERSION: &str = "1.12.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -230,6 +230,11 @@ pub const CRIT_SHAPES: &[(&str, &str)] = &[("star", "Star"), ("heart", "Heart"),
 pub const FX_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("accent", "HUD accent"), ("red", "Red"), ("white", "White"), ("rainbow", "Rainbow")];
 pub const FLASH_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("green", "Green"), ("red", "Red"), ("blue", "Blue"), ("none", "No flash")];
 pub const KILL_STYLES: &[(&str, &str)] = &[("burst", "Burst"), ("ring", "Ring"), ("lightning", "Lightning")];
+pub const AMOUNTS: &[(&str, &str)] = &[("0.5", "Medium"), ("0.25", "Low"), ("0.75", "High"), ("1", "Full")];
+pub const LOOKS: &[(&str, &str)] = &[("vivid", "Vivid"), ("cinematic", "Cinematic"), ("faded", "Faded"), ("noir", "Black and white"), ("warm", "Warm"), ("cold", "Cold")];
+pub const TINTS: &[(&str, &str)] = &[("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent")];
+pub const MIST_COLORS: &[(&str, &str)] = &[("white", "White"), ("blue", "Blue"), ("purple", "Purple"), ("green", "Green")];
+pub const GOALS: &[(&str, &str)] = &[("10", "10 kills"), ("5", "5 kills"), ("20", "20 kills"), ("50", "50 kills")];
 pub const ARMOR_SHOWS: &[(&str, &str)] = &[("percent", "Percent"), ("left", "Durability left"), ("none", "Icons only")];
 pub const DURA_AT: &[(&str, &str)] = &[("10", "10% left"), ("5", "5% left"), ("20", "20% left"), ("30", "30% left")];
 pub const LOW_AT: &[(&str, &str)] = &[("4", "4 hearts or less"), ("3", "3 hearts or less"), ("5", "5 hearts or less"), ("6", "6 hearts or less")];
@@ -354,7 +359,37 @@ pub const TOTEM_HIDE: usize = 116;
 pub const KILL_FX: usize = 117;
 pub const KILL_STYLE: usize = 118;
 pub const HIDE_OWN_FX: usize = 119;
-const N: usize = 120;
+pub const BLOOM: usize = 120;
+pub const BLOOM_AMT: usize = 121;
+pub const LOOK: usize = 122;
+pub const LOOK_KIND: usize = 123;
+pub const COLORS: usize = 124;
+pub const WORLD_TINT: usize = 125;
+pub const MOTION: usize = 126;
+pub const MOTION_AMT: usize = 127;
+pub const MIST: usize = 128;
+pub const MIST_COLOR: usize = 129;
+pub const SKY_FX: usize = 130;
+pub const AMBIENCE: usize = 131;
+pub const HITBOXES: usize = 132;
+pub const AUTO_HITBOX: usize = 133;
+pub const RETOTEM: usize = 134;
+pub const SHIELD_HELP: usize = 135;
+pub const EATING: usize = 136;
+pub const ITEM_NAMES: usize = 137;
+pub const BOW: usize = 138;
+pub const MACE_AIM: usize = 139;
+pub const MACE_OPT: usize = 140;
+pub const CRYSTAL_PREV: usize = 141;
+pub const CRYSTAL_OPT: usize = 142;
+pub const HOTKEYS: usize = 143;
+pub const FRIENDS: usize = 144;
+pub const SUMMARY: usize = 145;
+pub const GOAL: usize = 146;
+pub const GOAL_KILLS: usize = 147;
+pub const INTEL: usize = 148;
+pub const PEARLS: usize = 149;
+const N: usize = 150;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -477,6 +512,36 @@ pub const FIELDS: [Field; N] = [
     Field { key: "kill_effects", label: "Kill Effects", options: ONOFF, default: 0 },
     Field { key: "kill_style", label: "Effect", options: KILL_STYLES, default: 0 },
     Field { key: "hide_own_particles", label: "Hide Own Effect Particles", options: ONOFF, default: 0 },
+    Field { key: "bloom", label: "Bloom", options: ONOFF, default: 0 },
+    Field { key: "bloom_amount", label: "Strength", options: AMOUNTS, default: 0 },
+    Field { key: "world_look", label: "World Look", options: ONOFF, default: 0 },
+    Field { key: "world_look_kind", label: "Look", options: LOOKS, default: 0 },
+    Field { key: "world_colors", label: "Sky & World Colors", options: ONOFF, default: 0 },
+    Field { key: "world_tint", label: "Colour", options: TINTS, default: 0 },
+    Field { key: "motion_blur", label: "Motion Blur", options: ONOFF, default: 0 },
+    Field { key: "motion_amount", label: "Strength", options: AMOUNTS, default: 1 },
+    Field { key: "mist", label: "Mist", options: ONOFF, default: 0 },
+    Field { key: "mist_color", label: "Colour", options: MIST_COLORS, default: 0 },
+    Field { key: "sky_effects", label: "Sky Effects", options: ONOFF, default: 0 },
+    Field { key: "ambience", label: "Ambience", options: ONOFF, default: 0 },
+    Field { key: "combat_hitboxes", label: "Combat Hitboxes", options: ONOFF, default: 0 },
+    Field { key: "auto_hitbox", label: "Auto Hitbox", options: ONOFF, default: 0 },
+    Field { key: "retotem_timer", label: "Re-totem Timer", options: ONOFF, default: 0 },
+    Field { key: "shield_helper", label: "Shield Helper", options: ONOFF, default: 0 },
+    Field { key: "eating_warning", label: "Enemy Eating Warning", options: ONOFF, default: 0 },
+    Field { key: "item_names", label: "Dropped Item Names", options: ONOFF, default: 0 },
+    Field { key: "bow_charge", label: "Bow Charge %", options: ONOFF, default: 0 },
+    Field { key: "mace_aim", label: "Mace Aim", options: ONOFF, default: 0 },
+    Field { key: "mace_optimizer", label: "Mace Optimizer", options: ONOFF, default: 0 },
+    Field { key: "crystal_preview", label: "Crystal Preview", options: ONOFF, default: 0 },
+    Field { key: "crystal_optimizer", label: "Crystal Optimizer", options: ONOFF, default: 0 },
+    Field { key: "chat_hotkeys", label: "Chat Hotkeys", options: ONOFF, default: 0 },
+    Field { key: "friends", label: "Friends", options: ONOFF, default: 1 },
+    Field { key: "session_summary", label: "Session Summary", options: ONOFF, default: 0 },
+    Field { key: "session_goals", label: "Session Goals", options: ONOFF, default: 0 },
+    Field { key: "goal_kills", label: "Goal", options: GOALS, default: 0 },
+    Field { key: "opponent_intel", label: "Opponent Intel", options: ONOFF, default: 0 },
+    Field { key: "pearl_timer", label: "Enemy Pearl Timer", options: ONOFF, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -564,6 +629,30 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("totem_pop_style", TOTEM_STYLE, &[TOTEM_FLASH, TOTEM_HIDE]),
     ("kill_effects", KILL_FX, &[KILL_STYLE]),
     ("hide_own_particles", HIDE_OWN_FX, &[]),
+    ("bloom", BLOOM, &[BLOOM_AMT]),
+    ("world_look", LOOK, &[LOOK_KIND]),
+    ("world_colors", COLORS, &[WORLD_TINT]),
+    ("motion_blur", MOTION, &[MOTION_AMT]),
+    ("mist", MIST, &[MIST_COLOR]),
+    ("sky_effects", SKY_FX, &[]),
+    ("ambience", AMBIENCE, &[]),
+    ("combat_hitboxes", HITBOXES, &[]),
+    ("auto_hitbox", AUTO_HITBOX, &[]),
+    ("retotem_timer", RETOTEM, &[]),
+    ("shield_helper", SHIELD_HELP, &[]),
+    ("eating_warning", EATING, &[]),
+    ("item_names", ITEM_NAMES, &[]),
+    ("bow_charge", BOW, &[]),
+    ("mace_aim", MACE_AIM, &[]),
+    ("mace_optimizer", MACE_OPT, &[]),
+    ("crystal_preview", CRYSTAL_PREV, &[]),
+    ("crystal_optimizer", CRYSTAL_OPT, &[]),
+    ("chat_hotkeys", HOTKEYS, &[]),
+    ("friends", FRIENDS, &[]),
+    ("session_summary", SUMMARY, &[]),
+    ("session_goals", GOAL, &[GOAL_KILLS]),
+    ("opponent_intel", INTEL, &[]),
+    ("pearl_timer", PEARLS, &[]),
 ];
 
 /// What a module does on Horizon when that differs from the Java mod.
@@ -637,6 +726,26 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "totem_pop_style" => "On Horizon: a coloured flash when your totem pops, and totem particles hidden if you like (the animation size is in Smaller PvP).",
         "kill_effects" => "On Horizon: a burst, ring or lightning where the player you killed was.",
         "hide_own_particles" => "On Horizon: your own potion effect particles are hidden (other players' still show).",
+        "bloom" | "world_look" | "world_colors" | "motion_blur" | "mist" | "sky_effects" =>
+            "On Horizon: drawn by Arsenal's shader pack. Pick Arsenal once in Options > Video Settings > Shaders > Shader Packs.",
+        "ambience" => "On Horizon: fireflies at night, embers in the Nether and drifting specks by day around you.",
+        "combat_hitboxes" => "On Horizon: players' hitboxes; the one you aim at turns red when a full hit would land.",
+        "auto_hitbox" => "On Horizon: Combat Hitboxes only while you hold a weapon.",
+        "retotem_timer" => "On Horizon: how fast a new totem was in your offhand after a pop.",
+        "shield_helper" => "On Horizon: a red mark above a player whose shield an axe just disabled, green while they hold a usable one.",
+        "eating_warning" => "On Horizon: EATING GAPPLE / EATING / DRINKING above players while they eat or drink.",
+        "item_names" => "On Horizon: dropped items show their name and count; valuable loot is gold.",
+        "bow_charge" => "On Horizon: your bow, crossbow or trident charge in percent while you draw.",
+        "mace_aim" => "On Horizon: while falling with a mace, a line to the player below and your bonus damage.",
+        "mace_optimizer" => "On Horizon: the mace smash sound plays the moment your hit lands.",
+        "crystal_preview" => "On Horizon: a green box where a held crystal would go on obsidian or bedrock, red where it can't.",
+        "crystal_optimizer" => "On Horizon: crystals you hit disappear at once instead of waiting for the server.",
+        "chat_hotkeys" => "On Horizon: four keys (Options > Mods > Arsenal) that send gg, gl hf, /spawn and /kit.",
+        "friends" => "On Horizon: middle-click a player (the Friend key) to mark them a friend: a green F above them, never your target.",
+        "session_summary" => "On Horizon: when you join again, a card with your last session: time, kills, deaths, K/D, pops and best combo.",
+        "session_goals" => "On Horizon: a kill goal for this session and how close you are.",
+        "opponent_intel" => "On Horizon: during a fight, what you saw the player use: totems popped, golden apples eaten, shield breaks.",
+        "pearl_timer" => "On Horizon: a purple countdown above a player who just threw an ender pearl.",
         "item_counter" => "On Horizon: totems, golden apples, pearls, crystals, obsidian and anchors you carry, left of the hotbar.",
         "offhand_totem_warning" => "On Horizon: a warning above the hotbar when your offhand has no totem but you still carry some.",
         "durability_warning" => "On Horizon: a flashing warning and a sound when a piece of armour is about to break.",
@@ -952,6 +1061,9 @@ struct State {
     kill_fx: Vec<([f64; 3], Instant)>,
     totem_flash: Option<Instant>,
     presence_at: Option<Instant>,
+    extra: Extra,
+    pack_done: bool,
+    in_world: bool,
 }
 
 /// The player's health as the health rows see it (health hook), and the screen's GUI size then.
@@ -1261,6 +1373,9 @@ pub struct Other {
     pub health: f32,
     pub absorption: f32,
     pub hurt_time: i32,
+    /// Ticks using an item (eating...), and whether with the off hand.
+    pub using: i32,
+    pub using_off_hand: bool,
     /// Main hand, off hand, feet, legs, chest, head.
     pub equipment: Vec<Option<Stack>>,
 }
@@ -1760,6 +1875,7 @@ pub struct Visuals {
     pub chat_hide: Vec<String>,
     pub hide_particles: u32,
     pub capture: bool,
+    pub crystal_optimizer: bool,
 }
 
 /// The lines Chat Filter hides (lower case pieces of them).
@@ -1784,7 +1900,7 @@ pub fn visuals(settings: &Settings, gamma: f32) -> Visuals {
     STATE.with_borrow_mut(|s| {
         let a = &mut s.applied;
         let (hide_particles, capture) = particle_rules(settings);
-        let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), hide_particles, capture, ..Default::default() };
+        let mut v = Visuals { particles: 100, chat_hide: chat_hidden(settings), hide_particles, capture, crystal_optimizer: settings.on(CRYSTAL_OPT), ..Default::default() };
         let mut pick = |on: bool, slot: usize, value: Option<String>, off: String| -> Option<String> {
             if on {
                 a[slot] = true;
@@ -1827,6 +1943,7 @@ pub struct World {
     pub crystals: Vec<[f64; 3]>,
     pub tnts: Vec<([f64; 3], i32)>,
     pub cooldowns: Vec<(String, f32)>,
+    pub dropped: Vec<([f64; 3], String, u32)>,
 }
 
 /// About how much an end crystal at `crystal` hurts someone standing at `at` (health points), after armour points
@@ -2381,6 +2498,573 @@ pub fn effect_shapes(settings: &Settings, others: &[Other], cam: Option<&Cam>, w
     });
     let _ = now;
     out
+}
+
+/// The values Arsenal hands its shader pack each frame (`frame.mods`, see shaderpack/arsenal/common.wgsl).
+pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
+    let mut p = [[0.0f32; 4]; 8];
+    let amount = |i: usize| AMOUNTS[settings.v[i]].0.parse::<f32>().unwrap_or(0.5);
+    if settings.on(BLOOM) {
+        p[0][0] = amount(BLOOM_AMT);
+    }
+    if settings.on(MOTION) {
+        p[0][1] = amount(MOTION_AMT) * 0.8;
+    }
+    if settings.on(MIST) {
+        p[0][2] = 1.0;
+        let rgb = match MIST_COLORS[settings.v[MIST_COLOR]].0 { "blue" => [0.6, 0.72, 0.9], "purple" => [0.7, 0.6, 0.9], "green" => [0.62, 0.85, 0.66], _ => [0.85, 0.87, 0.9] };
+        p[5] = [rgb[0], rgb[1], rgb[2], 72.0];
+    }
+    p[0][3] = 1.0;
+    if settings.on(LOOK) {
+        p[1] = match LOOKS[settings.v[LOOK_KIND]].0 {
+            "cinematic" => [0.9, 1.15, 0.95, 0.35],
+            "faded" => [0.75, 0.85, 1.05, 0.15],
+            "noir" => [0.001, 1.25, 1.0, 0.4],
+            "warm" => [1.1, 1.05, 1.02, 0.2],
+            "cold" => [0.95, 1.05, 1.0, 0.2],
+            _ => [1.3, 1.08, 1.03, 0.2],
+        };
+        let warmth = match LOOKS[settings.v[LOOK_KIND]].0 { "warm" => Some([1.0, 0.85, 0.65]), "cold" => Some([0.7, 0.85, 1.0]), _ => None };
+        if let Some(rgb) = warmth {
+            p[2] = [rgb[0], rgb[1], rgb[2], 0.25];
+        }
+    }
+    if settings.on(COLORS) {
+        let rgb = match TINTS[settings.v[WORLD_TINT]].0 {
+            "blue" => [0.55, 0.7, 1.0], "pink" => [1.0, 0.6, 0.85], "green" => [0.6, 1.0, 0.65], "orange" => [1.0, 0.7, 0.45], "red" => [1.0, 0.5, 0.5],
+            "accent" => { let a = settings.accent(); [((a >> 16) & 255) as f32 / 255.0, ((a >> 8) & 255) as f32 / 255.0, (a & 255) as f32 / 255.0] }
+            _ => [0.75, 0.55, 1.0],
+        };
+        p[2] = [rgb[0], rgb[1], rgb[2], 0.3];
+        p[3] = [rgb[0], rgb[1], rgb[2], 0.55];
+    }
+    if settings.on(SKY_FX) {
+        p[4] = [1.0, 0.8, 0.6, 0.0];
+    }
+    p
+}
+
+/// The pack's files (shaderpack/arsenal, put in by scripts/embed_pack.py), written into the game's shaderpacks/.
+// BEGIN PACK
+pub const PACK: &[(&str, &str)] = &[
+    ("common.wgsl", r####"// What Arsenal hands the pack each frame (frame.mods, set by the mod's native_shader_params hook):
+//   mods[0]: x Bloom strength, y Motion Blur strength, z Mist density, w 1 while Arsenal runs
+//   mods[1]: World Look: x saturation, y contrast, z exposure, w vignette (all 0 = leave the picture)
+//   mods[2]: world tint: rgb colour, w how much
+//   mods[3]: sky tint: rgb colour, w how much
+//   mods[4]: Sky Effects: x aurora, y stars, z sky glow
+//   mods[5]: Mist colour: rgb, w height it lies under (blocks)
+
+fn luminance(c: vec3<f32>) -> f32 {
+    return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+}
+
+// 1 at night in the Overworld, 0 by day.
+fn night() -> f32 {
+    return select(0.0, 1.0 - smoothstep(-0.15, 0.05, frame.sun_direction.y), frame.dimension == 0);
+}
+
+fn hash2(p: vec2<f32>) -> f32 {
+    return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453);
+}
+"####),
+    ("horizon-shaders.toml", r####"schema = 1
+id = "arsenal"
+name = "Arsenal"
+version = "1.0.0"
+api = "0.1"
+description = "Arsenal's visuals on Horizon: Bloom, World Look, Sky & World Colors, Mist, Sky Effects and Motion Blur, switched on and set in Arsenal's menu (Right Shift). With them all off it leaves the picture as it is."
+authors = ["Arsenal"]
+license = "MIT"
+shared = ["common.wgsl"]
+
+[sky]
+file = "sky.wgsl"
+name = "Sky Effects and sky colours"
+
+[[post]]
+file = "post/grade.wgsl"
+name = "World Look, world colours and Mist"
+
+[[post]]
+file = "post/bloom.wgsl"
+name = "Bloom"
+
+[[post]]
+file = "post/motion.wgsl"
+name = "Motion Blur"
+
+[budget]
+gpu_ms = 2.0
+"####),
+    ("post/bloom.wgsl", r####"// Bloom: bright parts glow out softly (a ring of samples round each pixel, only what's brighter than the threshold).
+fn post(input: PostInput) -> vec4<f32> {
+    let strength = frame.mods[0].x;
+    if strength <= 0.0 {
+        return input.color;
+    }
+    let px = 1.0 / frame.resolution;
+    var glow = vec3<f32>(0.0);
+    var total = 0.0;
+    for (var ring = 1; ring <= 3; ring++) {
+        for (var k = 0; k < 8; k++) {
+            let a = f32(k) * 0.7853982 + f32(ring) * 0.4;
+            let offset = vec2<f32>(cos(a), sin(a)) * px * f32(ring) * 4.0;
+            let s = textureSampleLevel(previous, linear_sampler, input.uv + offset, 0.0).rgb;
+            let bright = max(luminance(s) - 0.65, 0.0);
+            let w = 1.0 / f32(ring);
+            glow += s * bright * w;
+            total += w;
+        }
+    }
+    let c = input.color.rgb + glow / max(total, 1.0) * strength * 4.0;
+    return vec4<f32>(c, input.color.a);
+}
+"####),
+    ("post/grade.wgsl", r####"// World Look (saturation, contrast, exposure, vignette), Sky & World Colors' world tint, and Mist low over the ground.
+fn post(input: PostInput) -> vec4<f32> {
+    var c = input.color.rgb;
+    let look = frame.mods[1];
+    if look.x > 0.0 {
+        c = mix(vec3<f32>(luminance(c)), c, look.x);
+    }
+    if look.y > 0.0 {
+        c = (c - 0.5) * look.y + 0.5;
+    }
+    if look.z > 0.0 {
+        c *= look.z;
+    }
+    let tint = frame.mods[2];
+    c = mix(c, c * tint.rgb * 1.5, clamp(tint.w, 0.0, 1.0));
+    let mist = frame.mods[5];
+    let density = frame.mods[0].z;
+    if density > 0.0 && input.depth > 0.0 {
+        let p = view_position(input.uv, input.depth);
+        let height = p.y + frame.camera_position.y;
+        let low = 1.0 - smoothstep(mist.w - 6.0, mist.w + 4.0, height);
+        let far = 1.0 - exp(-length(p) * 0.03 * density);
+        c = mix(c, mist.rgb, clamp(far * low, 0.0, 0.85));
+    }
+    if look.w > 0.0 {
+        let aspect = frame.resolution.x / frame.resolution.y;
+        let d = length((input.uv - 0.5) * vec2<f32>(aspect, 1.0)) / length(vec2<f32>(aspect, 1.0) * 0.5);
+        c *= 1.0 - smoothstep(0.5, 1.15, d) * look.w;
+    }
+    return vec4<f32>(clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), input.color.a);
+}
+"####),
+    ("post/motion.wgsl", r####"// Motion Blur: a little of the last frame stays on, so fast turns smear (none on the first frame or after a pause).
+fn post(input: PostInput) -> vec4<f32> {
+    let k = clamp(frame.mods[0].y, 0.0, 0.85);
+    if k <= 0.0 || frame.delta_time <= 0.0 {
+        return input.color;
+    }
+    let last = textureSampleLevel(history, linear_sampler, input.uv, 0.0).rgb;
+    return vec4<f32>(mix(input.color.rgb, last, k), input.color.a);
+}
+"####),
+    ("sky.wgsl", r####"// The sky: Sky & World Colors' sky tint, and Sky Effects' aurora, extra stars and glow at night.
+fn sky(input: SkyInput) -> vec4<f32> {
+    var c = input.color.rgb;
+    let tint = frame.mods[3];
+    c = mix(c, c * tint.rgb * 1.6, clamp(tint.w, 0.0, 1.0));
+    let fx = frame.mods[4];
+    let up = input.direction.y;
+    let n = night();
+    if fx.x > 0.0 && up > 0.0 {
+        // Aurora: soft green and violet bands drifting across the northern sky.
+        let band = sin(input.direction.x * 6.0 + frame.time * 0.15) * 0.5 + 0.5;
+        let wave = sin(input.direction.z * 9.0 + band * 3.0 + frame.time * 0.3) * 0.5 + 0.5;
+        let height = smoothstep(0.05, 0.35, up) * (1.0 - smoothstep(0.55, 0.95, up));
+        let colour = mix(vec3<f32>(0.15, 0.95, 0.55), vec3<f32>(0.55, 0.3, 0.95), band);
+        c += colour * wave * height * fx.x * n * 0.6;
+    }
+    if fx.y > 0.0 && up > 0.0 {
+        // More stars: tiny points from a hash of the direction.
+        let cell = floor(input.direction.xz / max(up, 0.05) * 220.0);
+        let star = step(0.997, hash2(cell)) * smoothstep(0.0, 0.2, up);
+        c += vec3<f32>(star * fx.y * n);
+    }
+    if fx.z > 0.0 {
+        c += vec3<f32>(0.25, 0.2, 0.45) * fx.z * n * (1.0 - smoothstep(0.0, 0.5, abs(up))) * 0.4;
+    }
+    return vec4<f32>(c, input.color.a);
+}
+"####),
+];
+// END PACK
+
+/// Writes Arsenal's shader pack into `instance/shaderpacks/arsenal` when it isn't there as it should be.
+pub fn install_pack(instance: &std::path::Path) {
+    let dir = instance.join("shaderpacks").join("arsenal");
+    for (name, text) in PACK {
+        let path = dir.join(name);
+        if std::fs::read_to_string(&path).ok().as_deref() != Some(*text) {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&path, text);
+        }
+    }
+}
+
+/// Installs the pack once per start.
+pub fn install_pack_once(instance: &std::path::Path) {
+    let first = STATE.with_borrow_mut(|s| !std::mem::replace(&mut s.pack_done, true));
+    if first {
+        install_pack(instance);
+    }
+}
+
+/// Session Summary: entering (true) or leaving (false) a world; leaving ends the session.
+pub fn world_change(in_world: bool) {
+    let was = STATE.with_borrow_mut(|s| std::mem::replace(&mut s.in_world, in_world));
+    if was && !in_world {
+        session_ended();
+        STATE.with_borrow_mut(|s| s.extra.summary_shown = None);
+    }
+}
+
+/// A Minecraft item id as a name: "minecraft:enchanted_golden_apple" -> "Enchanted Golden Apple".
+pub fn item_name(id: &str) -> String {
+    id.strip_prefix("minecraft:").unwrap_or(id).split('_').map(|w| {
+        let mut c = w.chars();
+        c.next().map(|f| f.to_ascii_uppercase().to_string() + c.as_str()).unwrap_or_default()
+    }).collect::<Vec<_>>().join(" ")
+}
+
+const VALUABLE: [&str; 9] = ["totem_of_undying", "enchanted_golden_apple", "golden_apple", "netherite", "diamond", "elytra", "mace", "end_crystal", "ender_pearl"];
+
+fn is_weapon(id: &str) -> bool {
+    ["_sword", "_axe", "mace", "trident", "_spear"].iter().any(|w| id.ends_with(w))
+}
+
+/// Bow Charge: how drawn the held bow, crossbow or trident is, 0..1 (none for anything else).
+pub fn bow_charge(item: &str, ticks: u32) -> Option<f32> {
+    let full = if item.ends_with("crossbow") { 25.0 } else if item.ends_with("bow") { 20.0 } else if item.ends_with("trident") { 10.0 } else { return None };
+    Some((ticks as f32 / full).min(1.0))
+}
+
+/// The mace's bonus damage for a fall of `fallen` blocks (vanilla's: 4 a block for 3, 2 a block for the next 5, then 1).
+pub fn mace_bonus(fallen: f64) -> f32 {
+    if fallen <= 1.5 {
+        return 0.0;
+    }
+    let f = fallen as f32;
+    (f.min(3.0) * 4.0) + ((f - 3.0).clamp(0.0, 5.0) * 2.0) + (f - 8.0).max(0.0)
+}
+
+/// Mace Optimizer: a player just hurt (hurt_time 10) while you fall with a mace in hand gets the smash sound now,
+/// not when the server's comes back.
+pub fn mace_hit(settings: &Settings, others: &[Other], holding_mace: bool) -> bool {
+    if !settings.on(MACE_OPT) || !holding_mace {
+        return false;
+    }
+    STATE.with_borrow_mut(|s| {
+        let hit = s.pvp.fallen > 1.5 && others.iter().any(|o| o.hurt_time == 10);
+        if hit {
+            let heavy = s.pvp.fallen > 5.0;
+            s.pvp.sounds.push((if heavy { "minecraft:item.mace.smash_ground_heavy" } else { "minecraft:item.mace.smash_ground" }, 1.0, 1.0));
+        }
+        hit
+    })
+}
+
+/// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
+pub const HOTKEY_KEYS: [(&str, &str, &str); 4] = [("hotkey_gg", "Chat Hotkey: gg", "gg"), ("hotkey_glhf", "Chat Hotkey: gl hf", "gl hf"),
+    ("hotkey_spawn", "Chat Hotkey: /spawn", "/spawn"), ("hotkey_kit", "Chat Hotkey: /kit", "/kit")];
+pub const FRIEND_KEY: &str = "friend";
+pub const DEFAULT_FRIEND_KEY: &str = "key.mouse.middle";
+
+/// A key went down: Chat Hotkeys queue their message, the Friend key marks the player you look at.
+pub fn hotkey(settings: &Settings, key: &str, bound: &dyn Fn(&str) -> String, target: Option<&str>) -> Option<String> {
+    if settings.on(HOTKEYS) {
+        for (id, _, message) in HOTKEY_KEYS {
+            if bound(id) == key {
+                STATE.with_borrow_mut(|s| s.pvp.outbox.push((Instant::now(), message.to_owned())));
+                return None;
+            }
+        }
+    }
+    if settings.on(FRIENDS) && bound(FRIEND_KEY) == key {
+        return target.map(str::to_owned);
+    }
+    None
+}
+
+/// The friends list as kept in its setting ("Alex,Steve").
+pub fn friends_of(stored: Option<String>) -> Vec<String> {
+    stored.unwrap_or_default().split(',').map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned).collect()
+}
+
+/// Adds or removes `name`: the new list to keep, and whether they're a friend now.
+pub fn toggle_friend(list: &[String], name: &str) -> (String, bool) {
+    let mut out: Vec<String> = list.iter().filter(|f| !f.eq_ignore_ascii_case(name)).cloned().collect();
+    let added = out.len() == list.len();
+    if added {
+        out.push(name.to_owned());
+    }
+    (out.join(","), added)
+}
+
+/// The rest of the combat modules' per-tick reading: who's eating, pearls (a player whose pearl just left their hand),
+/// your re-totem time, and each fight's opponent intel.
+pub fn more_tick(settings: &Settings, others: &[Other], events: &[(u32, i32)], own_id: u32, offhand_totem: bool) {
+    STATE.with_borrow_mut(|s| {
+        let now = Instant::now();
+        let x = &mut s.extra;
+        for o in others {
+            // A golden apple eaten: using went back to 0 after 32 ticks with one in hand.
+            let was = x.using.insert(o.id, (o.using, o.equipment.get(if o.using_off_hand { 1 } else { 0 }).cloned().flatten().map(|s| s.id)));
+            if let Some((ticks, Some(item))) = was {
+                if ticks >= 30 && o.using == 0 && item.contains("golden_apple") {
+                    *x.gapples.entry(o.name.clone()).or_default() += 1;
+                }
+                // A pearl thrown: the held stack of pearls got smaller.
+                let _ = item;
+            }
+            let pearls = o.equipment.iter().flatten().filter(|s| s.id == "minecraft:ender_pearl").map(|s| s.count).sum::<u32>();
+            if let Some(before) = x.pearls.insert(o.id, pearls) {
+                if pearls < before && settings.on(PEARLS) {
+                    x.thrown.insert(o.id, now);
+                }
+            }
+        }
+        for (id, event) in events {
+            if *event == 30 {
+                x.shield_down.insert(*id, now);
+            }
+            if *event == 35 && *id == own_id && own_id != 0 {
+                x.popped_at = Some(now);
+                x.retotem = None;
+            }
+        }
+        if let Some(at) = x.popped_at {
+            if offhand_totem && x.retotem.is_none() {
+                x.retotem = Some(now.duration_since(at));
+                x.popped_at = None;
+            }
+        }
+        x.thrown.retain(|_, t| t.elapsed() < Duration::from_secs(15));
+        x.shield_down.retain(|_, t| t.elapsed() < Duration::from_secs(5));
+        let _ = settings;
+    });
+}
+
+/// Session Summary: the session that just ended, shown when you're in a world again.
+pub fn session_ended() {
+    STATE.with_borrow_mut(|s| {
+        let p = &s.pvp;
+        let Some(start) = p.session_start else { return };
+        let mins = start.elapsed().as_secs() / 60;
+        let kd = p.kills_total as f32 / p.deaths_total.max(1) as f32;
+        let pops: u32 = p.pops.values().sum();
+        s.extra.summary = Some(vec![
+            "Last session".into(),
+            format!("{}h {}m played", mins / 60, mins % 60),
+            format!("{} kills, {} deaths, K/D {kd:.2}", p.kills_total, p.deaths_total),
+            format!("{pops} totems popped, best combo {}", p.best_combo),
+        ]);
+        s.pvp.session_start = None;
+        s.pvp.kills_total = 0;
+        s.pvp.deaths_total = 0;
+        s.pvp.best_combo = 0;
+        s.pvp.pops.clear();
+    });
+}
+
+/// Ambience: a few soft specks drifting round you (fireflies at night, embers in the Nether, dust by day), as places
+/// in the world that follow you.
+fn ambience_points(me: [f64; 3], t: f32) -> Vec<([f64; 3], f32)> {
+    (0..24).map(|i| {
+        let f = i as f32;
+        let a = f * 2.399 + t * 0.05 * (1.0 + (f * 0.37).sin());
+        let r = 3.0 + (f * 1.7).sin().abs() * 9.0;
+        let y = 0.6 + (f * 0.9).cos().abs() * 3.0 + (t * 0.4 + f).sin() * 0.4;
+        let glow = 0.5 + 0.5 * (t * 2.0 + f * 1.3).sin();
+        ([me[0] + (a.cos() * r) as f64, me[1] + y as f64, me[2] + (a.sin() * r) as f64], glow)
+    }).collect()
+}
+
+/// A box's twelve edges, drawn as thin quads through the camera.
+fn box_edges(cam: &Cam, min: [f64; 3], max: [f64; 3], w: f32, h: f32, argb: u32, out: &mut Vec<Shape>) {
+    let c = |x: usize, y: usize, z: usize| [if x == 0 { min[0] } else { max[0] }, if y == 0 { min[1] } else { max[1] }, if z == 0 { min[2] } else { max[2] }];
+    let edges = [(c(0,0,0), c(1,0,0)), (c(0,0,1), c(1,0,1)), (c(0,1,0), c(1,1,0)), (c(0,1,1), c(1,1,1)),
+                 (c(0,0,0), c(0,1,0)), (c(1,0,0), c(1,1,0)), (c(0,0,1), c(0,1,1)), (c(1,0,1), c(1,1,1)),
+                 (c(0,0,0), c(0,0,1)), (c(1,0,0), c(1,0,1)), (c(0,1,0), c(0,1,1)), (c(1,1,0), c(1,1,1))];
+    for (a, b) in edges {
+        if let (Some(a), Some(b)) = (project(cam, a, w, h), project(cam, b, w, h)) {
+            let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+            let len = (dx * dx + dy * dy).sqrt().max(0.001);
+            let n = [-dy / len * 0.6, dx / len * 0.6];
+            out.push(Shape::Quad([[a[0] - n[0], a[1] - n[1]], [b[0] - n[0], b[1] - n[1]], [b[0] + n[0], b[1] + n[1]], [a[0] + n[0], a[1] + n[1]]], argb));
+        }
+    }
+}
+
+/// The last group's shapes.
+#[allow(clippy::too_many_arguments)]
+pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>, inv: Option<&Inventory>, world: &World, using: Option<(&str, u32)>,
+                   attack: f32, block: Option<&str>, aimed: Option<[i32; 3]>, me: Option<[f64; 3]>, friends: &[String], cam: Option<&Cam>,
+                   w: f32, h: f32, width: &dyn Fn(&str) -> f32) -> Vec<Shape> {
+    let mut out = Vec::new();
+    let (cx, cy) = ((w / 2.0).floor(), (h / 2.0).floor());
+    let held = inv.and_then(|i| i.main_hand()).map(|s| s.id.clone()).unwrap_or_default();
+    let label = |out: &mut Vec<Shape>, text: String, at: [f32; 2], rgb: u32| {
+        let tw = width(&text);
+        out.push(Shape::Fill([at[0] - tw / 2.0 - 2.0, at[1] - 1.0, tw + 4.0, 10.0], 0x9000_0000));
+        out.push(Shape::Text(text, [at[0] - tw / 2.0, at[1]], rgb, false));
+    };
+    STATE.with_borrow(|s| {
+        let x = &s.extra;
+        if let Some(cam) = cam {
+            let t = s.pvp.session_start.map_or(0.0, |t| t.elapsed().as_secs_f32());
+            if let (true, Some(me)) = (settings.on(AMBIENCE), me) {
+                for (p, glow) in ambience_points(me, t) {
+                    if let Some([px, py]) = project(cam, p, w, h) {
+                        let a = (60.0 + glow * 150.0) as u32;
+                        out.push(Shape::Fill([px - 1.0, py - 1.0, 2.0, 2.0], a << 24 | 0xE8F57A));
+                    }
+                }
+            }
+            let show_boxes = settings.on(HITBOXES) && (!settings.on(AUTO_HITBOX) || is_weapon(&held));
+            for o in others {
+                let friend = friends.iter().any(|f| f.eq_ignore_ascii_case(&o.name));
+                if show_boxes && !friend {
+                    let aimed_full = target.is_some_and(|t| t.id == o.id) && attack >= 0.95;
+                    box_edges(cam, [o.pos[0] - 0.3, o.pos[1], o.pos[2] - 0.3], [o.pos[0] + 0.3, o.pos[1] + 1.8, o.pos[2] + 0.3], w, h,
+                              if aimed_full { 0xFFFF_4040 } else { 0xB0FF_FFFF }, &mut out);
+                }
+                let mut tags: Vec<(String, u32)> = Vec::new();
+                if settings.on(FRIENDS) && friend {
+                    tags.push(("F".into(), 0x5CE08A));
+                }
+                if settings.on(EATING) && o.using > 0 {
+                    let item = o.equipment.get(if o.using_off_hand { 1 } else { 0 }).cloned().flatten().map(|s| s.id).unwrap_or_default();
+                    let what = if item.contains("golden_apple") { Some("EATING GAPPLE") } else if item.contains("potion") || item.ends_with("milk_bucket") { Some("DRINKING") }
+                        else if food(&item).is_some() { Some("EATING") } else { None };
+                    if let Some(what) = what {
+                        tags.push((what.into(), 0xFF5A5A));
+                    }
+                }
+                if settings.on(SHIELD_HELP) {
+                    if let Some(at) = x.shield_down.get(&o.id) {
+                        tags.push((format!("Shield {:.1}s", 5.0 - at.elapsed().as_secs_f32()), 0xFF5A5A));
+                    } else if o.equipment.iter().take(2).flatten().any(|s| s.id == "minecraft:shield") {
+                        tags.push(("Shield".into(), 0x5CE08A));
+                    }
+                }
+                if let (true, Some(at)) = (settings.on(PEARLS), x.thrown.get(&o.id)) {
+                    tags.push((format!("Pearl {:.1}s", (15.0 - at.elapsed().as_secs_f32()).max(0.0)), 0xB884FF));
+                }
+                let mut y_off = 3.35;
+                for (text, rgb) in tags {
+                    if let Some(at) = project(cam, [o.pos[0], o.pos[1] + y_off, o.pos[2]], w, h) {
+                        label(&mut out, text, at, rgb);
+                    }
+                    y_off += 0.3;
+                }
+            }
+            if settings.on(ITEM_NAMES) {
+                if let Some(me) = me {
+                    for (p, id, count) in &world.dropped {
+                        let d2 = (p[0] - me[0]).powi(2) + (p[1] - me[1]).powi(2) + (p[2] - me[2]).powi(2);
+                        if d2 > 24.0 * 24.0 {
+                            continue;
+                        }
+                        if let Some(at) = project(cam, [p[0], p[1] + 0.6, p[2]], w, h) {
+                            let gold = VALUABLE.iter().any(|v| id.contains(v));
+                            let text = if *count > 1 { format!("{} x{count}", item_name(id)) } else { item_name(id) };
+                            label(&mut out, text, at, if gold { 0xFFC83D } else { 0xFFFFFF });
+                        }
+                    }
+                }
+            }
+            if let (true, Some(pos)) = (settings.on(CRYSTAL_PREV), aimed) {
+                if held == "minecraft:end_crystal" {
+                    let base = block.is_some_and(|b| b.contains("obsidian") || b.contains("bedrock"));
+                    let min = [pos[0] as f64, pos[1] as f64 + 1.0, pos[2] as f64];
+                    box_edges(cam, min, [min[0] + 1.0, min[1] + 2.0, min[2] + 1.0], w, h, if base { 0xFF5C_E08A } else { 0xFFFF_5A5A }, &mut out);
+                }
+            }
+            // Mace Aim: falling with a mace, a line to the player below and the bonus damage.
+            if let (true, Some(me)) = (settings.on(MACE_AIM), me) {
+                if held == "minecraft:mace" && s.pvp.fallen > 1.5 {
+                    let below = others.iter().filter(|o| o.pos[1] < me[1] && ((o.pos[0] - me[0]).powi(2) + (o.pos[2] - me[2]).powi(2)).sqrt() < 6.0)
+                        .min_by(|a, b| a.pos[1].total_cmp(&b.pos[1]).reverse());
+                    if let Some(o) = below {
+                        if let Some(at) = project(cam, [o.pos[0], o.pos[1] + 1.0, o.pos[2]], w, h) {
+                            let (dx, dy) = (at[0] - cx, at[1] - cy);
+                            let len = (dx * dx + dy * dy).sqrt().max(0.001);
+                            let n = [-dy / len, dx / len];
+                            out.push(Shape::Quad([[cx - n[0], cy - n[1]], [at[0] - n[0], at[1] - n[1]], [at[0] + n[0], at[1] + n[1]], [cx + n[0], cy + n[1]]], 0xFFFF_C83D));
+                        }
+                    }
+                    label(&mut out, format!("+{:.1} mace", mace_bonus(s.pvp.fallen) / 2.0), [cx, cy + 38.0], 0xFFC83D);
+                }
+            }
+        }
+        if let (true, Some((item, ticks))) = (settings.on(BOW), using) {
+            if let Some(c) = bow_charge(item, ticks) {
+                label(&mut out, format!("{}%", (c * 100.0).round() as i32), [cx, cy + 14.0], if c >= 1.0 { 0x5CE08A } else { 0xFFFFFF });
+            }
+        }
+        if settings.on(RETOTEM) {
+            if let Some(d) = x.retotem {
+                label(&mut out, format!("Re-totem {:.2}s", d.as_secs_f32()), [cx, cy + 48.0], if d.as_millis() < 300 { 0x5CE08A } else { 0xFFC83D });
+            } else if x.popped_at.is_some() {
+                label(&mut out, "Re-totem!".into(), [cx, cy + 48.0], 0xFF5A5A);
+            }
+        }
+        if settings.on(GOAL) {
+            let goal: u32 = GOALS[settings.v[GOAL_KILLS]].0.parse().unwrap_or(10);
+            let done = s.pvp.kills_total;
+            let text = if done >= goal { format!("Goal reached: {done}/{goal} kills") } else { format!("Goal: {done}/{goal} kills") };
+            out.push(Shape::Text(text, [4.0, h - 12.0], if done >= goal { 0x5CE08A } else { 0xFFFFFF }, true));
+        }
+        if settings.on(INTEL) {
+            if let Some(f) = &s.pvp.fight {
+                let gapples = x.gapples.get(&f.with).copied().unwrap_or(0);
+                let lines = [format!("{}: {} pops, {} gapples", f.with, f.pops, gapples), format!("Your hits {}", f.hits)];
+                let mut y = 40.0;
+                for l in lines {
+                    out.push(Shape::Text(l, [4.0, y], 0xFFC83D, true));
+                    y += 10.0;
+                }
+            }
+        }
+        if let (true, Some(lines)) = (settings.on(SUMMARY), &x.summary) {
+            if x.summary_shown.is_none_or(|t| t.elapsed() < Duration::from_secs(8)) {
+                let wide = lines.iter().map(|l| width(l)).fold(0.0, f32::max) + 12.0;
+                let (bx, by) = (cx - wide / 2.0, h * 0.3);
+                out.push(Shape::Fill([bx, by, wide, lines.len() as f32 * 11.0 + 8.0], BACKGROUND));
+                for (i, l) in lines.iter().enumerate() {
+                    out.push(Shape::Text(l.clone(), [bx + 6.0, by + 5.0 + i as f32 * 11.0], if i == 0 { 0xFFC83D } else { 0xFFFFFF }, true));
+                }
+            }
+        }
+    });
+    STATE.with_borrow_mut(|s| {
+        if s.extra.summary.is_some() && s.extra.summary_shown.is_none() {
+            s.extra.summary_shown = Some(Instant::now());
+        }
+    });
+    out
+}
+
+/// The last group's state.
+#[derive(Default)]
+struct Extra {
+    using: std::collections::HashMap<u32, (i32, Option<String>)>,
+    gapples: std::collections::HashMap<String, u32>,
+    pearls: std::collections::HashMap<u32, u32>,
+    thrown: std::collections::HashMap<u32, Instant>,
+    shield_down: std::collections::HashMap<u32, Instant>,
+    popped_at: Option<Instant>,
+    retotem: Option<Duration>,
+    summary: Option<Vec<String>>,
+    summary_shown: Option<Instant>,
 }
 
 /// Whether you're falling now (Crit Indicator): going down since the last tick.
@@ -3515,6 +4199,74 @@ mod tests {
     }
 
     #[test]
+    fn the_embedded_pack_is_the_shaderpack_folder() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("shaderpack").join("arsenal");
+        for (name, text) in PACK {
+            let file = std::fs::read_to_string(dir.join(name)).unwrap().replace("
+", "
+");
+            assert_eq!(file, *text, "{name} changed: run scripts/embed_pack.py");
+        }
+        assert!(PACK.iter().any(|(n, _)| *n == "horizon-shaders.toml"));
+    }
+
+    #[test]
+    fn mace_optimizer_plays_the_smash() {
+        let mut s = Settings::default();
+        s.v[MACE_OPT] = 1;
+        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0; 3], health: 20.0, absorption: 0.0, hurt_time: 10, using: 0, using_off_hand: false, equipment: vec![] };
+        STATE.with_borrow_mut(|st| st.pvp.fallen = 0.0);
+        assert!(!mace_hit(&s, std::slice::from_ref(&alex), true));
+        STATE.with_borrow_mut(|st| st.pvp.fallen = 3.0);
+        assert!(!mace_hit(&s, std::slice::from_ref(&alex), false));
+        assert!(mace_hit(&s, std::slice::from_ref(&alex), true));
+        STATE.with_borrow_mut(|st| st.pvp.fallen = 0.0);
+    }
+
+    #[test]
+    fn the_last_group() {
+        let s0 = Settings::default();
+        assert_eq!(shader_params(&s0)[0], [0.0, 0.0, 0.0, 1.0], "the pack passes the picture through");
+        let mut s = Settings::default();
+        s.v[BLOOM] = 1;
+        s.v[MOTION] = 1;
+        s.v[LOOK] = 1;
+        s.v[LOOK_KIND] = 3;
+        s.v[SKY_FX] = 1;
+        let p = shader_params(&s);
+        assert!(p[0][0] > 0.0 && p[0][1] > 0.0 && p[1][0] < 0.01 && p[4][0] > 0.0);
+        assert_eq!(item_name("minecraft:enchanted_golden_apple"), "Enchanted Golden Apple");
+        assert_eq!(bow_charge("minecraft:bow", 10), Some(0.5));
+        assert_eq!(bow_charge("minecraft:crossbow", 50), Some(1.0));
+        assert_eq!(bow_charge("minecraft:stick", 5), None);
+        assert_eq!(mace_bonus(1.0), 0.0);
+        assert_eq!(mace_bonus(10.0), 12.0 + 10.0 + 2.0);
+        let (list, added) = toggle_friend(&["Alex".into()], "Steve");
+        assert_eq!((list.as_str(), added), ("Alex,Steve", true));
+        let (list, added) = toggle_friend(&friends_of(Some(list)), "alex");
+        assert_eq!((list.as_str(), added), ("Steve", false));
+        s.v[HOTKEYS] = 1;
+        let bound = |id: &str| if id == "hotkey_gg" { "key.keyboard.f6".to_string() } else { "key.keyboard.unknown".to_string() };
+        assert_eq!(hotkey(&s, "key.keyboard.f6", &bound, None), None);
+        STATE.with_borrow(|st| assert_eq!(st.pvp.outbox.last().map(|o| o.1.as_str()), Some("gg")));
+        s.v[PEARLS] = 1;
+        let mut alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0; 3], health: 20.0, absorption: 0.0, hurt_time: 0, using: 32, using_off_hand: false,
+            equipment: vec![st("minecraft:golden_apple", 3, 0), st("minecraft:ender_pearl", 8, 0)] };
+        more_tick(&s, std::slice::from_ref(&alex), &[], 1, false);
+        alex.using = 0;
+        alex.equipment[1] = st("minecraft:ender_pearl", 7, 0);
+        more_tick(&s, std::slice::from_ref(&alex), &[(1, 35)], 1, false);
+        more_tick(&s, std::slice::from_ref(&alex), &[], 1, true);
+        STATE.with_borrow(|st| {
+            assert_eq!(st.extra.gapples.get("Alex"), Some(&1));
+            assert!(st.extra.thrown.contains_key(&7) && st.extra.retotem.is_some());
+        });
+        STATE.with_borrow_mut(|st| { st.pvp.session_start = Some(Instant::now()); st.pvp.kills_total = 3; });
+        session_ended();
+        STATE.with_borrow(|st| assert!(st.extra.summary.as_ref().unwrap()[2].starts_with("3 kills")));
+    }
+
+    #[test]
     fn hashes_tiers_presence_and_effects() {
         assert_eq!(sha256_hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
         assert_eq!(sha256_hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
@@ -3584,7 +4336,7 @@ mod tests {
         let mut s = Settings::default();
         s.v[COOLDOWN] = 1;
         s.v[ANCHOR] = 1;
-        let world = World { crystals: vec![], tnts: vec![], cooldowns: vec![("minecraft:ender_pearl".into(), 0.5)] };
+        let world = World { crystals: vec![], tnts: vec![], cooldowns: vec![("minecraft:ender_pearl".into(), 0.5)], dropped: vec![] };
         let shapes = world_shapes(&s, &world, None, (0.0, 0.0), None, Some("minecraft:respawn_anchor[charges=2]"), None, 400.0, 300.0, &width);
         assert!(shapes.iter().any(|x| matches!(x, Shape::Item(id, _) if id == "minecraft:ender_pearl")));
         assert!(shapes.iter().any(|x| matches!(x, Shape::Text(t, ..) if t == "Anchor 2/4")));
@@ -3623,7 +4375,7 @@ mod tests {
         s.v[FIGHT_SUMMARY] = 1;
         s.v[DEATH_RECAP] = 1;
         s.v[ENEMY_ARMOR] = 1;
-        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0,
+        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, using: 0, using_off_hand: false,
             equipment: vec![None, None, None, None, None, st("minecraft:diamond_helmet", 1, 350)] };
         players_tick(&s, std::slice::from_ref(&alex), &[]);
         clicked();
@@ -3687,7 +4439,7 @@ mod tests {
         s.v[POP_ALERTS] = 1;
         s.v[DAMAGE_NUMS] = 1;
         s.v[HITMARKER] = 1;
-        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, equipment: vec![st("minecraft:diamond_sword", 1, 0)] };
+        let alex = Other { id: 7, uuid: 0, name: "Alex".into(), pos: [0.0, 64.0, 3.0], health: 20.0, absorption: 0.0, hurt_time: 0, using: 0, using_off_hand: false, equipment: vec![st("minecraft:diamond_sword", 1, 0)] };
         players_tick(&s, std::slice::from_ref(&alex), &[]);
         clicked();
         let hit = Other { health: 14.0, hurt_time: 10, ..alex.clone() };

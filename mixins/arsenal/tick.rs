@@ -31,6 +31,9 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         hide_particles: v.hide_particles,
         capture: v.capture,
     });
+    crate::game::native_hooks::ARSENAL_CRYSTAL_OPT.store(v.crystal_optimizer, std::sync::atomic::Ordering::Relaxed);
+    // Arsenal's shader pack goes into shaderpacks/ (once, and again when the mod brings a new version).
+    m::install_pack_once(&game.native_instance_dir());
     let lines = game.arsenal_take_chat();
     let own = game.arsenal_me();
     if !lines.is_empty() || own.is_some() {
@@ -44,6 +47,8 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         health: o.health,
         absorption: o.absorption,
         hurt_time: o.hurt_time,
+        using: o.using,
+        using_off_hand: o.using_off_hand,
         equipment: o.equipment.iter().map(|s| s.as_ref().filter(|s| s.count > 0).map(|s| m::Stack { id: s.item.to_string(), count: s.count, damage: s.damage })).collect(),
     }).collect();
     let events = game.arsenal_entity_events();
@@ -56,6 +61,12 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         m::killed_at(&settings, &others, &victim);
     }
     m::ask_network(&settings, &others);
+    let offhand_totem = game.arsenal_inventory().is_some_and(|v| v.offhand.as_ref().is_some_and(|s| &*s.item == "minecraft:totem_of_undying" && s.count > 0));
+    m::more_tick(&settings, &others, &events, own_id, offhand_totem);
+    let mace = game.arsenal_inventory().is_some_and(|v| v.slots.get(v.selected).cloned().flatten().is_some_and(|s| &*s.item == "minecraft:mace"));
+    m::mace_hit(&settings, &others, mace);
+    // Session Summary: leaving a world ends the session.
+    m::world_change(game.native_player().is_some());
     m::write_presence(&settings, game.native_player().is_some());
     let status = game.arsenal_status();
     m::status_tick(&settings, &m::Status { attack: status.attack, effects: status.effects, ping: status.ping, latencies: status.latencies },

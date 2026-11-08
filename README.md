@@ -14,7 +14,9 @@ own copy of the game.
 | `mixins/arsenal/horizon-mixin.toml` | The bundle: one module and its hooks |
 | `mixins/arsenal/runtime.rs` | The mod's logic, added to the game as `game::arsenal_native`; also this crate's library, for its tests |
 | `mixins/arsenal/*.rs` | One small helper per hook |
-| `patches/*.json` | Arsenal's own hooks, put into Horizon's source before it's compiled: your inventory, chat (send, read, filter), the other players around, your status (attack charge, effects, pings), end crystals, TNT and cooldowns, and how the game looks (Horizon's own PvP extras, brightness, no hurt-camera, no pumpkin overlay, fewer particles). The build stops if Horizon moved the code a patch goes into |
+| `patches/*.json` | Arsenal's own hooks, put into Horizon's source before it's compiled: your inventory, chat (send, read, filter), the other players around, your status (attack charge, effects, pings), end crystals, TNT, dropped items and cooldowns, Crystal Optimizer, and how the game looks (Horizon's own PvP extras, brightness, no hurt-camera, no pumpkin overlay, fewer particles). The build stops if Horizon moved the code a patch goes into |
+| `shaderpack/arsenal/` | Arsenal's Horizon shader pack (Bloom, World Look, Sky & World Colors, Mist, Sky Effects, Motion Blur), set each frame from Arsenal's menu. The mod writes it into the game's `shaderpacks/` on start |
+| `scripts/embed_pack.py` | Copies the shader pack into `runtime.rs` (a test fails while they differ) |
 | `scripts/plan.py` | Which Horizon build to put Arsenal into, and whether it is built already |
 | `scripts/build.py` | Applies the bundle to Horizon's source and compiles the game |
 | `.github/workflows/build.yml` | Builds every platform and publishes the release |
