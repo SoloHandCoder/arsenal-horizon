@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.16.0";
+pub const VERSION: &str = "1.16.1";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -469,7 +469,8 @@ pub const HAND_COLOR: usize = 214;
 pub const BLOCK_ANIM_COLOR: usize = 215;
 pub const SPRINT_COLOR: usize = 216;
 pub const PARTY_COLOR: usize = 217;
-const N: usize = 218;
+pub const LOW_FIRE_GROUND: usize = 218;
+const N: usize = 219;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -690,6 +691,7 @@ pub const FIELDS: [Field; N] = [
     Field { key: "block_animation_color", label: "Colour", options: TINTS, default: 6 },
     Field { key: "sprint_color", label: "Colour", options: TINTS, default: 3 },
     Field { key: "party_color", label: "Arrow colour", options: TINTS, default: 6 },
+    Field { key: "low_fire_ground", label: "Lower fire on the ground too", options: ONOFF, default: 1 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -761,7 +763,7 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("chat_filter", CHAT_FILTER, &[FILTER_KIND]),
     ("fullbright", FULLBRIGHT, &[]),
     ("hit_effects", HIT_FX, &[HIT_COLOR]),
-    ("low_fire", LOW_FIRE, &[FIRE_LOWER]),
+    ("low_fire", LOW_FIRE, &[FIRE_LOWER, LOW_FIRE_GROUND]),
     ("particle_limiter", PARTICLES, &[PARTICLE_KEEP]),
     ("weather_time", WEATHER_TIME, &[VIEW_TIME, VIEW_WEATHER]),
     ("no_hurt_cam", NO_HURT, &[]),
@@ -770,7 +772,7 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("enchant_glint", GLINT, &[GLINT_COLOR]),
     ("discord_presence", DISCORD, &[]),
     ("pvp_tiers", TIERS, &[]),
-    ("arsenal_users", USERS, &[]),
+    ("arsenal_users", USERS, &[COSMETICS]),
     ("crit_particles", CRITS, &[CRIT_SHAPE, CRIT_COLOR]),
     ("sweep_effect", SWEEP, &[SWEEP_COLOR]),
     ("swing_trails", SWING, &[]),
@@ -2225,8 +2227,11 @@ pub fn status_shapes(settings: &Settings, status: &Status, others: &[Other], aim
     });
     let mark = out.len();
     if settings.on(INV_TOTEM) && totems > 0 {
-        out.push(Shape::Item("minecraft:totem_of_undying".into(), [cx - 30.0, cy - 8.0]));
-        out.push(Shape::Text(totems.to_string(), [cx - 13.0, cy - 4.0], 0xFFFFFF, true));
+        let text = totems.to_string();
+        let x = (w / 2.0 - (18.0 + width(&text)) / 2.0).floor();
+        let y = h - 62.0 - 16.0;
+        out.push(Shape::Item("minecraft:totem_of_undying".into(), [x, y]));
+        out.push(Shape::Text(text, [x + 18.0, y + 4.0], 0xFFFFFF, true));
     }
     place(settings, &mut out, mark, "totems", w, h, width);
     let mut y = 4.0;
@@ -3343,6 +3348,8 @@ struct More {
     /// Quick Menu: the feature picked while V is held.
     quick: Option<usize>,
     quick_len: usize,
+    shader_wanted: Option<bool>,
+    capes_at: Option<Instant>,
     /// Sprint Reset Indicator: you hit since you started sprinting.
     sprint_used: bool,
     sprinting: bool,
@@ -3550,7 +3557,8 @@ pub fn blocks_tick(settings: &Settings, events: &[([i32; 3], u8)]) {
     STATE.with_borrow_mut(|s| {
         let now = Instant::now();
         for (pos, kind) in events {
-            if (*kind == 0 && settings.on(BREAK_ANIM)) || (*kind == 1 && settings.on(PLACE_ANIM)) {
+            let seen = s.more.blocks.iter().any(|b| b.0 == *pos && b.1 == *kind && b.2.elapsed() < Duration::from_millis(400));
+            if !seen && ((*kind == 0 && settings.on(BREAK_ANIM)) || (*kind == 1 && settings.on(PLACE_ANIM))) {
                 s.more.blocks.push((*pos, *kind, now));
             }
         }
@@ -4189,6 +4197,356 @@ pub fn place(settings: &Settings, out: &mut Vec<Shape>, from: usize, id: &'stati
     HUD_BOXES.with_borrow_mut(|b| b.push((id, moved, home)));
 }
 
+
+// ---- 1.16.1: particle auras (the Wardrobe's particle accessories), drawn by Arsenal as the Java mod's FlameAura ----
+
+/// Accessories that give off particles: the particle-only ones, then model ones with a few particles.
+pub const AURA_IDS: &[&str] = &["flame_aura", "snow_aura", "lightning_aura", "heart_aura", "ender_aura", "music_aura", "sparkle_trail",
+    "legend_aura", "speedrunner", "shield_aura", "lightning_strikes", "rainbow_trail", "ice_aura", "verdant_aura",
+    "ender_wings", "cloud_trail", "ember_wings", "completionist_halo", "lucky_clover", "rune_circle"];
+
+#[derive(Clone, Debug)]
+struct Dot {
+    pos: [f64; 3],
+    /// Blocks per tick.
+    vel: [f64; 3],
+    rgb: u32,
+    born: Instant,
+    life: f32,
+    size: f32,
+}
+
+#[derive(Default)]
+struct Auras {
+    dots: Vec<Dot>,
+    last: std::collections::HashMap<u128, [f64; 3]>,
+    seed: u64,
+    tick: u64,
+}
+
+thread_local! {
+    static AURAS: RefCell<Auras> = RefCell::new(Auras::default());
+}
+
+/// A colour round the wheel (hue 0..1) with a little white, as the Java mod's rainbow.
+fn aura_rainbow(hue: f64) -> u32 {
+    let h = (hue % 1.0 + 1.0) % 1.0 * 6.0;
+    let i = (h as u32).min(5);
+    let (f, q) = (h - i as f64, 1.0 - (h - i as f64));
+    let (r, g, b) = match i { 0 => (1.0, f, 0.0), 1 => (q, 1.0, 0.0), 2 => (0.0, 1.0, f), 3 => (0.0, q, 1.0), 4 => (f, 0.0, 1.0), _ => (1.0, 0.0, q) };
+    ((55.0 + r * 200.0) as u32) << 16 | ((55.0 + g * 200.0) as u32) << 8 | (55.0 + b * 200.0) as u32
+}
+
+/// The look of a vanilla particle: colour, size (pixels at one block) and life in seconds.
+fn aura_kind(kind: &str) -> (u32, f32, f32) {
+    match kind {
+        "flame" => (0xFFA030, 1.6, 0.7),
+        "snow" => (0xF1F8FF, 1.6, 1.6),
+        "spark" => (0xFFF6A0, 1.2, 0.3),
+        "heart" => (0xFF3B5C, 3.0, 1.1),
+        "portal" => (0xB050FF, 1.4, 0.9),
+        "end_rod" => (0xFFFFFF, 1.4, 1.2),
+        "smoke" => (0xE6E6E6, 2.2, 0.5),
+        "wax" => (0xFFB000, 1.4, 0.6),
+        "villager" => (0x5FDC5F, 1.6, 0.9),
+        "cloud" => (0xFFFFFF, 2.4, 0.6),
+        _ => (0xFFFFFF, 1.4, 0.8),
+    }
+}
+
+/// Each tick: particles for each player wearing a particle accessory (`wearers`: account, feet, body yaw in degrees;
+/// your own only when the camera isn't in your head).
+pub fn aura_tick(settings: &Settings, wearers: &[(u128, [f64; 3], f32)]) {
+    AURAS.with_borrow_mut(|a| {
+        a.tick += 1;
+        a.dots.retain(|d| d.born.elapsed().as_secs_f32() < d.life);
+        if !settings.on(COSMETICS) {
+            a.dots.clear();
+            return;
+        }
+        if a.seed == 0 {
+            a.seed = 0x9E37_79B9_7F4A_7C15;
+        }
+        let now = Instant::now();
+        let tick = a.tick;
+        let mut seen = Vec::new();
+        for (uuid, pos, yaw) in wearers {
+            seen.push(*uuid);
+            let last = a.last.insert(*uuid, *pos).unwrap_or(*pos);
+            let Some(id) = worn(*uuid).and_then(|w| w.accessory) else { continue };
+            if !AURA_IDS.contains(&id.as_str()) || a.dots.len() > 900 {
+                continue;
+            }
+            let (dx, dz) = (pos[0] - last[0], pos[2] - last[2]);
+            let moving = dx * dx + dz * dz;
+            let mut seed = a.seed;
+            let mut rnd = || {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                (seed >> 11) as f64 / (1u64 << 53) as f64
+            };
+            let mut out: Vec<(&str, u32, [f64; 3], [f64; 3])> = Vec::new();
+            let mut add = |kind: &'static str, rgb: Option<u32>, p: [f64; 3], v: [f64; 3]| out.push((kind, rgb.unwrap_or(0), p, v));
+            let angle = rnd() * std::f64::consts::TAU;
+            let radius = 0.45 + rnd() * 0.25;
+            let (x, z) = (pos[0] + angle.cos() * radius, pos[2] + angle.sin() * radius);
+            let y = pos[1];
+            let t = tick as f64;
+            let body = (*yaw as f64).to_radians();
+            match id.as_str() {
+                "flame_aura" => {
+                    for _ in 0..2 {
+                        let a2 = rnd() * std::f64::consts::TAU;
+                        let (h, up) = (rnd() * 0.4, 0.02 + rnd() * 0.03);
+                        add("flame", None, [pos[0] + a2.cos() * radius, y + h, pos[2] + a2.sin() * radius], [0.0, up, 0.0]);
+                    }
+                }
+                "snow_aura" => {
+                    if rnd() < 0.6 {
+                        add("snow", None, [x, y + 2.3, z], [0.0, -0.03, 0.0]);
+                    }
+                }
+                "lightning_aura" => {
+                    if rnd() < 0.35 {
+                        for _ in 0..3 {
+                            let h = 0.2 + rnd() * 1.6;
+                            let v = [(rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.2];
+                            add("spark", None, [x, y + h, z], v);
+                        }
+                    }
+                }
+                "heart_aura" => {
+                    if rnd() < 0.08 {
+                        let h = 0.6 + rnd() * 1.4;
+                        add("heart", None, [x, y + h, z], [0.0, 0.02, 0.0]);
+                    }
+                }
+                "ender_aura" => {
+                    for _ in 0..2 {
+                        let (h, vx, vy, vz) = (rnd() * 1.8, (rnd() - 0.5) * 0.08, (rnd() - 0.5) * 0.03, (rnd() - 0.5) * 0.08);
+                        add("portal", None, [pos[0] + vx * 10.0, y + h, pos[2] + vz * 10.0], [-vx, vy, -vz]);
+                    }
+                }
+                "music_aura" => {
+                    if rnd() < 0.12 {
+                        let h = 0.5 + rnd() * 1.5;
+                        let c = aura_rainbow(rnd());
+                        add("note", Some(c), [x, y + h, z], [0.0, 0.01, 0.0]);
+                    }
+                }
+                "ender_wings" | "ember_wings" => {
+                    if rnd() < 0.15 {
+                        let side = if rnd() < 0.5 { 1.0 } else { -1.0 };
+                        let out_ = 0.2 + rnd() * 0.65;
+                        let (bx, bz) = (body.sin() * 0.45, -body.cos() * 0.45);
+                        let h = 0.85 + rnd() * 0.8;
+                        let p = [pos[0] + bx + body.cos() * side * out_, y + h, pos[2] + bz + body.sin() * side * out_];
+                        if id == "ender_wings" {
+                            add("portal", None, p, [(rnd() - 0.5) * 0.03, -0.02 - rnd() * 0.03, (rnd() - 0.5) * 0.03]);
+                        } else if rnd() < 0.4 {
+                            add("flame", None, p, [0.0, 0.015, 0.0]);
+                        } else {
+                            add("dust", Some(0xFF7A1A), p, [0.0, 0.03, 0.0]);
+                        }
+                    }
+                }
+                "cloud_trail" => {
+                    if moving > 0.002 && rnd() < 0.3 {
+                        let (ox, oz) = ((rnd() - 0.5) * 0.4, (rnd() - 0.5) * 0.4);
+                        add("cloud", None, [pos[0] + ox, y + 0.05, pos[2] + oz], [-dx * 0.1, 0.01, -dz * 0.1]);
+                    }
+                }
+                "sparkle_trail" => {
+                    if moving > 0.002 {
+                        if rnd() < 0.35 {
+                            let (ox, oy, oz) = ((rnd() - 0.5) * 0.5, 0.05 + rnd() * 0.2, (rnd() - 0.5) * 0.5);
+                            add("spark", None, [pos[0] - dx + ox, y + oy, pos[2] - dz + oz], [0.0, 0.01, 0.0]);
+                        }
+                        if rnd() < 0.06 {
+                            let (ox, oz) = ((rnd() - 0.5) * 0.4, (rnd() - 0.5) * 0.4);
+                            add("end_rod", None, [pos[0] - dx * 2.0 + ox, y + 0.1, pos[2] - dz * 2.0 + oz], [0.0, 0.015, 0.0]);
+                        }
+                    }
+                }
+                "speedrunner" => {
+                    let speed = moving.sqrt();
+                    if speed > 0.05 && rnd() < if speed > 0.2 { 0.7 } else { 0.35 } {
+                        let (nx, nz) = (dx / speed, dz / speed);
+                        let side = (if rnd() < 0.5 { 1.0 } else { -1.0 }) * (0.3 + rnd() * 0.15);
+                        let h = 0.1 + rnd() * 0.7;
+                        add("smoke", None, [pos[0] - nz * side + nx * 0.3, y + h, pos[2] + nx * side + nz * 0.3], [-nx * 0.25, 0.005, -nz * 0.25]);
+                    }
+                }
+                "legend_aura" => {
+                    for k in 0..2 {
+                        let h = (t * 0.035 + k as f64 * 0.5) % 1.0;
+                        let a2 = t * 0.28 + k as f64 * std::f64::consts::PI;
+                        let r = 0.62 - h * 0.18;
+                        add("dust", Some(0xFFC83C), [pos[0] + a2.cos() * r, y + 0.1 + h * 2.0, pos[2] + a2.sin() * r], [0.0, 0.01, 0.0]);
+                    }
+                    if rnd() < 0.2 {
+                        let h = 0.2 + rnd() * 1.8;
+                        add("wax", None, [x, y + h, z], [0.0, 0.02, 0.0]);
+                    }
+                    if rnd() < 0.04 {
+                        add("end_rod", None, [x, y + 2.2, z], [0.0, -0.02, 0.0]);
+                    }
+                }
+                "shield_aura" => {
+                    if rnd() < 0.05 {
+                        let h = 0.3 + rnd() * 1.3;
+                        add("dust", Some(0x4DABF7), [x, y + h, z], [0.0, 0.01, 0.0]);
+                    }
+                }
+                "lightning_strikes" => {
+                    let phase = (tick + (*uuid as u64 % 70)) % 70;
+                    if phase == 0 || phase == 3 {
+                        let (mut bx, mut bz) = (pos[0], pos[2]);
+                        let top = y + 1.8 + 0.95;
+                        for seg in 0..4 {
+                            let (nx, nz) = (pos[0] + (rnd() - 0.5) * 0.3, pos[2] + (rnd() - 0.5) * 0.3);
+                            let (y0, y1) = (top - seg as f64 * 0.17, top - seg as f64 * 0.17 - 0.17);
+                            for _ in 0..if phase == 0 { 3 } else { 1 } {
+                                let f = rnd();
+                                add("spark", None, [bx + (nx - bx) * f, y0 + (y1 - y0) * f, bz + (nz - bz) * f], [0.0; 3]);
+                            }
+                            bx = nx;
+                            bz = nz;
+                        }
+                        if phase == 0 {
+                            add("end_rod", None, [pos[0], top + 0.05, pos[2]], [0.0, 0.005, 0.0]);
+                        }
+                    }
+                }
+                "rainbow_trail" => {
+                    if moving > 0.04 {
+                        for i in 0..2 {
+                            let c = aura_rainbow(t * 0.035 + i as f64 * 0.09);
+                            let (ox, oy, oz) = ((rnd() - 0.5) * 0.35, 0.15 + rnd() * 0.8, (rnd() - 0.5) * 0.35);
+                            add("dust", Some(c), [pos[0] - dx * 1.5 + ox, y + oy, pos[2] - dz * 1.5 + oz], [0.0, 0.005, 0.0]);
+                        }
+                    }
+                }
+                "ice_aura" => {
+                    for k in 0..2 {
+                        let a2 = t * 0.09 + k as f64 * std::f64::consts::PI;
+                        let h = 0.2 + (t * 0.05 + k as f64 * 2.0).sin() * 0.12;
+                        add("dust", Some(0xA5D8FF), [pos[0] + a2.cos() * 0.75, y + h, pos[2] + a2.sin() * 0.75], [-a2.sin() * 0.02, 0.003, a2.cos() * 0.02]);
+                    }
+                    if rnd() < 0.15 {
+                        let h = 0.1 + rnd() * 0.6;
+                        add("snow", None, [x, y + h, z], [-angle.sin() * 0.03, 0.01, angle.cos() * 0.03]);
+                    }
+                    if rnd() < 0.12 {
+                        let h = 0.05 + rnd() * 0.5;
+                        add("dust", Some(0xF1F8FF), [x, y + h, z], [0.0, 0.01, 0.0]);
+                    }
+                }
+                "verdant_aura" => {
+                    for k in 0..2 {
+                        let a2 = t * 0.11 + k as f64 * std::f64::consts::PI;
+                        let h = (t * 0.022 + k as f64 * 0.5) % 1.0;
+                        let c = if k == 0 { 0x4CAF50 } else { 0xA6E06A };
+                        add("dust", Some(c), [pos[0] + a2.cos() * 0.7, y + h * 2.1, pos[2] + a2.sin() * 0.7], [-a2.sin() * 0.015, 0.01, a2.cos() * 0.015]);
+                    }
+                    if rnd() < 0.05 {
+                        let h = 0.3 + rnd() * 1.5;
+                        add("villager", None, [x, y + h, z], [0.0; 3]);
+                    }
+                }
+                "rune_circle" => {
+                    if rnd() < 0.25 {
+                        let a2 = rnd() * std::f64::consts::TAU;
+                        add("dust", Some(0xB46CFF), [pos[0] + a2.cos() * 0.8, y + 0.05, pos[2] + a2.sin() * 0.8], [0.0, 0.04, 0.0]);
+                    }
+                }
+                "completionist_halo" => {
+                    if rnd() < 0.1 {
+                        let a2 = rnd() * std::f64::consts::TAU;
+                        let c = aura_rainbow(t * 0.02 + rnd() * 0.3);
+                        add("dust", Some(c), [pos[0] + a2.cos() * 0.32, y + 1.8 + 0.42, pos[2] + a2.sin() * 0.32], [0.0, -0.02, 0.0]);
+                    }
+                    if rnd() < 0.015 {
+                        add("end_rod", None, [pos[0], y + 2.3, pos[2]], [0.0, 0.01, 0.0]);
+                    }
+                }
+                "lucky_clover" => {
+                    if rnd() < 0.025 {
+                        add("villager", None, [pos[0] + body.cos() * 0.55, y + 1.8 + 0.28, pos[2] + body.sin() * 0.55], [0.0, 0.01, 0.0]);
+                    }
+                }
+                _ => {}
+            }
+            a.seed = seed;
+            for (kind, rgb, p, v) in out {
+                let (base, size, life) = aura_kind(kind);
+                let rgb = if rgb != 0 { rgb } else { base };
+                let (size, life) = if kind == "dust" || kind == "note" { (1.4, 0.9) } else { (size, life) };
+                a.dots.push(Dot { pos: p, vel: v, rgb, born: now, life, size });
+            }
+        }
+        a.last.retain(|u, _| seen.contains(u));
+    });
+}
+
+/// The particle auras' dots on screen: each at its place in the world (moving as it was sent), fading out.
+pub fn aura_shapes(cam: Option<&Cam>, w: f32, h: f32) -> Vec<Shape> {
+    let Some(cam) = cam else { return Vec::new() };
+    AURAS.with_borrow(|a| {
+        let mut out = Vec::with_capacity(a.dots.len());
+        for d in &a.dots {
+            let age = d.born.elapsed().as_secs_f32();
+            let ticks = age as f64 * 20.0;
+            let p = [d.pos[0] + d.vel[0] * ticks, d.pos[1] + d.vel[1] * ticks, d.pos[2] + d.vel[2] * ticks];
+            let Some(c) = project(cam, p, w, h) else { continue };
+            let dist = ((p[0] - cam.pos[0]).powi(2) + (p[1] - cam.pos[1]).powi(2) + (p[2] - cam.pos[2]).powi(2)).sqrt() as f32;
+            if dist > 64.0 {
+                continue;
+            }
+            let px = (d.size * 6.0 / dist.max(0.6)).clamp(0.7, 9.0);
+            let fade = (1.0 - age / d.life).clamp(0.0, 1.0);
+            let alpha = ((fade.sqrt() * 235.0) as u32).min(255);
+            if alpha < 6 {
+                continue;
+            }
+            out.push(Shape::Fill([c[0] - px / 2.0, c[1] - px / 2.0, px, px], alpha << 24 | d.rgb));
+        }
+        out
+    })
+}
+
+#[cfg(test)]
+mod aura_tests {
+    use super::*;
+
+    #[test]
+    fn place_animation_draws() {
+        let mut s = Settings::default();
+        s.v[PLACE_ANIM] = 1;
+        blocks_tick(&s, &[([0, 0, 0], 1)]);
+        let id = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        let cam = Cam { pos: [0.5, 0.5, -3.0], view: id, projection: id };
+        let shapes = later_shapes(&s, &[], &[], None, 1.0, None, Some(&cam), 400.0, 300.0, &|t| t.len() as f32 * 6.0);
+        assert!(shapes.len() >= 12, "{}", shapes.len());
+    }
+
+    #[test]
+    fn aura_rainbow_is_bright() {
+        for i in 0..12 {
+            let c = aura_rainbow(i as f64 / 12.0);
+            assert!(c >> 16 >= 55 && (c >> 8 & 0xFF) >= 55 && (c & 0xFF) >= 55);
+        }
+    }
+
+    #[test]
+    fn no_dots_without_cosmetics() {
+        let mut s = Settings::default();
+        s.v[COSMETICS] = 0;
+        aura_tick(&s, &[(1, [0.0; 3], 0.0)]);
+        assert!(AURAS.with_borrow(|a| a.dots.is_empty()));
+    }
+}
 
 // ---- 1.14: SkyBlock, Album Colors and the media reader, Cloud Backup ----
 
@@ -6049,6 +6407,466 @@ pub fn seen_uuid(name: &str) -> Option<u128> {
     STATE.with_borrow(|s| s.more3.uuid_of.get(&name.to_lowercase()).copied())
 }
 
+
+/// The packs Arsenal turns on and off for its modules: (pack id, on), asked each tick.
+pub fn packs_wanted(settings: &Settings) -> [(&'static str, bool); 1] {
+    [("file/arsenal-lowfire", settings.on(LOW_FIRE) && settings.on(LOW_FIRE_GROUND))]
+}
+
+/// Whether the world has been loaded for 10 seconds (Arsenal's packs wait for that).
+pub fn packs_settled(in_world: bool) -> bool {
+    thread_local! {
+        static SINCE: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
+    }
+    SINCE.with(|c| {
+        if !in_world {
+            c.set(None);
+            return false;
+        }
+        let since = c.get().unwrap_or_else(Instant::now);
+        c.set(Some(since));
+        since.elapsed() >= Duration::from_secs(10)
+    })
+}
+
+/// Low Fire on the ground's pack, written into the game's resourcepacks/ (from lowfire/, put in by embed_pack.py).
+pub fn install_lowfire(instance: &std::path::Path) {
+    let dir = instance.join("resourcepacks").join("arsenal-lowfire");
+    let mcmeta = r#"{"pack": {"pack_format": 97, "min_format": 15, "max_format": [99, 0], "description": "Arsenal: Low Fire on the ground"}}"#;
+    let files = LOWFIRE.iter().copied().chain(std::iter::once(("pack.mcmeta", mcmeta)));
+    for (name, text) in files {
+        let path = dir.join(name);
+        if std::fs::read_to_string(&path).ok().as_deref() != Some(text) {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&path, text);
+        }
+    }
+}
+
+/// The modules that draw through Arsenal's shader pack.
+pub fn needs_shader_pack(settings: &Settings) -> bool {
+    [BLOOM, LOOK, COLORS, MOTION, MIST, SKY_FX, SLICK].iter().any(|f| settings.on(*f)) || (settings.on(ALBUM) && settings.on(ALBUM_SKY))
+}
+
+/// The shader pack goes on when one of those modules is switched on (once; picking another pack after stays yours).
+pub fn shader_pack_due(settings: &Settings) -> bool {
+    let now = needs_shader_pack(settings);
+    STATE.with_borrow_mut(|s| {
+        let was = std::mem::replace(&mut s.more.shader_wanted, Some(now));
+        now && was == Some(false)
+    })
+}
+
+/// Capes are put on again now and then (a player who came in after them gets theirs).
+pub fn capes_due() -> bool {
+    STATE.with_borrow_mut(|s| {
+        let due = s.more.capes_at.is_none_or(|t| t.elapsed() > Duration::from_secs(5));
+        if due {
+            s.more.capes_at = Some(Instant::now());
+        }
+        due
+    })
+}
+
+// BEGIN LOWFIRE
+pub const LOWFIRE: &[(&str, &str)] = &[
+    ("assets/minecraft/models/block/template_fire_floor.json", r####"{
+    "textures": {
+        "particle": "#fire"
+    },
+    "ambientocclusion": false,
+    "elements": [
+        {
+            "from": [
+                0,
+                0.0,
+                8.8
+            ],
+            "to": [
+                16,
+                8.96,
+                8.8
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    3.2,
+                    8
+                ],
+                "axis": "x",
+                "angle": -22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "south": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        },
+        {
+            "from": [
+                0,
+                0.0,
+                7.2
+            ],
+            "to": [
+                16,
+                8.96,
+                7.2
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    3.2,
+                    8
+                ],
+                "axis": "x",
+                "angle": 22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "north": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        },
+        {
+            "from": [
+                8.8,
+                0.0,
+                0
+            ],
+            "to": [
+                8.8,
+                8.96,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    3.2,
+                    8
+                ],
+                "axis": "z",
+                "angle": -22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "west": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        },
+        {
+            "from": [
+                7.2,
+                0.0,
+                0
+            ],
+            "to": [
+                7.2,
+                8.96,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    3.2,
+                    8
+                ],
+                "axis": "z",
+                "angle": 22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "east": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        }
+    ]
+}"####),
+    ("assets/minecraft/models/block/template_fire_side.json", r####"{
+    "textures": {
+        "particle": "#fire"
+    },
+    "ambientocclusion": false,
+    "elements": [
+        {
+            "from": [
+                0,
+                0.0,
+                0.01
+            ],
+            "to": [
+                16,
+                8.96,
+                0.01
+            ],
+            "shade_direction_override": "up",
+            "faces": {
+                "south": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                },
+                "north": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        }
+    ]
+}"####),
+    ("assets/minecraft/models/block/template_fire_side_alt.json", r####"{
+    "textures": {
+        "particle": "#fire"
+    },
+    "ambientocclusion": false,
+    "elements": [
+        {
+            "from": [
+                0,
+                0.0,
+                0.01
+            ],
+            "to": [
+                16,
+                8.96,
+                0.01
+            ],
+            "shade_direction_override": "up",
+            "faces": {
+                "south": {
+                    "uv": [
+                        16,
+                        0,
+                        0,
+                        16
+                    ],
+                    "texture": "#fire"
+                },
+                "north": {
+                    "uv": [
+                        16,
+                        0,
+                        0,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        }
+    ]
+}"####),
+    ("assets/minecraft/models/block/template_fire_up.json", r####"{
+    "textures": {
+        "particle": "#fire"
+    },
+    "ambientocclusion": false,
+    "elements": [
+        {
+            "from": [
+                0,
+                6.4,
+                0
+            ],
+            "to": [
+                16,
+                6.4,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    16,
+                    6.4,
+                    8
+                ],
+                "axis": "z",
+                "angle": 22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "down": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire",
+                    "rotation": 270
+                }
+            }
+        },
+        {
+            "from": [
+                0,
+                6.4,
+                0
+            ],
+            "to": [
+                16,
+                6.4,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    0,
+                    6.4,
+                    8
+                ],
+                "axis": "z",
+                "angle": -22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "down": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire",
+                    "rotation": 90
+                }
+            }
+        }
+    ]
+}"####),
+    ("assets/minecraft/models/block/template_fire_up_alt.json", r####"{
+    "textures": {
+        "particle": "#fire"
+    },
+    "ambientocclusion": false,
+    "elements": [
+        {
+            "from": [
+                0,
+                6.4,
+                0
+            ],
+            "to": [
+                16,
+                6.4,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    6.4,
+                    16
+                ],
+                "axis": "x",
+                "angle": -22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "down": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire",
+                    "rotation": 180
+                }
+            }
+        },
+        {
+            "from": [
+                0,
+                6.4,
+                0
+            ],
+            "to": [
+                16,
+                6.4,
+                16
+            ],
+            "rotation": {
+                "origin": [
+                    8,
+                    6.4,
+                    0
+                ],
+                "axis": "x",
+                "angle": 22.5,
+                "rescale": true
+            },
+            "shade_direction_override": "up",
+            "faces": {
+                "down": {
+                    "uv": [
+                        0,
+                        0,
+                        16,
+                        16
+                    ],
+                    "texture": "#fire"
+                }
+            }
+        }
+    ]
+}"####),
+];
+// END LOWFIRE
+
+thread_local! {
+    static MENU_KEY_NAME: RefCell<String> = RefCell::new(DEFAULT_MENU_KEY.to_owned());
+}
+/// The menu's key as bound (screen.rs tells it each frame).
+pub fn set_menu_key_name(key: &str) {
+    MENU_KEY_NAME.with_borrow_mut(|k| if k != key { *k = key.to_owned() });
+}
+fn menu_key_name() -> String {
+    MENU_KEY_NAME.with_borrow(|k| k.clone())
+}
+
 /// The keys Arsenal adds besides the menu and zoom: Chat Hotkeys' four and Friends' (all unbound to start but Friend).
 pub const HOTKEY_KEYS: [(&str, &str, &str); 4] = [("hotkey_gg", "Chat Hotkey: gg", "gg"), ("hotkey_glhf", "Chat Hotkey: gl hf", "gl hf"),
     ("hotkey_spawn", "Chat Hotkey: /spawn", "/spawn"), ("hotkey_kit", "Chat Hotkey: /kit", "/kit")];
@@ -7502,7 +8320,15 @@ fn hud_editor(screen: [f32; 4], mouse: [f32; 2], m: &Menu, s: &Settings, width: 
     buttons.extend([("Undo".to_owned(), Action::UndoHud), ("Reset all".to_owned(), Action::ResetHud), ("Done".to_owned(), Action::Go(Page::Home))]);
     let last = buttons.len() - 1;
     let bw: f32 = buttons.iter().map(|b| width(&b.0) + 16.0).sum::<f32>() + 4.0 * buttons.len() as f32;
-    let total = width(&hint) + 20.0 + bw;
+    // Too wide for the screen: a shorter hint, or none (the buttons always fit).
+    let hint = if width(&hint) + 20.0 + bw <= sw - 8.0 || boxes.is_empty() {
+        hint
+    } else if width("Drag · Scroll · Right-click") + 20.0 + bw <= sw - 8.0 {
+        "Drag · Scroll · Right-click".to_owned()
+    } else {
+        String::new()
+    };
+    let total = if hint.is_empty() { bw + 8.0 } else { width(&hint) + 20.0 + bw };
     let mut bar = [(sw - total) / 2.0, 8.0, total, 22.0];
     if boxes.iter().any(|b| b.1[1] < 34.0 && b.1[0] < bar[0] + bar[2] && b.1[0] + b.1[2] > bar[0]) {
         bar[1] = sh - 30.0;
@@ -7787,7 +8613,7 @@ fn layout(
             let done = [x0 + (w - 84.0) / 2.0, y0 + h - 26.0, 84.0, 17.0];
             let t = hover(key(5, 0), done);
             button(&mut out, &mut hits, done, "Done", Action::Close, mouse, width, t);
-            label(&mut out, "Right Shift", [x0 + 18.0, y0 + h - 21.0], argb(GREY, 1.0), false, 1.0);
+            label(&mut out, &format!("{} opens this menu", key_name(&menu_key_name())), [x0 + 18.0, y0 + h - 21.0], argb(GREY, 1.0), false, 1.0);
         }
         Page::Cosmetics => {
             let card = [x0 + 18.0, top + 10.0, w - 36.0, 86.0];
@@ -7925,7 +8751,7 @@ fn layout(
             hits.push((sr, Action::Search));
             let selected = if !m.search.is_empty() { usize::MAX } else { m.detail.and_then(|d| JAVA_MODULES.get(d)).map_or(m.category, |j| j.category) };
             // Favorites first, then the categories.
-            let row_of = |i: usize| if i == FAVORITES { 0 } else { i + 1 };
+            let row_of = |i: usize| if i == FAVORITES { 0 } else if i == NEW_TAB { CATEGORIES.len() + 1 } else { i + 1 };
             let cat_r = |i: usize| [side[0] + 4.0, side[1] + 26.0 + row_of(i) as f32 * 18.0, side[2] - 8.0, 16.0];
             // The marker slides to the chosen category.
             if selected != usize::MAX {

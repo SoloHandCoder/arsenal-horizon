@@ -147,6 +147,7 @@ fn arsenal_hud(
         let me_yaw = game.native_player().map(|p| ([p.x, p.y, p.z], p.yaw));
         shapes.extend(m::skyblock_shapes(&settings, batch.width, batch.height, &width));
         let aim = horizon_client::camera::arsenal::quick_aim();
+        shapes.extend(m::aura_shapes(cam.as_ref(), batch.width, batch.height));
         shapes.extend(m::later_shapes(&settings, &others, &friends, me_yaw, status.attack, aim, cam.as_ref(), batch.width, batch.height, &width));
         arsenal_draw(game, batch, shapes);
     }
@@ -181,10 +182,27 @@ fn arsenal_hud(
     }
     let width = |text: &str| game.native_text_width(text);
     let (sw, sh) = (batch.width, batch.height);
-    for (id, (shapes, w, h)) in boxes {
-        // A moved one keeps its own place and leaves the corner's stack to the others.
-        let (x, y) = if settings.layout.iter().any(|(i, _)| i == id) { (0.0, 0.0) } else { corners.place(corner, w, h) };
-        let mut moved: Vec<m::Shape> = shapes.into_iter().map(|s| m::offset(s, [x, y])).collect();
+    // Moved (or resized) ones first: they keep their own place, and the corner's stack steps past them.
+    let (mine, stacked): (Vec<_>, Vec<_>) = boxes.into_iter().partition(|(id, _)| settings.layout.iter().any(|(i, _)| i == id));
+    let mut taken: Vec<[f32; 4]> = Vec::new();
+    for (id, (shapes, _, _)) in mine {
+        let mut moved = shapes;
+        m::place(&settings, &mut moved, 0, id, sw, sh, &width);
+        if let Some(b) = m::bounds(&moved, &width) {
+            taken.push(b);
+        }
+        arsenal_draw(game, batch, moved);
+    }
+    for (id, (shapes, w, h)) in stacked {
+        let mut at = corners.place(corner, w, h);
+        for _ in 0..24 {
+            let hit = taken.iter().any(|b| at.0 < b[0] + b[2] && at.0 + w > b[0] && at.1 < b[1] + b[3] && at.1 + h > b[1]);
+            if !hit {
+                break;
+            }
+            at = corners.place(corner, w, h);
+        }
+        let mut moved: Vec<m::Shape> = shapes.into_iter().map(|s| m::offset(s, [at.0, at.1])).collect();
         m::place(&settings, &mut moved, 0, id, sw, sh, &width);
         arsenal_draw(game, batch, moved);
     }

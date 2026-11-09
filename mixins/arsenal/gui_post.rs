@@ -4,6 +4,10 @@ fn arsenal_gui_post(game: &crate::game::Game<'_>, batch: &mut horizon_client::hu
     if !horizon_client::camera::arsenal::CURSOR_ON.load(Relaxed) {
         return;
     }
+    // Horizon shows the real cursor again on some frames: it's hidden every frame while Arsenal's is in use.
+    if let Some(w) = &game.window {
+        w.set_cursor_visible(false);
+    }
     let [x, y] = game.native_cursor();
     let arrow = |d: f32| [[x - d, y - d * 1.5], [x - d, y + 11.0 + d], [x + 3.0, y + 8.0 + d * 0.5], [x + 8.0 + d * 1.5, y + 8.0 + d * 0.5]];
     game.native_quad(batch, arrow(1.0), 0xFF00_0000);

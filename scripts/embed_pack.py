@@ -23,11 +23,30 @@ def pack_source() -> str:
     return "\n".join(lines)
 
 
+def files_source(name: str, folder: Path) -> str:
+    lines = [f"pub const {name}: &[(&str, &str)] = &["]
+    for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+        rel = path.relative_to(folder).as_posix()
+        text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        if '"####' in text:
+            raise SystemExit(f"{rel} holds the raw string end mark")
+        lines.append(f'    ("{rel}", r####"{text}"####),')
+    lines.append("];")
+    return "\n".join(lines)
+
+
+def put(source: str, marker: str, text: str) -> str:
+    start = source.index(f"// BEGIN {marker}\n") + len(f"// BEGIN {marker}\n")
+    end = source.index(f"// END {marker}")
+    return source[:start] + text + "\n" + source[end:]
+
+
 def main() -> None:
     source = RUNTIME.read_text(encoding="utf-8")
-    start = source.index("// BEGIN PACK\n") + len("// BEGIN PACK\n")
-    end = source.index("// END PACK")
-    RUNTIME.write_text(source[:start] + pack_source() + "\n" + source[end:], encoding="utf-8", newline="\n")
+    source = put(source, "PACK", pack_source())
+    # Low Fire on the ground's pack (lowfire/: lower fire block models, as the Java mod's pack).
+    source = put(source, "LOWFIRE", files_source("LOWFIRE", ROOT / "lowfire"))
+    RUNTIME.write_text(source, encoding="utf-8", newline="\n")
     print("embedded", len(list(PACK.rglob("*.*"))), "files")
 
 

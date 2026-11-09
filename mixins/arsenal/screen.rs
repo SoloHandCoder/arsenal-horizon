@@ -9,6 +9,7 @@ fn arsenal_screen(
         return;
     }
     let settings = m::raw_settings(|key| game.native_setting(m::ID, key));
+    m::set_menu_key_name(&game.native_mod_key(m::ID, m::MENU_KEY, m::DEFAULT_MENU_KEY));
     let menu = m::menu();
     let browse = if menu.page == m::Page::Browse { m::gallery(menu.tab) } else { m::Fetch::Loading };
     let shapes = m::menu_frame(screen.rect, screen.mouse, &menu, &settings, &browse, &|text| game.native_text_width(text));

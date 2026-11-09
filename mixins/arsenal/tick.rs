@@ -151,11 +151,28 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         a::CURSOR_SPEED.store(if settings.on(m::CURSOR) { m::FIELDS[m::CURSOR_SPEED].options[settings.v[m::CURSOR_SPEED]].0.parse().unwrap_or(100) } else { 100 }, Relaxed);
         // Arsenal capes and Wardrobe blades (yours and other Arsenal users'), and Arsenal's cosmetics pack.
         let dressing = m::dressing(&settings, game.arsenal_uuid(), &game.native_data_dir(m::ID), &game.native_instance_dir().join("resourcepacks"));
-        if dressing.pack {
+        // Packs change only once the world has settled and no other pack load is running: a reload started at the
+        // world's first ticks raced Horizon's own and failed, and a failed reload drops every selected pack.
+        let packs_free = m::packs_settled(game.native_player().is_some()) && game.pack_reload.is_none() && !game.pending_pack_reload
+            && game.rest_loader.is_none();
+        if dressing.pack && packs_free {
             game.arsenal_enable_pack();
         }
-        if horizon_client::camera::arsenal::set_blades(dressing.blades) | horizon_client::camera::arsenal::set_capes(dressing.capes) {
+        let capes_now = !dressing.capes.is_empty();
+        if horizon_client::camera::arsenal::set_blades(dressing.blades) | horizon_client::camera::arsenal::set_capes(dressing.capes)
+            || (capes_now && m::capes_due())
+        {
             game.arsenal_capes_changed();
+        }
+        // Low Fire on the ground's pack, and Arsenal's shader pack when a module that draws through it goes on.
+        if packs_free && game.pack_reload.is_none() {
+            m::install_lowfire(&game.native_instance_dir());
+            for (pack, on) in m::packs_wanted(&settings) {
+                game.arsenal_set_pack(pack, on);
+            }
+        }
+        if m::shader_pack_due(&settings) {
+            game.arsenal_pick_shader_pack("horizon:arsenal");
         }
         let server = game.arsenal_server();
         m::set_server(server.as_deref());
@@ -251,6 +268,15 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
     m::ask_network(&settings, &others);
     let offhand_totem = game.arsenal_inventory().is_some_and(|v| v.offhand.as_ref().is_some_and(|s| &*s.item == "minecraft:totem_of_undying" && s.count > 0));
     m::more_tick(&settings, &others, &events, own_id, offhand_totem);
+    {
+        let mut wearers: Vec<(u128, [f64; 3], f32)> = others.iter().filter(|o| o.uuid != 0).map(|o| (o.uuid, o.pos, 0.0)).collect();
+        if !matches!(game.camera_type, crate::game::perspective::CameraType::FirstPerson) {
+            if let (Some(uuid), Some(p)) = (game.arsenal_uuid(), game.native_player()) {
+                wearers.push((uuid, [p.x, p.y, p.z], p.yaw));
+            }
+        }
+        m::aura_tick(&settings, &wearers);
+    }
     // The Arsenal website: fights, session parts, presence, friends, quests (signed like the Java mod's).
     {
         let health = m::health().map(|h| h.health);
