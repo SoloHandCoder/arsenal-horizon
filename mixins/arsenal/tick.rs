@@ -31,6 +31,7 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         hide_particles: v.hide_particles,
         capture: v.capture,
     });
+    horizon_client::camera::arsenal::HELD_TOTEM.store(v.totem_size.map_or(0, u32::from), std::sync::atomic::Ordering::Relaxed);
     crate::game::native_hooks::ARSENAL_CRYSTAL_OPT.store(v.crystal_optimizer, std::sync::atomic::Ordering::Relaxed);
     // Fullbright's brightness from before, kept in Arsenal's settings.
     match v.keep_gamma {
@@ -55,6 +56,11 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
         a::HOTBAR_ACCENT.store(l.hotbar_accent, Relaxed);
         a::HOTBAR_GLIDE.store(l.glide, Relaxed);
         a::INV_FRAME.store(l.inv_frame, Relaxed);
+        a::HOTBAR_SEL.store(l.hotbar_sel, Relaxed);
+        a::HOTBAR_SEP.store(l.hotbar_sep, Relaxed);
+        for (i, v) in l.inv_panel.iter().enumerate() {
+            a::INV_PANEL[i].store(*v, Relaxed);
+        }
         a::INV_GLIDE.store(l.inv_glide, Relaxed);
         a::SWING.store(l.swing, Relaxed);
         a::LOWER.store(l.lower, Relaxed);
@@ -281,7 +287,8 @@ fn arsenal_tick(game: &mut crate::game::Game<'_>) {
     {
         let health = m::health().map(|h| h.health);
         let address = game.arsenal_server();
-        for up in m::website_tick(&settings, address.as_deref(), &others, health) {
+        let applies = m::apply_uploads(game.arsenal_uuid());
+        for up in m::website_tick(&settings, address.as_deref(), &others, health).into_iter().chain(applies) {
             if let Some(signed) = game.arsenal_signed(up.prefix, &up.extra) {
                 m::send_upload(up, signed);
             }

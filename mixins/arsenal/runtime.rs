@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 /// The mod's id (its settings folder and its keys' lines), name and version.
 pub const ID: &str = "arsenal";
 pub const NAME: &str = "Arsenal";
-pub const VERSION: &str = "1.16.1";
+pub const VERSION: &str = "1.17.0";
 pub const DESCRIPTION: &str = "Arsenal's PvP mod on Horizon. Right Shift opens Arsenal's menu: modules, the website's crosshairs and HUD themes, and every other Arsenal module listed.";
 /// The website Browse reads.
 pub const WEBSITE: &str = "https://arsenal.monoforge.net";
@@ -200,6 +200,7 @@ pub struct Field {
 }
 
 const ONOFF: &[(&str, &str)] = &[("false", "OFF"), ("true", "ON")];
+pub const HOTBAR_SELECTIONS: &[(&str, &str)] = &[("outline", "Outline"), ("filled", "Filled"), ("underline", "Underline")];
 pub const CORNERS: &[(&str, &str)] = &[("top_left", "Top left"), ("top_right", "Top right"), ("bottom_left", "Bottom left"), ("bottom_right", "Bottom right")];
 /// The accents; the last is the HUD theme applied from Browse.
 pub const ACCENTS: &[(&str, &str)] = &[("gold", "Gold"), ("red", "Red"), ("blue", "Blue"), ("green", "Green"), ("purple", "Purple"), ("white", "White"), ("custom", "Custom colour"), ("browse", "Theme from Browse")];
@@ -231,7 +232,17 @@ pub const FX_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("accent", "HUD accen
 pub const FLASH_COLORS: &[(&str, &str)] = &[("gold", "Gold"), ("green", "Green"), ("red", "Red"), ("blue", "Blue"), ("none", "No flash")];
 pub const KILL_STYLES: &[(&str, &str)] = &[("burst", "Burst"), ("ring", "Ring"), ("lightning", "Lightning")];
 pub const AMOUNTS: &[(&str, &str)] = &[("0.5", "Medium"), ("0.25", "Low"), ("0.75", "High"), ("1", "Full")];
-pub const LOOKS: &[(&str, &str)] = &[("vivid", "Vivid"), ("cinematic", "Cinematic"), ("faded", "Faded"), ("noir", "Black and white"), ("warm", "Warm"), ("cold", "Cold")];
+pub const LOOKS: &[(&str, &str)] = &[("vivid", "Vivid"), ("cinematic", "Cinematic"), ("faded", "Faded"), ("noir", "Black and white"), ("warm", "Warm"), ("cold", "Cold"), ("custom", "Custom")];
+pub const SATURATIONS: &[(&str, &str)] = &[("1", "100%"), ("0", "0% (black and white)"), ("0.5", "50%"), ("0.75", "75%"), ("1.25", "125%"), ("1.5", "150%"), ("2", "200%"), ("3", "300%")];
+pub const CONTRASTS: &[(&str, &str)] = &[("1", "100%"), ("0.5", "50%"), ("0.75", "75%"), ("1.25", "125%"), ("1.5", "150%"), ("2", "200%")];
+pub const EXPOSURES: &[(&str, &str)] = &[("1", "Normal"), ("0.6", "-40%"), ("0.8", "-20%"), ("1.2", "+20%"), ("1.4", "+40%")];
+pub const VIGNETTES: &[(&str, &str)] = &[("0", "Off"), ("0.25", "Light"), ("0.5", "Medium"), ("0.8", "Strong")];
+pub const LOOK_TINTS: &[(&str, &str)] = &[("none", "None"), ("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent"), ("custom", "Custom colour")];
+pub const STRENGTHS: &[(&str, &str)] = &[("0.35", "Medium"), ("0.15", "Light"), ("0.6", "Strong"), ("0.85", "Very strong")];
+pub const MIST_DENSITIES: &[(&str, &str)] = &[("1", "Medium"), ("0.5", "Light"), ("2", "Thick"), ("3.5", "Very thick")];
+pub const MIST_HEIGHTS: &[(&str, &str)] = &[("-3", "Just below you"), ("-8", "Low"), ("0", "At your eyes"), ("4", "Above you")];
+pub const SKY_LEVELS: &[(&str, &str)] = &[("1", "On"), ("0.5", "Faint"), ("0", "Off"), ("1.6", "Strong")];
+pub const TINT_STRENGTHS: &[(&str, &str)] = &[("1", "Medium"), ("0.5", "Light"), ("1.6", "Strong")];
 pub const TINTS: &[(&str, &str)] = &[("purple", "Purple"), ("blue", "Blue"), ("pink", "Pink"), ("green", "Green"), ("orange", "Orange"), ("red", "Red"), ("accent", "HUD accent"), ("custom", "Custom colour")];
 pub const MIST_COLORS: &[(&str, &str)] = &[("white", "White"), ("blue", "Blue"), ("purple", "Purple"), ("green", "Green"), ("custom", "Custom colour")];
 pub const GOALS: &[(&str, &str)] = &[("10", "10 kills"), ("5", "5 kills"), ("20", "20 kills"), ("50", "50 kills")];
@@ -470,7 +481,25 @@ pub const BLOCK_ANIM_COLOR: usize = 215;
 pub const SPRINT_COLOR: usize = 216;
 pub const PARTY_COLOR: usize = 217;
 pub const LOW_FIRE_GROUND: usize = 218;
-const N: usize = 219;
+pub const HOTBAR_SEL: usize = 219;
+pub const HOTBAR_SEP: usize = 220;
+pub const HOTBAR_NUMS: usize = 221;
+pub const INV_BORDER: usize = 222;
+pub const INV_LINES: usize = 223;
+pub const LOOK_SAT: usize = 224;
+pub const LOOK_CONTRAST: usize = 225;
+pub const LOOK_EXPOSURE: usize = 226;
+pub const LOOK_VIGNETTE: usize = 227;
+pub const LOOK_TINT: usize = 228;
+pub const LOOK_TINT_AMT: usize = 229;
+pub const MIST_DENSITY: usize = 230;
+pub const MIST_HEIGHT: usize = 231;
+pub const SKY_AURORA: usize = 232;
+pub const SKY_STARS: usize = 233;
+pub const SKY_GLOW: usize = 234;
+pub const WORLD_TINT_AMT: usize = 235;
+pub const SKY_TINT_AMT: usize = 236;
+const N: usize = 237;
 
 pub const FIELDS: [Field; N] = [
     Field { key: "info", label: "Info HUD", options: ONOFF, default: 1 },
@@ -575,7 +604,7 @@ pub const FIELDS: [Field; N] = [
     Field { key: "no_pumpkin", label: "No Pumpkin Overlay", options: ONOFF, default: 0 },
     Field { key: "smaller_pvp", label: "Smaller PvP", options: ONOFF, default: 0 },
     Field { key: "shield_size", label: "Shield size", options: SIZES, default: 0 },
-    Field { key: "totem_size", label: "Totem animation size", options: SIZES, default: 0 },
+    Field { key: "totem_size", label: "Totem size (held and animation)", options: SIZES, default: 0 },
     Field { key: "enchant_glint", label: "Enchant Glint", options: ONOFF, default: 0 },
     Field { key: "glint_color", label: "Glint colour", options: GLINTS, default: 0 },
     Field { key: "discord_presence", label: "Discord Rich Presence", options: ONOFF, default: 1 },
@@ -692,6 +721,24 @@ pub const FIELDS: [Field; N] = [
     Field { key: "sprint_color", label: "Colour", options: TINTS, default: 3 },
     Field { key: "party_color", label: "Arrow colour", options: TINTS, default: 6 },
     Field { key: "low_fire_ground", label: "Lower fire on the ground too", options: ONOFF, default: 1 },
+    Field { key: "hotbar_selection", label: "Selected slot", options: HOTBAR_SELECTIONS, default: 0 },
+    Field { key: "hotbar_separators", label: "Lines between slots", options: ONOFF, default: 1 },
+    Field { key: "hotbar_numbers", label: "Slot numbers", options: ONOFF, default: 0 },
+    Field { key: "inventory_border", label: "Accent border", options: ONOFF, default: 1 },
+    Field { key: "inventory_slot_lines", label: "Slot outlines", options: ONOFF, default: 1 },
+    Field { key: "look_saturation", label: "Custom: saturation", options: SATURATIONS, default: 0 },
+    Field { key: "look_contrast", label: "Custom: contrast", options: CONTRASTS, default: 0 },
+    Field { key: "look_brightness", label: "Custom: brightness", options: EXPOSURES, default: 0 },
+    Field { key: "look_vignette", label: "Custom: vignette", options: VIGNETTES, default: 0 },
+    Field { key: "look_tint", label: "Custom: tint", options: LOOK_TINTS, default: 0 },
+    Field { key: "look_tint_strength", label: "Custom: tint strength", options: STRENGTHS, default: 0 },
+    Field { key: "mist_density", label: "Thickness", options: MIST_DENSITIES, default: 0 },
+    Field { key: "mist_height", label: "Height", options: MIST_HEIGHTS, default: 0 },
+    Field { key: "sky_aurora", label: "Aurora", options: SKY_LEVELS, default: 0 },
+    Field { key: "sky_stars", label: "Extra stars", options: SKY_LEVELS, default: 0 },
+    Field { key: "sky_glow", label: "Night glow", options: SKY_LEVELS, default: 0 },
+    Field { key: "world_tint_strength", label: "World tint strength", options: TINT_STRENGTHS, default: 0 },
+    Field { key: "sky_tint_strength", label: "Sky tint strength", options: TINT_STRENGTHS, default: 0 },
 ];
 
 /// The Java modules Horizon runs here: (Java module id, the setting that switches it, its other settings).
@@ -780,11 +827,11 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("kill_effects", KILL_FX, &[KILL_STYLE]),
     ("hide_own_particles", HIDE_OWN_FX, &[]),
     ("bloom", BLOOM, &[BLOOM_AMT]),
-    ("world_look", LOOK, &[LOOK_KIND]),
-    ("world_colors", COLORS, &[WORLD_TINT]),
+    ("world_look", LOOK, &[LOOK_KIND, LOOK_SAT, LOOK_CONTRAST, LOOK_EXPOSURE, LOOK_VIGNETTE, LOOK_TINT, LOOK_TINT_AMT]),
+    ("world_colors", COLORS, &[WORLD_TINT, WORLD_TINT_AMT, SKY_TINT_AMT]),
     ("motion_blur", MOTION, &[MOTION_AMT]),
-    ("mist", MIST, &[MIST_COLOR]),
-    ("sky_effects", SKY_FX, &[]),
+    ("mist", MIST, &[MIST_COLOR, MIST_DENSITY, MIST_HEIGHT]),
+    ("sky_effects", SKY_FX, &[SKY_AURORA, SKY_STARS, SKY_GLOW]),
     ("ambience", AMBIENCE, &[]),
     ("combat_hitboxes", HITBOXES, &[]),
     ("auto_hitbox", AUTO_HITBOX, &[]),
@@ -803,9 +850,9 @@ pub const ON_HORIZON: &[(&str, usize, &[usize])] = &[
     ("session_goals", GOAL, &[GOAL_KILLS]),
     ("opponent_intel", INTEL, &[]),
     ("pearl_timer", PEARLS, &[]),
-    ("hotbar_style", HOTBAR_STYLE, &[]),
+    ("hotbar_style", HOTBAR_STYLE, &[HOTBAR_SEL, HOTBAR_SEP, HOTBAR_NUMS]),
     ("smooth_hotbar", SMOOTH_HOTBAR, &[]),
-    ("inventory_style", INV_STYLE, &[]),
+    ("inventory_style", INV_STYLE, &[INV_BORDER, INV_LINES]),
     ("smooth_inventory", SMOOTH_INV, &[]),
     ("old_animations", OLD_ANIM, &[]),
     ("swing_animation", SWING_ANIM, &[SWING_SPEED]),
@@ -907,7 +954,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "weather_time" => "On Horizon: your own time of day and weather, only on your screen.",
         "no_hurt_cam" => "On Horizon: no camera tilt when you're hurt.",
         "no_pumpkin_overlay" => "On Horizon: no pumpkin blur when you wear a carved pumpkin.",
-        "smaller_pvp" => "On Horizon: a smaller shield in your hand and a smaller totem animation.",
+        "smaller_pvp" => "On Horizon: a smaller shield and totem in either hand, and a smaller totem animation.",
         "enchant_glint" => "On Horizon: the enchantment glint in your colour.",
         "discord_presence" => "On Horizon: your Discord profile shows you play Horizon with Arsenal (through the Arsenal Launcher, so apps like Medal don't take its place).",
         "pvp_tiers" => "On Horizon: each player's best PvP tier (pvptiers.com) above their head.",
@@ -940,7 +987,7 @@ pub fn horizon_note(id: &str) -> Option<&'static str> {
         "pearl_timer" => "On Horizon: a purple countdown above a player who just threw an ender pearl.",
         "hotbar_style" => "On Horizon: the hotbar on your HUD Theme's background with an accent line under the selected slot.",
         "smooth_hotbar" => "On Horizon: the selection box glides to the slot you pick.",
-        "inventory_style" => "On Horizon: a frame in your HUD accent round your inventory (Horizon draws the panel itself).",
+        "inventory_style" => "On Horizon: your inventory, the crafting table and the creative inventory on a themed panel with slot boxes and themed titles.",
         "smooth_inventory" => "On Horizon: the item on your cursor glides after the mouse.",
         "old_animations" => "On Horizon: the old sword block-hit pose while you hold right-click, and held items lower.",
         "swing_animation" => "On Horizon: your hand swings slower or faster (only on your screen).",
@@ -2945,8 +2992,9 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
     if settings.on(MOTION) {
         p[0][1] = amount(MOTION_AMT) * 0.8;
     }
+    let opt = |f: usize| FIELDS[f].options[settings.v[f]].0.parse::<f32>().unwrap_or(1.0);
     if settings.on(MIST) {
-        p[0][2] = 1.0;
+        p[0][2] = opt(MIST_DENSITY);
         let custom = settings.color(MIST_COLOR);
         let rgb = match MIST_COLORS[settings.v[MIST_COLOR]].0 {
             "blue" => [0.6, 0.72, 0.9],
@@ -2955,7 +3003,7 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
             "custom" => [((custom >> 16) & 255) as f32 / 255.0, ((custom >> 8) & 255) as f32 / 255.0, (custom & 255) as f32 / 255.0],
             _ => [0.85, 0.87, 0.9],
         };
-        p[5] = [rgb[0], rgb[1], rgb[2], -3.0];
+        p[5] = [rgb[0], rgb[1], rgb[2], opt(MIST_HEIGHT)];
     }
     p[0][3] = 1.0;
     if settings.on(LOOK) {
@@ -2965,24 +3013,35 @@ pub fn shader_params(settings: &Settings) -> [[f32; 4]; 8] {
             "noir" => [0.001, 1.25, 1.0, 0.4],
             "warm" => [1.1, 1.05, 1.02, 0.2],
             "cold" => [0.95, 1.05, 1.0, 0.2],
+            // Custom: saturation (0 would read as "leave it"), contrast, brightness and vignette as picked.
+            "custom" => [opt(LOOK_SAT).max(0.001), opt(LOOK_CONTRAST), opt(LOOK_EXPOSURE), opt(LOOK_VIGNETTE).max(0.0)],
             _ => [1.3, 1.08, 1.03, 0.2],
         };
         let warmth = match LOOKS[settings.v[LOOK_KIND]].0 { "warm" => Some([1.0, 0.85, 0.65]), "cold" => Some([0.7, 0.85, 1.0]), _ => None };
         if let Some(rgb) = warmth {
             p[2] = [rgb[0], rgb[1], rgb[2], 0.25];
         }
+        if LOOKS[settings.v[LOOK_KIND]].0 == "custom" && LOOK_TINTS[settings.v[LOOK_TINT]].0 != "none" {
+            let rgb = match LOOK_TINTS[settings.v[LOOK_TINT]].0 {
+                "purple" => 0xB884FF, "blue" => 0x5AA9FF, "pink" => 0xFF7AC8, "green" => 0x5CE08A, "orange" => 0xFF9A3C, "red" => 0xFF5A5A,
+                "accent" => settings.accent(),
+                _ => settings.color(LOOK_TINT),
+            };
+            p[2] = [((rgb >> 16) & 255) as f32 / 255.0, ((rgb >> 8) & 255) as f32 / 255.0, (rgb & 255) as f32 / 255.0, opt(LOOK_TINT_AMT)];
+        }
     }
     if settings.on(COLORS) {
         let rgb = match TINTS[settings.v[WORLD_TINT]].0 {
             "blue" => [0.55, 0.7, 1.0], "pink" => [1.0, 0.6, 0.85], "green" => [0.6, 1.0, 0.65], "orange" => [1.0, 0.7, 0.45], "red" => [1.0, 0.5, 0.5],
             "accent" => { let a = settings.accent(); [((a >> 16) & 255) as f32 / 255.0, ((a >> 8) & 255) as f32 / 255.0, (a & 255) as f32 / 255.0] }
+            "custom" => { let a = settings.color(WORLD_TINT); [((a >> 16) & 255) as f32 / 255.0, ((a >> 8) & 255) as f32 / 255.0, (a & 255) as f32 / 255.0] }
             _ => [0.75, 0.55, 1.0],
         };
-        p[2] = [rgb[0], rgb[1], rgb[2], 0.3];
-        p[3] = [rgb[0], rgb[1], rgb[2], 0.55];
+        p[2] = [rgb[0], rgb[1], rgb[2], (0.3 * opt(WORLD_TINT_AMT)).min(0.9)];
+        p[3] = [rgb[0], rgb[1], rgb[2], (0.55 * opt(SKY_TINT_AMT)).min(0.95)];
     }
     if settings.on(SKY_FX) {
-        p[4] = [1.0, 0.8, 0.6, 0.0];
+        p[4] = [opt(SKY_AURORA), 0.8 * opt(SKY_STARS), 0.6 * opt(SKY_GLOW), 0.0];
     }
     p
 }
@@ -3288,6 +3347,9 @@ pub struct Looks {
     pub hotbar_accent: u32,
     pub glide: bool,
     pub inv_frame: u32,
+    pub hotbar_sel: u32,
+    pub hotbar_sep: u32,
+    pub inv_panel: [u32; 5],
     pub inv_glide: bool,
     pub swing: u32,
     pub lower: u32,
@@ -3391,10 +3453,20 @@ pub fn looks(settings: &Settings, own: Option<&str>) -> Looks {
         let bg = settings.panel_colors().0;
         l.hotbar = if bg >> 24 == 0 { 0xA000_0000 | (bg & 0xFF_FFFF) } else { bg };
         l.hotbar_accent = accent;
+        l.hotbar_sel = settings.v[HOTBAR_SEL] as u32;
+        l.hotbar_sep = if settings.on(HOTBAR_SEP) { 0x4000_0000 | MUTED } else { 0 };
     }
     l.glide = settings.on(SMOOTH_HOTBAR);
     if settings.on(INV_STYLE) {
-        l.inv_frame = accent;
+        let (bg, text) = settings.panel_colors();
+        let panel = if settings.browse_theme().is_some() { 0xF000_0000 | (bg & 0xFF_FFFF) } else { 0xF014_1419 };
+        l.inv_panel = [
+            panel,
+            if settings.on(INV_BORDER) { accent } else { 0 },
+            0x2600_0000 | MUTED,
+            if settings.on(INV_LINES) { 0x5500_0000 | MUTED } else { 0 },
+            0xFF00_0000 | (text & 0xFF_FFFF),
+        ];
     }
     l.inv_glide = settings.on(SMOOTH_INV);
     if settings.on(SWING_ANIM) {
@@ -3971,6 +4043,14 @@ pub fn later_shapes(settings: &Settings, others: &[Other], friends: &[String], m
             }
         }
     }
+    // Hotbar Style's slot numbers, small, in each slot's corner.
+    if settings.on(HOTBAR_STYLE) && settings.on(HOTBAR_NUMS) {
+        let (left, top) = ((w / 2.0).floor() - 91.0, h - 22.0);
+        let text = 0xB000_0000 | (settings.panel_colors().1 & 0xFF_FFFF);
+        for n in 0..9 {
+            out.push(Shape::Styled((n + 1).to_string(), [left + 3.0 + n as f32 * 20.0, top + 3.0], text, false, 0.5));
+        }
+    }
     let (cx, cy) = (w / 2.0, h / 2.0);
     if settings.on(SPRINT_IND) && sprint && attack >= 0.9 {
         let g = 0xFF00_0000 | tint_rgb(settings, SPRINT_COLOR);
@@ -4111,6 +4191,20 @@ thread_local! {
 /// A HUD frame starts.
 pub fn hud_begin() {
     HUD_BOXES.with_borrow_mut(|b| b.clear());
+}
+
+thread_local! {
+    static HUD_EDITING: std::cell::Cell<Option<Instant>> = const { std::cell::Cell::new(None) };
+}
+
+/// The HUD editor is on screen this frame (the menu calls it while it shows Edit HUD).
+pub fn mark_hud_editing() {
+    HUD_EDITING.with(|c| c.set(Some(Instant::now())));
+}
+
+/// While the HUD editor is open: elements that only show now and then (Bow Charge, Re-totem) show a sample to move.
+pub fn hud_editing() -> bool {
+    HUD_EDITING.with(|c| c.get().is_some_and(|t| t.elapsed() < Duration::from_millis(300)))
 }
 
 /// This frame's HUD elements: (id, rect drawn, rect unmoved).
@@ -4519,6 +4613,42 @@ pub fn aura_shapes(cam: Option<&Cam>, w: f32, h: f32) -> Vec<Shape> {
 #[cfg(test)]
 mod aura_tests {
     use super::*;
+
+    #[test]
+    fn browse_applies_are_sent_signed() {
+        PENDING_APPLIES.with_borrow_mut(|p| p.push(42));
+        let ups = apply_uploads(Some(7));
+        assert_eq!(ups.len(), 1);
+        assert_eq!((ups[0].prefix, ups[0].path, ups[0].extra.clone()), ("arsenal-apply-v1", "/v1/gallery/42/apply", vec!["42".to_string()]));
+        let client = ups[0].fields.iter().find(|f| f.0 == "client").unwrap().1.as_str().unwrap().len();
+        assert!((16..=64).contains(&client));
+        assert!(apply_uploads(Some(7)).is_empty());
+    }
+
+    #[test]
+    fn custom_world_look_reaches_the_pack() {
+        let mut s = Settings::default();
+        s.v[LOOK] = 1;
+        s.v[LOOK_KIND] = LOOKS.iter().position(|l| l.0 == "custom").unwrap();
+        s.v[LOOK_SAT] = SATURATIONS.iter().position(|l| l.0 == "0").unwrap();
+        s.v[LOOK_VIGNETTE] = VIGNETTES.iter().position(|l| l.0 == "0.5").unwrap();
+        s.v[LOOK_TINT] = LOOK_TINTS.iter().position(|l| l.0 == "blue").unwrap();
+        let p = shader_params(&s);
+        assert!(p[1][0] > 0.0 && p[1][0] < 0.01, "black and white, not 'leave it'");
+        assert_eq!((p[1][1], p[1][2], p[1][3]), (1.0, 1.0, 0.5));
+        assert_eq!(p[2][3], 0.35);
+        // Untouched sky settings give the old values.
+        let mut t = Settings::default();
+        t.v[SKY_FX] = 1;
+        assert_eq!(shader_params(&t)[4], [1.0, 0.8, 0.6, 0.0]);
+    }
+
+    #[test]
+    fn cosmetic_names_read_well() {
+        assert_eq!(cosmetic_name("winter_scarf"), "Winter Scarf");
+        assert_eq!(cosmetic_name("galaxy"), "Galaxy");
+        assert_eq!(cosmetic_name("og_top_hat"), "Og Top Hat");
+    }
 
     #[test]
     fn place_animation_draws() {
@@ -5604,8 +5734,8 @@ pub fn risky(id: &str) -> bool {
 
 /// The modules new on Horizon (the version they came in): the New row lists the last two versions'.
 pub const ADDED: &[(&str, &str)] = &[
-    ("blade_settings", "1.15"), ("hypixel_skyblock", "1.14"), ("album_colors", "1.14"), ("cloud_backup", "1.14"), ("inventory_cursor_speed", "1.14"),
-    ("hotbar_style", "1.13"), ("smooth_hotbar", "1.13"), ("inventory_style", "1.13"), ("smooth_inventory", "1.13"), ("old_animations", "1.13"),
+    ("hotbar_style", "1.17"), ("inventory_style", "1.17"), ("blade_settings", "1.15"), ("hypixel_skyblock", "1.14"), ("album_colors", "1.14"), ("cloud_backup", "1.14"), ("inventory_cursor_speed", "1.14"),
+    ("smooth_hotbar", "1.13"), ("smooth_inventory", "1.13"), ("old_animations", "1.13"),
     ("swing_animation", "1.13"), ("hand_tint", "1.13"), ("small_crystals", "1.13"), ("big_items", "1.13"), ("armor_color", "1.13"),
     ("nametag_style", "1.13"), ("free_look", "1.13"), ("block_break_animation", "1.13"), ("place_animation", "1.13"), ("slick_floors", "1.13"),
     ("tab_ping", "1.13"), ("chat_mentions", "1.13"), ("chat_tweaks", "1.13"), ("chat_copy", "1.13"), ("name_hider", "1.13"), ("sound_tweaks", "1.13"),
@@ -5858,6 +5988,19 @@ pub struct Wear {
     pub pet: Option<String>,
 }
 
+/// What you wear, as the website last said (None before it answered, or offline).
+pub fn your_wear() -> Option<Wear> {
+    wardrobe(|w| w.own.and_then(|u| w.worn.get(&u).cloned()))
+}
+
+/// A cosmetic's id as its name: "winter_scarf" -> "Winter Scarf".
+pub fn cosmetic_name(id: &str) -> String {
+    id.split('_').filter(|p| !p.is_empty()).map(|p| {
+        let mut c = p.chars();
+        c.next().map(|f| f.to_uppercase().chain(c).collect::<String>()).unwrap_or_default()
+    }).collect::<Vec<_>>().join(" ")
+}
+
 /// What the player with `uuid` wears, as the Wardrobe lookups last said.
 pub fn worn(uuid: u128) -> Option<Wear> {
     wardrobe(|w| w.worn.get(&uuid).cloned())
@@ -5876,6 +6019,8 @@ struct Wardrobe {
     pack_asked: Option<Instant>,
     pack_ready: bool,
     inspect: Option<Instant>,
+    /// Your account, once Horizon has said it (the Cosmetics page shows what it wears).
+    own: Option<u128>,
 }
 static WARDROBE: std::sync::Mutex<Option<Wardrobe>> = std::sync::Mutex::new(None);
 fn wardrobe<T>(f: impl FnOnce(&mut Wardrobe) -> T) -> T {
@@ -5925,6 +6070,7 @@ pub fn dressing(settings: &Settings, own: Option<u128>, data: &std::path::Path, 
     let users: Vec<u128> = if settings.on(COSMETICS) && settings.on(USERS) { net(|n| n.users.iter().copied().collect()) } else { Vec::new() };
     wardrobe(|w| {
         let now = Instant::now();
+        w.own = own;
         if let Some(own) = own {
             if w.own_asked.is_none_or(|t| t.elapsed() > Duration::from_secs(300)) {
                 w.own_asked = Some(now);
@@ -6348,6 +6494,28 @@ pub fn web_answer(path: &str, status: u16, json: &str) {
     if v["questsCompleted"].as_array().is_some_and(|a| !a.is_empty()) {
         ask_quests();
     }
+}
+
+thread_local! {
+    /// Browse's applies not yet told to the website.
+    static PENDING_APPLIES: RefCell<Vec<u64>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Browse's applies as signed uploads (as the Java mod's GalleryActions): each counts for the gallery quests.
+/// `uuid`: your account (the website keeps only a hash of the client id made from it).
+pub fn apply_uploads(uuid: Option<u128>) -> Vec<Upload> {
+    let Some(uuid) = uuid else {
+        PENDING_APPLIES.with_borrow_mut(|p| p.clear());
+        return Vec::new();
+    };
+    let ids = PENDING_APPLIES.with_borrow_mut(std::mem::take);
+    // The path is 'static in Upload: one small string per apply, a handful a session.
+    ids.into_iter().map(|id| Upload {
+        prefix: "arsenal-apply-v1",
+        extra: vec![id.to_string()],
+        path: Box::leak(format!("/v1/gallery/{id}/apply").into_boxed_str()),
+        fields: vec![("client".into(), format!("horizon-{uuid:032x}").into()), ("source".into(), "mod".into())],
+    }).collect()
 }
 
 /// Sends a signed upload (the body Horizon signed) on its own thread; retried a few times when the website is busy.
@@ -7102,6 +7270,7 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
             }
         }
         let mark = out.len();
+        let using = using.or(hud_editing().then_some(("minecraft:bow", 12)));
         if let (true, Some((item, ticks))) = (settings.on(BOW), using) {
             if let Some(c) = bow_charge(item, ticks) {
                 label(&mut out, format!("{}%", (c * 100.0).round() as i32), [cx, cy + 14.0], if c >= 1.0 { 0x5CE08A } else { 0xFFFFFF });
@@ -7114,6 +7283,8 @@ pub fn more_shapes(settings: &Settings, others: &[Other], target: Option<&Other>
                 label(&mut out, format!("Re-totem {:.2}s", d.as_secs_f32()), [cx, cy + 48.0], if d.as_millis() < 300 { 0x5CE08A } else { 0xFFC83D });
             } else if x.popped_at.is_some() {
                 label(&mut out, "Re-totem!".into(), [cx, cy + 48.0], 0xFF5A5A);
+            } else if hud_editing() {
+                label(&mut out, "Re-totem 0.21s".into(), [cx, cy + 48.0], 0x5CE08A);
             }
         }
         place(settings, &mut out, mark, "retotem", w, h, width);
@@ -7846,6 +8017,8 @@ pub enum Look {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GalleryItem {
+    /// The website's id (0 when it didn't say): applies are counted by it.
+    pub id: u64,
     pub title: String,
     pub author: String,
     pub look: Look,
@@ -7886,7 +8059,7 @@ pub fn parse_gallery(text: &str) -> Vec<GalleryItem> {
             Some("preset") => Look::Preset,
             _ => continue,
         };
-        out.push(GalleryItem { title: s(&item["title"]), author: s(&item["author"]), look });
+        out.push(GalleryItem { id: item["id"].as_u64().unwrap_or(0), title: s(&item["title"]), author: s(&item["author"]), look });
     }
     out
 }
@@ -8009,7 +8182,7 @@ const SIDEBAR_BG: u32 = 0x700A_0A0E;
 const CARD: u32 = 0x12FF_FFFF;
 const CARD_HOVER: u32 = 0x24FF_FFFF;
 const TRACK: u32 = 0x38FF_FFFF;
-const MUTED: u32 = 0x9A9AA8;
+pub const MUTED: u32 = 0x9A9AA8;
 const GREY: u32 = 0x5E5E6A;
 const ROW: f32 = 28.0;
 const SIDE: f32 = 116.0;
@@ -8621,9 +8794,9 @@ fn layout(
             out.push(Shape::Fill([card[0], card[1] + 6.0, 2.0, card[3] - 12.0], solid));
             label(&mut out, "Your cosmetics", [card[0] + 12.0, card[1] + 10.0], 0xFFFF_FFFF, true, 1.25);
             let lines = [
-                "They still show to players on the Java version of Arsenal.",
-                "Horizon can't draw capes, hats or pets on players yet, so the Wardrobe isn't here.",
-                "Change what you wear on the launcher's Cosmetics page.",
+                "Horizon shows your Arsenal cape, blade, hat, accessory and pet, and other Arsenal users' too.",
+                "Players on the Java version of Arsenal see them as well.",
+                "Change what you wear on the launcher's Cosmetics page; Horizon picks it up within a few minutes.",
             ];
             let mut y = card[1] + 28.0;
             for l in lines {
@@ -8632,7 +8805,37 @@ fn layout(
                     y += 11.0;
                 }
             }
-            let back = [x0 + 18.0, card[1] + card[3] + 10.0, 76.0, 17.0];
+            // What you wear, slot by slot.
+            let wear = your_wear();
+            let slots: [(&str, Option<String>); 5] = match &wear {
+                Some(wr) => [("Cape", wr.cape.clone()), ("Blade", wr.blade.clone()), ("Hat", wr.hat.clone()), ("Accessory", wr.accessory.clone()), ("Pet", wr.pet.clone())],
+                None => [("Cape", None), ("Blade", None), ("Hat", None), ("Accessory", None), ("Pet", None)],
+            };
+            let worn_card = [card[0], card[1] + card[3] + 8.0, card[2], 24.0 + 12.0 * slots.len() as f32];
+            rounded(&mut out, worn_card, 5.0, CARD);
+            label(&mut out, "What you wear", [worn_card[0] + 12.0, worn_card[1] + 8.0], 0xFFFF_FFFF, true, 1.0);
+            if wear.is_none() {
+                label(&mut out, "Not loaded yet (it needs your Microsoft account and the Arsenal website).", [worn_card[0] + 110.0, worn_card[1] + 8.0], argb(GREY, 1.0), false, 1.0);
+            }
+            for (n, (slot, id)) in slots.iter().enumerate() {
+                let ry = worn_card[1] + 22.0 + n as f32 * 12.0;
+                label(&mut out, slot, [worn_card[0] + 12.0, ry], argb(MUTED, 1.0), false, 1.0);
+                let value = id.as_deref().map_or("Nothing".to_owned(), cosmetic_name);
+                label(&mut out, &value, [worn_card[0] + 90.0, ry], if id.is_some() { 0xFFFF_FFFF } else { argb(GREY, 1.0) }, false, 1.0);
+            }
+            // The switches: everyone's cosmetics on players, and your blade.
+            let mut sy = worn_card[1] + worn_card[3] + 8.0;
+            for (f, text) in [(COSMETICS, "Capes, hats, accessories, pets and auras on players"), (BLADES, "Your Wardrobe blade in your hand")] {
+                let row = [card[0], sy, card[2], 22.0];
+                let t = hover(key(6, 1 + f), row);
+                rounded(&mut out, row, 4.0, mix_argb(CARD, CARD_HOVER, t));
+                label(&mut out, FIELDS[f].label, [row[0] + 12.0, row[1] + 7.0], 0xFFFF_FFFF, false, 1.0);
+                label(&mut out, text, [row[0] + 12.0 + width(FIELDS[f].label) + 10.0, row[1] + 7.0], argb(GREY, 1.0), false, 1.0);
+                switch(&mut out, [row[0] + row[2] - 34.0, row[1] + 6.0], if s.on(f) { 1.0 } else { 0.0 }, accent);
+                hits.push((row, Action::Setting(f)));
+                sy += 26.0;
+            }
+            let back = [x0 + 18.0, sy + 4.0, 76.0, 17.0];
             let t = hover(key(6, 0), back);
             button(&mut out, &mut hits, back, "< Home", Action::Go(Page::Home), mouse, width, t);
         }
@@ -9700,6 +9903,9 @@ pub fn apply(action: Action, m: &mut Menu, s: &mut Settings, browse: &Fetch) -> 
             Fetch::Ready(items) => match items.get(i) {
                 Some(item) if apply_item(item, s) => {
                     m.notice = Some(format!("Applied {}", item.title));
+                    if item.id != 0 {
+                        PENDING_APPLIES.with_borrow_mut(|p| p.push(item.id));
+                    }
                     true
                 }
                 _ => false,
@@ -10583,11 +10789,11 @@ mod tests {
     fn themes_from_browse_colour_the_panel() {
         let mut s = Settings::default();
         let t = Theme { background: 0xB0102030, text: 0xEEEEEE, accent: 0x00FF88 };
-        assert!(apply_item(&GalleryItem { title: "T".into(), author: "A".into(), look: Look::Theme(t) }, &mut s));
+        assert!(apply_item(&GalleryItem { id: 0, title: "T".into(), author: "A".into(), look: Look::Theme(t) }, &mut s));
         assert_eq!((s.accent(), s.panel_colors()), (0x00FF88, (0xB0102030, 0xEEEEEE)));
         s.click(ACCENT);
         assert_eq!((s.accent(), s.panel_colors()), (ACCENT_RGB[0], (BACKGROUND, WHITE)));
-        assert!(!apply_item(&GalleryItem { title: "P".into(), author: "A".into(), look: Look::Preset }, &mut s));
+        assert!(!apply_item(&GalleryItem { id: 0, title: "P".into(), author: "A".into(), look: Look::Preset }, &mut s));
     }
 
     #[test]
@@ -10732,7 +10938,7 @@ mod tests {
         assert!(apply(Action::Pick(ZOOM, six), &mut m, &mut s, &none));
         assert_eq!(s.zoom_level(), 6.0);
         // Browse: a card applies its crosshair.
-        let ready = Fetch::Ready(vec![GalleryItem { title: "Plus".into(), author: "A".into(), look: Look::Crosshair(cross()) }]);
+        let ready = Fetch::Ready(vec![GalleryItem { id: 0, title: "Plus".into(), author: "A".into(), look: Look::Crosshair(cross()) }]);
         apply(Action::Go(Page::Browse), &mut m, &mut s, &ready);
         let (_, hits) = menu_layout(screen, [0.0, 0.0], &m, &s, &ready, &width);
         let card = hits.iter().find(|(_, a)| *a == Action::Apply(0)).unwrap().0;
